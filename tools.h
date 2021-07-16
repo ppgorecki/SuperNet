@@ -8,8 +8,8 @@
 #ifndef TOOLS_H_
 #define TOOLS_H_
 
-//#define SPMED
-#define SPSMALL
+#define SPMED
+//#define SPSMALL
 
 #ifdef SPSMALL
 #define SPID char
@@ -60,6 +60,10 @@ extern int printleaves;
 extern int stprogress; // Print progress for species trees
 extern int ppgraphviz; // Print graphviz output
 extern SPID topspcluster[2];
+string getstringn(char *s, int len);
+
+// Count occurences of c in s
+int strcount(char *s, char c);
 
 #define species(i) specnames[i]
 
@@ -91,5 +95,31 @@ int eqspclusters(SPID *a, SPID *b);
 bool spsubseteq(SPID *a, SPID *b);
 
 void cleanspecies();
+
+struct comparespids
+{
+  bool operator()(const SPID* a, const SPID* b) const
+{
+      int i = 1, al = a[0] + 1, bl = b[0] + 1;
+
+      if (al<bl) { //cout << "Tx";
+  return true; }
+      if (al>bl) { //cout << "Fx";
+  return false; }
+    for ( ; i < al; i++ ) {
+      if (a[i] < b[i]) { //cout << "T";
+  return true;}
+      if (a[i] > b[i]) { //cout << "F";
+  return false; }
+    }
+      //    cout <<"F";
+    return false;
+  
+  }
+};
+
+
+
+
 
 #endif /* TOOLS_H_ */

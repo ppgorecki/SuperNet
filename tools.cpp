@@ -132,8 +132,9 @@ char* getTok(char *s, int &p, int num)
   while (isspace(s[p])) inctok;
 
   char *cur = s + p;
-  if (isalnum(s[p]) || (s[p] == '_'))
+  if (isalnum(s[p]) || (s[p] == '_') || (s[p] == '#'))
   {
+    if (s[p] == '#') inctok;
     while (isalnum(s[p]) || (s[p] == '_') || (s[p] == '.') || (s[p] == '-')) inctok;
     return cur;
   }
@@ -166,32 +167,37 @@ void checkparsing(char *s)
   }
 }
 
-int getspecies(char *s, int len)
-{
 
-  char old;
-  int num;
+string getstringn(char *s, int len)
+{
+  char old;  
   if (len)
   {
     old = s[len];
     s[len] = 0;
   }
+  string t = s;
   
-  if (!specnames2id.count(s))
-  {
-    specnames2id[s] = num = specnames.size();
-    specorder.push_back(num);
-    specnames.push_back(s);    
-    SPID* speccluster = new SPID[2];
-    speccluster[0] = 1;
-    speccluster[1] = num;
-    spec2spcluster[num] = speccluster;
-  }
-  else num = specnames2id[s];
-
   if (len) s[len] = old;
+  return t;
+}
 
+int getspecies(char *_s, int len)
+{
+  string s = getstringn(_s,len);  
+  if (specnames2id.count(s)) return specnames2id[s];
+
+  int num;
+
+  specnames2id[s] = num = specnames.size();
+  specorder.push_back(num);
+  specnames.push_back(s);    
+  SPID* speccluster = new SPID[2];
+  speccluster[0] = 1;
+  speccluster[1] = num;
+  spec2spcluster[num] = speccluster;
   return num;
+  
 }
 
 void cleanspecies()
@@ -237,7 +243,9 @@ int usage(int argc, char **argv) {
        "INPUT OPTIONS:\n"
        "  -g STR: gene trees from a string (separator is semicolon)\n"
        "  -s species tree\n"
-       "  -G filename - gene trees from a file; EOLN separated\n"              
+       "  -n network\n"
+       "  -G filename - gene trees from a file; EOLN separated; - stdin\n"              
+       "  -S filename - species trees from a file; EOLN separated; - stdin\n"
 
        "  -l [aDELIM|bDELIM|pPOS] - rules for matching gene tree names with species tree names;\n"       
        "       a - after delimiter; b - before delimiter; p - from position \n"
@@ -250,9 +258,12 @@ int usage(int argc, char **argv) {
        "  -r NUM - print NUM random species trees and exit\n"
        "  -S SPECIESNUM - define SPECIESNUM species a,b,...\n"
 
-       "  -e [gsrD]+ - multiple options:\n"
+       "  -e [gsrD...]+ - multiple options:\n"
        "     g - print a gene tree\n"
        "     s - print a species tree\n"
+       "     n - print a network\n"
+       "     d - print display trees\n"
+       "     o - ODT cost using naive approach\n"
        "     r - preserve root when searching the species tree space and in quasi-consensus\n"              
        "     D - detailed tree info\n"       
        "     i - list species dictionary\n"       
@@ -278,23 +289,37 @@ int usage(int argc, char **argv) {
        "Examples: \n\n"
 
        "Print 10 quasi consensus trees\n"
-       "> supnet -g '(a,((b,c),d));(a,(b,d))' -w10\n"
+       " supnet -g '(a,((b,c),d));(a,(b,d))' -w10\n"
+       
+       "Print 10 quasi consensus trees with preserved split of the root (-er)\n"
+       " supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -w10 -er\n"
 
        "Detailed tree info\n"
-       "> supnet -g '(a,((b,a),c))' -eD\n"
+       "  supnet -g '(a,((b,a),c))' -eD\n"
 
        "Print DC cost\n"
-       "> supnet -g '(b,(a,c))' -s '(a,(b,c))' -CDC -ec \n"
+       "  supnet -g '(b,(a,c))' -s '(a,(b,c))' -CDC -ec \n"
 
-       "Print 10 random species trees over a..e\n"
-       "> supnet -S5 -R10\n"
+       "Print 10 random species trees over a..e (5)\n"
+       "  supnet -S5 -r10\n"
+
+       "Print display trees\n"
+       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -ed\n"
+
+       "Printing and visualizing\n"
+       "  supnet -n '((a)#A,(#A,(c,b)))' -enD\n"       
+       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -enD\n"       
+       "  supnet -n '(((b)#A,a),(#A,c))' -d\n"
+       "  supnet -n '((a)#A,(#A,(c,b)))' -d | dot -Tpdf > n.pdf\n"
+       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf\n"
+       "  supnet -n $( embnet.py -n 'rand:20:10' -pn ) -d | dot -Tpdf > n.pdf\n"
+       "N=$( embnet.py -n 'rand:3:1' -pn ); echo $N; supnet -n$N -d | dot -Tpdf > n.pdf\n"
 
        ;
        
 
   exit(-1);
 }
-
 
 
 // return random tree string from given vector of species
@@ -319,3 +344,18 @@ string genrandomtree(SPID *sp, int len)
   }
   return v[0];
 }
+
+int strcount(char *s, char c)
+{  
+  int cnt = 0;  
+  while (*s) 
+  {
+    if (*s == c) cnt++;
+    s++;
+  }
+  return cnt;
+}
+
+
+
+
