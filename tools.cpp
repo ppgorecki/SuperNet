@@ -263,7 +263,7 @@ int usage(int argc, char **argv) {
        "     s - print a species tree\n"
        "     n - print a network\n"
        "     d - print display trees\n"
-       "     o - ODT cost using naive approach\n"
+       "     o - min total cost of all gene trees vs network using naive approach\n"
        "     r - preserve root when searching the species tree space and in quasi-consensus\n"              
        "     D - detailed tree info\n"       
        "     i - list species dictionary\n"       
@@ -305,6 +305,9 @@ int usage(int argc, char **argv) {
 
        "Print display trees\n"
        "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -ed\n"
+
+       "Print min total cost 10 random gene trees vs random network with 5 reticulations\n"
+       "  supnet -r10 -A10 | supnet -G- -n $( embnet.py -n \"rand:10:5\" -pn ) -eo\n"
 
        "Printing and visualizing\n"
        "  supnet -n '((a)#A,(#A,(c,b)))' -enD\n"       
