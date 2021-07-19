@@ -142,7 +142,8 @@ int main(int argc, char **argv)
       case 'e':        
         if (strchr(optarg,'i')) OPT_PRINTINFO=1;
         if (strchr(optarg,'g')) OPT_PRINTGENE = 1;
-        if (strchr(optarg,'d')) OPT_PRINTDISPLAYTREES = 1;
+        if (strchr(optarg,'t')) OPT_PRINTDISPLAYTREES = 1;
+        if (strchr(optarg,'T')) OPT_PRINTDISPLAYTREES = 2;
         if (strchr(optarg,'n')) OPT_PRINTNETWORK = 1;
         if (strchr(optarg,'o')) OPT_ODTNAIVE = 1;
 
@@ -414,10 +415,13 @@ int main(int argc, char **argv)
         Network *n = *ntpos;
         RootedTree *t = NULL;
         // cout << *n << endl;     
-        while ((t=n->gendisplaytree(tid++,t))!=NULL)   
-
-            //cout << tid++ << " " << *t << endl;             
-            cout << *t << endl;             
+        while ((t=n->gendisplaytree(tid,t))!=NULL)   
+        {
+          if (OPT_PRINTDISPLAYTREES==2)
+            cout << tid << " ";
+          cout << *t << endl;       
+          tid++;      
+        }
     }
   }
 

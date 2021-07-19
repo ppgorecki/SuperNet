@@ -308,11 +308,72 @@ void Dag::setexactspecies()
     		}
 }
 
+ostream& Dag::printdebstats(ostream&s) 
+{
+    s << " Nodes(nn)=" << (int)size() 
+      << " Leaves(lf)=" << (int)lf ;
+    if (rt)      
+        s << " Reticulations(rt)=" << (int)rt;
+    
+    s << endl;
+
+    s << " Leaves:0.."<< (int)(lf-1)
+      << " TreeNodes:" << (int)lf << ".." << (int)rtstartid-1;
+    if (rt) s << " RetNodes:" << (int)rtstartid << ".." << nn-1;
+
+    s << endl;
+
+    if (rt) s << " rtstartid=" << (int)rtstartid;
+    s << " root=" << (int)root;           
+    s << " exactspecies=" << exactspecies;
+    return s;
+}
+
+ostream& Dag::printdebarrays(ostream&s) 
+{
+    s << " parent= "; 
+    for (SPID i=0; i<nn; i++) s << " " << (int)i << ":" << parent[i]; 
+    s << endl;
+
+    s << " leftchild= "; 
+    for (SPID i=lf; i<rtstartid; i++) s << " " << (int)i << ":" << leftchild[i]; 
+    s << endl;
+
+    s << " rightchild= "; 
+    for (SPID i=lf; i<rtstartid; i++) s << " " << (int)i << ":" << leftchild[i]; 
+    s << endl;
+
+    s << " lab= "; 
+    for (SPID i=0; i<lf; i++) s << " " << int(i) << ":" << lab[i]; 
+    s << endl;   
+
+    if (rt)
+    {
+      s << " retchild= "; 
+      for (SPID i=rtstartid; i<nn; i++) s << " " << (int)i << ":" << retchild[i]; 
+      s << endl;
+
+      s << " retparent= "; 
+      for (SPID i=rtstartid; i<nn; i++) s << " " << (int)i << ":" << retparent[i]; 
+      s << endl;   
+
+      s << " spid2retlabel= "; 
+      for (SPID i=rtstartid; i<nn; i++) s << " " << int(i) << ":" << spid2retlabel[i]; 
+      s << endl;   
+
+
+    }
+      
+    return s;
+}
+
 ostream& Dag::printdeb(ostream&s, int gse, string tn) 
 {
 	if (gse&2)
-	{
-	  s << "leaves=" << (int)lf << " total=" << (int)size() << " exactspecies=" << exactspecies << endl;
+	{	  
+    printdebstats(s);
+
+    s << endl;
 	  for (SPID i = 0; i < size(); i++ ) 
 	  {	  		
 	  	   	s << setiosflags(ios::left) << setw(2) << (int)i << " ";	  	   	
@@ -348,12 +409,13 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
     		// 	s << " ch=" << setw(3) << (int)leftchild[i] << setw(3) << (int)rightchild[i];    		
     		// } else
     		// 	s << " ch=" << setw(3) << (int)retchild[i] << setw(3) << "";
-
     		
     		s << " subtree=";
     		printsubtree(s,i); 
     		s << endl;
 	  }	    
+
+    printdebarrays(s);
 	}
   
     // if (gse&1)

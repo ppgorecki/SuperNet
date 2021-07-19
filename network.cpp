@@ -12,6 +12,11 @@ void initbitmask()
 		bitmask[i]=2*bitmask[i-1];
 }
 
+ostream& Network::printdebstats(ostream&s)
+{
+	return Dag::printdebstats(s) << " displaytreemaxid=" << displaytreemaxid;
+}
+
 
 // Generate id'th display tree
 // id encodes reticulation schema -> for long size is 8 -> 64 bits

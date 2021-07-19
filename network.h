@@ -22,6 +22,8 @@ class Network: public Dag
 
 	SPID _gendisplaytree(DISPLAYTREEID id, RootedTree *t, SPID i, SPID iparent, SPID &freeint);
 
+	virtual ostream& printdebstats(ostream&s);
+
 public:
 	
 	Network(char *s, double weight=1.0): Dag(s,weight) 

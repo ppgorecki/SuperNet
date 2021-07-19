@@ -336,12 +336,19 @@ double RootedTree::odtnaivecost(Network &network, int costfunc, DISPLAYTREEID &o
     return mincost;        
 }
 
-
 ostream& RootedTree::printdeb(ostream&s, int gse, string tn)
 {
     Dag::printdeb(s,gse,tn);
-    cout << "depth=[";
-    for (SPID i=0; i<nn; i++)
-        s << (int)depth[i] << " ";
-    return s << "]" << endl;
+    if (depthinitialized)
+    {
+        s << "depth=[";
+        for (SPID i=0; i<nn; i++)
+            s << (int)depth[i] << " ";
+        return s << "]";
+    }
+    else
+    {
+      s << " depth array is uninitialized";
+    }
+    return s << endl;
 }

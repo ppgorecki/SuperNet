@@ -262,7 +262,8 @@ int usage(int argc, char **argv) {
        "     g - print a gene tree\n"
        "     s - print a species tree\n"
        "     n - print a network\n"
-       "     d - print display trees\n"
+       "     t - print all display trees\n"
+       "     T - print all display trees with their ids\n"
        "     o - min total cost of all gene trees vs network using naive approach\n"
        "     r - preserve root when searching the species tree space and in quasi-consensus\n"              
        "     D - detailed tree info\n"       
@@ -294,17 +295,22 @@ int usage(int argc, char **argv) {
        "Print 10 quasi consensus trees with preserved split of the root (-er)\n"
        " supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -w10 -er\n"
 
-       "Detailed tree info\n"
+       "Detailed tree/network info\n"
        "  supnet -g '(a,((b,a),c))' -eD\n"
+
+
 
        "Print DC cost\n"
        "  supnet -g '(b,(a,c))' -s '(a,(b,c))' -CDC -ec \n"
 
        "Print 10 random species trees over a..e (5)\n"
-       "  supnet -S5 -r10\n"
+       "  supnet -A5 -r10\n"
 
-       "Print display trees\n"
-       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -ed\n"
+       "Print display trees (based on reticulation switching; trees maybe non-unique)\n"
+       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -et\n"
+
+       "Print display trees with ids\n"
+       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -eT\n"
 
        "Print min total cost 10 random gene trees vs random network with 5 reticulations\n"
        "  supnet -r10 -A10 | supnet -G- -n $( embnet.py -n \"rand:10:5\" -pn ) -eo\n"
