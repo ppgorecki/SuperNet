@@ -1,9 +1,16 @@
 
 # embnet.py access needed
 
-SPECIES=10  # species 
+if ! [[ $1 ]]
+then
+	SUPNET_o=1st
+else
+	SUPNET_o=$1
+fi
+
+SPECIES=50  # species 
 RET=8      # reticulations 
-GENETREES=4 # number of gene trees 
+GENETREES=8 # number of gene trees 
 
 # OPTIONS
 #
@@ -21,7 +28,7 @@ done
 
 echo $G 
 
-for i in {1..10} 
+for i in {1..1} 
 do
 	#nt1
 	N=$( embnet.py -n "rand:$SPECIES:$RET" -pn )  # start from random
@@ -30,7 +37,7 @@ do
 
 	#supnet -n "$N" -ed	
 	echo "supnet -g \"$G\" -n \"$N\" -on$1 "
-	time supnet -g $G -n "$N" -on$1
+	time supnet -g $G -n "$N" -o$SUPNET_o
 
 	# echo "==="
 	# E=$( embnet.py -n $N -g $G -pa -cc | grep -v "Net" | cut -f3 -d' ' | sort -n  | head -1 )
