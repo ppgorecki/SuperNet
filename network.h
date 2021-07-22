@@ -24,6 +24,8 @@ class Network: public Dag
 
 	virtual ostream& printdebstats(ostream&s);
 
+	void _getreachablefrom(SPID v, bool *reachable, bool *visited);
+
 public:
 	
 	Network(char *s, double weight=1.0): Dag(s,weight) 
@@ -50,6 +52,13 @@ public:
 
 	// Compute min cost vs. gene trees
 	double odtnaivecost(vector<RootedTree*> &genetrees, int costfunc, DISPLAYTREEID &optid);
+
+	// Marks nodes reachable from v (including v)	
+	void getreachablefrom(SPID v, bool *reachable);
+
+	friend class NNI;
+	friend class TailMove;
+
 };
 
 #endif

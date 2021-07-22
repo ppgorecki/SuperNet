@@ -9,12 +9,13 @@ tools.o : tools.cpp tools.h clusters.h
 rtree.o : rtree.cpp rtree.h tools.h clusters.h dag.h
 network.o : network.cpp network.h dag.h rtree.h tools.h
 dag.o: dag.cpp dag.h tools.cpp tools.h
+hillclimb.o: hillclimb.h hillclimb.cpp tools.h
 
-supnet: tools.o clusters.o dag.o rtree.o network.o supnet.o 
+supnet: tools.o clusters.o dag.o rtree.o network.o hillclimb.o supnet.o 
 	$(CC) $(LFLAGS) -o $@ $^
 
 gdb: clean  
-	g++ -g -o supnet tools.cpp rtree.cpp dag.cpp network.cpp clusters.cpp supnet.cpp 
+	g++ -g -o supnet tools.cpp rtree.cpp dag.cpp network.cpp clusters.cpp hillclimb.cpp supnet.cpp 
 
 clean:
 	rm -f *.o $(TARGET) *.old *~ x *.log
@@ -33,5 +34,6 @@ tgzlin :
 
 check-syntax:
 	gcc -o nul -S ${CHK_SOURCES}
+
 
 tools.o : tools.cpp tools.h

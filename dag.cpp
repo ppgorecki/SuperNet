@@ -56,12 +56,13 @@ void Dag::parse(char *s)
     checkparsing(s+p); 
 }
 
+
 SPID Dag::_parse(char *s, int &p, int num, 
     SPID &freeleaf, SPID &freeint, SPID &freeret,         
     SPID* &parentset, map<string, SPID> &retlabel2spid)
 {
   char *cur = getTok(s, p, num);
-  
+ 
   if (cur[0] == '(')
   {
     SPID *parenta = parent;
@@ -69,22 +70,33 @@ SPID Dag::_parse(char *s, int &p, int num,
 
     int a = _parse(s, p, num, freeleaf, freeint, freeret, parenta,retlabel2spid);
     char *token = getTok(s, p, num);
+        
     if (token[0]==')')
     {
+
       char *cur = getTok(s, p, num);        
-      string t = getstringn(cur, s + p - cur);
+      if (cur[0]!='#')
+      {
+        cerr << "Parse error: # expected in " << cur << endl;
+        exit(-1);
+      }
+      
+      string t = getstringn(cur, s + p - cur);      
       SPID retnode; 
       if (retlabel2spid.count(t)) retnode = retlabel2spid[t];
       else retlabel2spid[t] = retnode = freeret++;             
       spid2retlabel[retnode] = t;
       retchild[retnode] = a;
-      parenta[a] = retnode;                
+      parenta[a] = retnode;         
       return retnode;
     }
     else
     {        
+  
+
       int b = _parse(s, p, num, freeleaf, freeint, freeret, parentb,retlabel2spid);
-      getTok(s, p, num);
+      token = getTok(s, p, num);
+
       if (freeint >= nn)
       {
         cerr << "Is it a binary network? Too many nodes in rooted network" << endl;
@@ -93,16 +105,10 @@ SPID Dag::_parse(char *s, int &p, int num,
       rightchild[freeint] = b;
       leftchild[freeint] = a;              
       parenta[a] = freeint;
-      parentb[b] = freeint;        
+      parentb[b] = freeint;     
+      
       return freeint++;
     }
-  }
-
-  // leaf processing 
-  if (freeleaf >= lf)
-  {
-    cerr << "Too many leaves in a binary network. " << endl; 
-    exit(-1);
   }
   
   if (cur[0]=='#') 
@@ -113,6 +119,14 @@ SPID Dag::_parse(char *s, int &p, int num,
     if (retlabel2spid.count(t)) return retlabel2spid[t];    
     retlabel2spid[t] = freeret;
     return freeret++;
+  }
+
+
+  // leaf processing 
+  if (freeleaf >= lf)
+  {
+    cerr << "Too many leaves in a binary network. " << endl; 
+    exit(-1);
   }
   
   // normal leaf
@@ -181,35 +195,155 @@ bool Dag::bijectiveleaflabelling()
   return true;
 }
 
-ostream& Dag::printdot(ostream&s)
+int Dag::verifychildparent()
+{
+
+   if (parent[root]!=MAXSP) { 
+      cerr << (int)root << ": wrong parent (" << (int)parent[root] << ")of the root ";
+      return 1; // wrong parent of the root
+   }
+
+
+   if (lf==1 && nn==1) return 0; // single noded tree; OK
+
+   for (SPID i = 0; i < nn; i++ ) 
+   {
+      SPID p = parent[i];
+
+      if (p==MAXSP && i!=root) { 
+        cerr << (int)i << ": non-root parent is MAXSP";
+        return 2; // incorect parent 
+      }
+      if (p==MAXSP && i>=rtstartid) { 
+        cerr << (int)i << ": reticulation parent is MAXSP";
+        return 3; 
+      }
+
+      if (parent[i]==i) { 
+        cerr << (int)i << " and its parent are looped";
+        return 11; // self - loop
+      }
+      if (i<lf) continue;
+      if (i<rtstartid)
+      {
+        if (leftchild[i]==i) { 
+          cerr << (int)i << " and its leftchild are looped";
+          return 12; // self - loop
+        }
+        if (rightchild[i]==i) { 
+            cerr << (int)i << " and its rightchild are looped";
+            return 13; // self - loop
+        }
+      } else {        
+        if (retchild[i]==i) { 
+          cerr << (int)i << " and its retchild are looped";
+          return 14; // self - loop      
+        }
+      }       
+   }
+
+   for (SPID i = 0; i < nn; i++ ) 
+   {
+      SPID p = parent[i];
+      if (p==MAXSP) continue;      
+      if (p<lf) { 
+        cerr << (int)i << ": parent " << (int)p << "is a leaf?";
+        return 23; // Parent is a leaf?
+      }
+
+      if (p>=rtstartid) // parent is a reticulation
+      {
+        if (retchild[p]!=i) 
+        {
+          cerr << (int)i << ": parent->retchild disconnected " << (int)p;
+          return 24; // wrong retchild
+        }
+      }
+      else
+      {
+        if (i==leftchild[p] && i==rightchild[p]) { 
+            cerr << (int)i << ": parent[i] has equal left and right children" << (int)p;
+            return 25; // double edge? 
+        }
+        if (i==leftchild[p] || i==rightchild[p]) continue; // OK        
+        cerr << (int)i << ": no connection from parent[i]" << (int)p;
+        return 26; // no child in the parent
+      }
+   }
+
+   // check ret. node (ugly repetition)
+   for (SPID i = rtstartid; i < nn; i++) 
+   {
+      SPID rp = retparent[i];
+      if (rp == MAXSP) { 
+        cerr << (int)i << ": retparent[i] is MAXSP";
+        return 4; // retparent is undefined
+      }
+      if (rp == parent[i]) { 
+        cerr << (int)i << ": retparent[i] equals parent[i]";
+        return 5; // double edge?
+      }
+
+      if (rp>=rtstartid) // parent is a reticulation
+      {
+        if (retchild[rp]!=i) 
+        {
+            cerr << (int)i << ": wrong retchild of retparent[i]";
+            return 34; // wrong retchild
+        }
+      }
+      else
+      {
+        if (i==leftchild[rp] && i==rightchild[rp]) { 
+          cerr << (int)i << ": retparent[i] has equal left and right children" << (int)rp;
+          return 35; // double edge? 
+        }
+        if (i==leftchild[rp] || i==rightchild[rp]) continue; // OK 
+
+        cerr << (int)i << ": no connection from retparent[i]" << (int)rp;       
+        return 36; // no child in the parent
+      }
+
+   }
+
+   return 0; // OK
+
+}
+
+ostream& Dag::printdot(ostream&s, int dagnum)
 {
     for (SPID i = 0; i < size(); i++ ) 
     {     
-		s << "v" << (int)i;
-		if (i<lf)    
-		  s << " [label=\"" << species(lab[i]) << " " << (int)i << "\"]" << endl;  
-		else if (i>=rtstartid)
-		{
-			s << " [shape=box,color=red,label=\"" << (int)i << "\"]" << endl;  
-		}
-		else
-			s << " [label=\"" << (int)i << "\"]" << endl;  	
-		s << endl;
+		
+      s << "v" << (int)i << "x" << dagnum;
+  		if (i<lf)    
+  		  s << " [label=\"" << species(lab[i]) << " " << (int)i << "\"]" << endl;  
+  		else if (i>=rtstartid)
+  		{
+  			s << " [shape=box,color=red,label=\"" << (int)i << "\"]" << endl;  
+  		}
+  		else
+  			s << " [label=\"" << (int)i << "\"]" << endl;  	
+		  s << endl;
 
-		SPID iparent = MAXSP;
-		while (getparent(i,iparent))          
-		{
-		    s << "v" << (int)iparent << "->  v" << (int)i;      
-		    if (i>=rtstartid)
-		    	{	
-		    		s << " [label=\"" << spid2retlabel[i] << "\"," << endl;  
-		    		if (iparent==retparent[i])
-		    			s << " color=red]";  // from a leaf #A
-		    		else
-		    			s << " color=green]"; // from internal #A  		    	
-		    	}
-		    s << endl;
-		}
+  		SPID iparent = MAXSP;
+  		while (getparent(i,iparent))          
+  		{
+  		    s << "v" << (int)iparent << "x" << dagnum << " -> v" << (int)i << "x" << dagnum;
+
+          s << " [ penwidth=";
+          if (leftchild[iparent]==i)  // leftchild - thicker edge
+            s << "3"; 
+          else s << "1";
+
+  		    if (i>=rtstartid)
+  		    	{	
+  		    		s << ",label=\"" << spid2retlabel[i] << "\"";  
+  		    		if (iparent==retparent[i])
+  		    			s << ",color=red";  // from a leaf #A  		    		
+  		    	}        
+  		    s << "]" << endl;
+  		}
 
 	}
 	return s;
@@ -217,9 +351,15 @@ ostream& Dag::printdot(ostream&s)
 
 
 
-ostream& Dag::printsubtree(ostream&s, SPID i, SPID iparent) 
+ostream& Dag::printsubtree(ostream&s, SPID i, SPID iparent, int level) 
 { 
 	// leaf
+  if (level>nn)
+  {
+    // stop infinite prints
+    s << "...loop?" << endl;
+    return s;
+  }
 	if (i < lf) return s << species(lab[i]); 
 
 	// internals via getchild	
@@ -233,11 +373,18 @@ ostream& Dag::printsubtree(ostream&s, SPID i, SPID iparent)
 	s << "(";
 	bool first = true;
 	SPID ichild = MAXSP;
+  int childcnt=0;
 	while (getchild(i,ichild))          
 	{        
 	    if (!first) s << ",";
 	    else first = false;
-	    printsubtree(s, ichild, i);
+	    printsubtree(s, ichild, i, level+1);
+      childcnt++;
+      if (childcnt>2)
+      {
+        s << ",...?"; 
+        break;
+      }
 	}
 	s << ")";
 
@@ -265,8 +412,11 @@ bool Dag::getparent(SPID i, SPID &rparent)
 		// second run; try reticulation
 		if (i>=rtstartid) 
 		{
-			rparent=retparent[i];
-			return true;
+      if (retparent[i]!=rparent) 
+      {
+         rparent=retparent[i];      
+			   return true;
+      }
 		}
 	}
 	return false;
@@ -275,6 +425,7 @@ bool Dag::getparent(SPID i, SPID &rparent)
 // Returns the parents; to get all parents use:
 // SPID ichild=MAXSP;
 // while (getchild(i,ichild)) { .. ichild is a child of i ... }
+
 bool Dag::getchild(SPID i, SPID &ichild)
 {
 	if (i<lf) return false;
@@ -286,7 +437,7 @@ bool Dag::getchild(SPID i, SPID &ichild)
 		return true;
 	}
 
-	if (ichild==leftchild[i] && i<rtstartid)
+	if (ichild==leftchild[i] && leftchild[i]!=rightchild[i] && i<rtstartid)
 	{
 		// second run; 
 		ichild=rightchild[i];
@@ -340,7 +491,7 @@ ostream& Dag::printdebarrays(ostream&s)
     s << endl;
 
     s << " rightchild= "; 
-    for (SPID i=lf; i<rtstartid; i++) s << " " << (int)i << ":" << leftchild[i]; 
+    for (SPID i=lf; i<rtstartid; i++) s << " " << (int)i << ":" << rightchild[i]; 
     s << endl;
 
     s << " lab= "; 
@@ -389,11 +540,15 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
     			// s  << " par=" << setw(3) << (int)parent[i];
     		} 	
 
-    		SPID ic = MAXSP;    		
-    		while (getchild(i,ic)) s << setw(0) << " c=" << (int)ic;    			
+    		SPID ic = MAXSP;            
+    		while (getchild(i,ic)) 
+          s << setw(0) << " c=" << (int)ic;    			                  
    		
-    		SPID ip = MAXSP;
-    		while (getparent(i,ip)) s << setw(0) << " p=" << (int)ip;   	    	
+    		SPID ip = MAXSP;        
+    		while (getparent(i,ip)) 
+          s << setw(0) << " p=" << (int)ip;   	    	
+          
+       
 
     		if (i>=rtstartid) 
     		{

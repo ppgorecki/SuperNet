@@ -84,6 +84,27 @@ SPID Network::_gendisplaytree(DISPLAYTREEID id, RootedTree *t, SPID i, SPID ipar
 	return freeint++;
 }
 
+// Marks nodes reachable from v (including v)	
+void Network::getreachablefrom(SPID v, bool *reachable)
+{
+	bool visited[nn];
+	for (SPID i=0; i<nn; i++) reachable[i] = visited[i] = false;
+	_getreachablefrom(v,reachable, visited);
+}
+
+void Network::_getreachablefrom(SPID v, bool *reachable, bool *visited)
+{
+	if (visited[v]) return;
+	reachable[v] = true;
+	if (v<lf) return;
+	if (v>=rtstartid) _getreachablefrom(retchild[v], reachable, visited);
+	else
+	{	
+		_getreachablefrom(leftchild[v],reachable, visited);
+		_getreachablefrom(rightchild[v],reachable, visited);
+	}
+}
+
 double Network::odtnaivecost(vector<RootedTree*> &genetrees, int costfunc, DISPLAYTREEID &optid)
 {
     RootedTree *t = NULL;

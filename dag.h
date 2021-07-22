@@ -6,7 +6,8 @@
 
 // TODO: cycles are allowed; add top. sort.
 
-class Dag
+
+class Dag // PG: New name: RootedDirectedGraph?
 {
 
 protected:
@@ -15,7 +16,10 @@ protected:
   SPID *lab;     // Leaf labels (id of species from specnames)
   SPID *parent;  // Parent array
   SPID *leftchild, *rightchild; // Left and right child arrays
-  SPID *retchild, *retparent;   // Reticulation child and parent (only for ret. nodes)
+  SPID *retchild, *retparent;   
+  // In implementation retchild == leftchild 
+  // Reticulation child and parent (only for ret. nodes)
+
   string* spid2retlabel;        // Dict. of reticulation labels (spid -> string)
   SPID lf, rt, nn;  // The number of leaves, reticulations and all nodes
   SPID root, rtstartid; // root id, start id of reticulations
@@ -39,7 +43,7 @@ protected:
 6  Root c=0 c=5 subtree=(a,((b,a),c))
  parent=  0:6 1:4 2:4 3:5 4:5 5:6 6:32760
  leftchild=  4:1 5:4 6:0
- rightchild=  4:1 5:4 6:0
+ rightchild=  4:2 5:3 6:5
  depth array is uninitialized
 
 Check also visualization:
@@ -65,8 +69,8 @@ Example of network structures:
 7  Reti c=0 p=3 p=4 retlabel=#B subtree=(c)#B
 8  Reti c=3 p=6 p=5 retlabel=#A subtree=(((c)#B,b))#A
  parent=  0:7 1:3 2:4 3:8 4:5 5:6 6:32760 7:3 8:6
- leftchild=  3:7 4:7 5:8 6:8
- rightchild=  3:7 4:7 5:8 6:8
+ leftchild=  3:7 4:7 5:8 6:8 
+ rightchild=  3:1 4:2 5:4 6:5
  lab=  0:0 1:1 2:2
  retchild=  7:0 8:3
  retparent=  7:4 8:5
@@ -110,16 +114,18 @@ public:
   // Returns the parents; to get all parents use:
   // SPID p=MAXSP;
   // while (getparent(i,p)) { .. p is the parent ... }
+  // Double edges are colapsed
   bool getparent(SPID i, SPID &rparent);
   
   // As above but for children
+  // Double edges are colapsed
   bool getchild(SPID i, SPID &rchild);
 
   // Print node and all edges to its parents in dot format
-  ostream& printdot(ostream&s);
+  ostream& printdot(ostream&s, int dagnum=0);
 
   // Print subtree rooted at i
-  ostream& printsubtree(ostream&s, SPID i, SPID iparent = MAXSP);
+  ostream& printsubtree(ostream&s, SPID i, SPID iparent = MAXSP, int level = 0);
 
   // Print debug info 
   virtual ostream& printdeb(ostream&s, int gse, string tn="");
@@ -130,6 +136,13 @@ public:
   // Return the root
   SPID getroot() { return root; }
 
+  // Sibling of u; where parent(u) is a tree node u
+  // MAXSP otherwise
+  SPID sibling(SPID u) { 
+    SPID p = parent[u];
+    if (lf<=p<rtstartid) return leftchild[p]==u?rightchild[p]:leftchild[p];
+    return MAXSP;
+  }
 
   friend ostream& operator<<(ostream&s, Dag &p)  { return p.print(s); }
 
@@ -140,6 +153,17 @@ public:
     printsubtree(s, root);
     return s;
   }
+
+  // Check correctness of the child-parent relation in arrays
+  // Return 0 if the dag is OK
+  // 
+  int verifychildparent();
+
+  
+
+  // -----------------------------------------------------
+  // TODO: Topological sort; optionally with returning top. ordering
+  bool isdag() { return true; } 
     
 };
 

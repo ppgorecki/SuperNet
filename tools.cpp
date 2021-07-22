@@ -246,6 +246,7 @@ int usage(int argc, char **argv) {
        "  -n network\n"
        "  -G filename - gene trees from a file; EOLN separated; - stdin\n"              
        "  -S filename - species trees from a file; EOLN separated; - stdin\n"
+       "  -N filename - networks from a file; EOLN separated; - stdin\n"
 
        "  -l [aDELIM|bDELIM|pPOS] - rules for matching gene tree names with species tree names;\n"       
        "       a - after delimiter; b - before delimiter; p - from position \n"
@@ -278,7 +279,18 @@ int usage(int argc, char **argv) {
        "  -C COST - set cost function from {DL,D,L,DC,RF}\n"
        "\n"
 
-       "HEURISTIC SEARCH\n"
+       "ODT HEURISTIC SEARCH\n"
+
+       "  -o [nNe123] - run hill climbing heuristic using cost function\n"
+       "       T - use TailMoves (default)\n"
+       "       N - use NNI instead of TailMoves\n"
+       "       n - print network and the final cost (default is final cost only)\n"
+
+       "       t - TailMoves limited to tree-child (with 3a-3c conditions)\n"
+       "       1 - print visited network after each improvement (strictly)\n"
+       "       2 - print visited networks if the cost is equal to the current or improved\n"
+       "       3 - print all visited networks\n"
+       "       s - print additional stats on heuristic run\n"
               
        // "*Starting tree options:\n"
        // "  -q NUM - generate NUM quasi-consensus trees sampled from gene tree clusters;\n"
@@ -324,6 +336,32 @@ int usage(int argc, char **argv) {
        "  supnet -n $( embnet.py -n 'rand:20:10' -pn ) -d | dot -Tpdf > n.pdf\n"
        "N=$( embnet.py -n 'rand:3:1' -pn ); echo $N; supnet -n$N -d | dot -Tpdf > n.pdf\n"
 
+       "\nHill climbing heuristic\n"
+
+       " Minimalistic run: print cost only\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -oT\n"
+
+       " Minimalistic run: print cost and network\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -on\n"
+
+       " Print cost and improvement networks + stats\n"
+       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a)))  ; ((b,c),(d,a))\" -n $( embnet.py -n \"rand:5:3\" -pn ) -on2s\n"
+
+       " Print cost and improvement networks + stats (s); tree-child search (t)\n"
+       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -n $( embnet.py -n \"rand:5:3\" -pn ) -on2st\n"
+
+
+       " Larger instance; tree-child search:\n"
+       "  supnet -g \"((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))\" -n $( embnet.py -n \"rand:10:8\" -pn ) -o2snt\n"
+
+       " Print only improvements:\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -on1\n"
+       
+       " Print only improvements and equal cost networks:\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -on2\n"
+
+       " Print only improvements and equal cost networks; NNI moves:\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -on3N\n"
        ;
        
 
