@@ -134,8 +134,9 @@ int main(int argc, char **argv)
   int randomtreescnt = 0;
   int quasiconsensuscnt = 0;
 
-   
-  const char* optstring = "e:g:s:G:S:N:l:w:L:D:C:r:A:n:do:";
+  string odtfile = "odt.log";
+
+  const char* optstring = "e:g:s:G:S:N:l:w:L:D:C:r:A:n:do:O:";
   vector<char*> sgtvec, sstvec, snetvec;
   
   while ((opt = getopt(argc, argv, optstring))   != -1)
@@ -286,6 +287,12 @@ int main(int argc, char **argv)
         OPT_DOT = 1;
         break;
 
+    case 'O':
+        odtfile = optarg;
+        break;
+
+
+
     case 'o':        
         odt = strdup(optarg);
         break;
@@ -434,8 +441,9 @@ int main(int argc, char **argv)
     if (strchr(odt,'1')) verbose = 1;
     if (strchr(odt,'2')) verbose = 2;
     if (strchr(odt,'3')) verbose = 3;
+    if (strchr(odt,'q')) odtfile = "";
 
-    HillClimb hc(gtvec,verbose,strchr(odt,'s'));    
+    HillClimb hc(gtvec,verbose,strchr(odt,'s'),odtfile);    
 
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
       {
@@ -447,12 +455,12 @@ int main(int argc, char **argv)
         // climb
         double cost = hc.climb(*op,*ntpos, costfunc);
         
-        // Print network:
-        if (strchr(odt,'n')) 
-          cout << **ntpos;
+        // // Print network:
+        // if (strchr(odt,'n')) 
+        //   cout << **ntpos;
 
-        // Optimal cost 
-        cout << " " << cost << endl;        
+        // Optimal cost         
+        cout << cost << endl;        
 
         delete op;
     }
@@ -530,7 +538,6 @@ int main(int argc, char **argv)
         
       }
   }
-
 
   if (OPT_PRINTDISPLAYTREES)
   {

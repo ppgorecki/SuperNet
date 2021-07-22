@@ -388,6 +388,13 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 	long steps = 0;
 	long improvements = 0;
 	long equalnets = 0;
+	std::ofstream odtf;
+
+	bool saveodtfile = odtfile.length();
+
+	if (saveodtfile) 
+		odtf.open (odtfile, std::ofstream::out);
+    
 
 	while (op.next())
 	{		
@@ -403,10 +410,11 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 			equalnets++;
 			if (verbose>=2)					
 				cout << " = " << *net << " cost=" << curcost << endl;				
+			if (saveodtfile) 
+				odtf << *net << endl;
+    
 		}
 			
-
-
 		// Yeah, new better network
 		if (curcost<optcost)
 		{
@@ -417,21 +425,32 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 			improvements++;
 
 			if (verbose>=1)
-				cout << " > " << *net << " cost=" << optcost << endl;			
+				cout << " > " << *net << " cost=" << optcost << endl;	
+
+			if (saveodtfile) 
+			{
+				odtf.close();
+				odtf.open (odtfile, std::ofstream::out);
+				odtf << *net << endl;		
+			}
 
 			// search in a new neighbourhood
 			op.reset();
 		}
 
 	}
+	if (saveodtfile) 
+		odtf.close();
 
 	if (printstats)
 	{
 		cout << "Steps (networks evaluated): " << steps << endl;
 		cout << "Improvements: " << improvements << endl;
 		cout << "Equal-cost networks: " << equalnets << endl;
-
 	}
+
+	if (verbose>=1 && saveodtfile)
+		cout << "Optimal networks saved: " << odtfile << endl;
 
 	return optcost;
 

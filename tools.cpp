@@ -281,16 +281,19 @@ int usage(int argc, char **argv) {
 
        "ODT HEURISTIC SEARCH\n"
 
-       "  -o [nNe123] - run hill climbing heuristic using cost function\n"
+       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail moves, all optimal networks are written in odt.log file\n"
        "       T - use TailMoves (default)\n"
-       "       N - use NNI instead of TailMoves\n"
-       "       n - print network and the final cost (default is final cost only)\n"
+       "       N - use NNI instead of TailMoves\n"      
 
        "       t - TailMoves limited to tree-child (with 3a-3c conditions)\n"
        "       1 - print visited network after each improvement (strictly)\n"
        "       2 - print visited networks if the cost is equal to the current or improved\n"
        "       3 - print all visited networks\n"
        "       s - print additional stats on heuristic run\n"
+       "       q - do not save odt.log file with optimal networks\n"
+
+       "\n"
+       "  -O ODTFILE - change the name of odt.log file\n"
               
        // "*Starting tree options:\n"
        // "  -q NUM - generate NUM quasi-consensus trees sampled from gene tree clusters;\n"
@@ -309,8 +312,6 @@ int usage(int argc, char **argv) {
 
        "Detailed tree/network info\n"
        "  supnet -g '(a,((b,a),c))' -eD\n"
-
-
 
        "Print DC cost\n"
        "  supnet -g '(b,(a,c))' -s '(a,(b,c))' -CDC -ec \n"
@@ -338,30 +339,29 @@ int usage(int argc, char **argv) {
 
        "\nHill climbing heuristic\n"
 
-       " Minimalistic run: print cost only\n"
+       " Minimalistic run: print cost; result in odt.log\n"
        "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -oT\n"
 
-       " Minimalistic run: print cost and network\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -on\n"
-
        " Print cost and improvement networks + stats\n"
-       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a)))  ; ((b,c),(d,a))\" -n $( embnet.py -n \"rand:5:3\" -pn ) -on2s\n"
+       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a)))  ; ((b,c),(d,a))\" -n $( embnet.py -n \"rand:5:3\" -pn ) -o2s\n"
 
-       " Print cost and improvement networks + stats (s); tree-child search (t)\n"
-       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -n $( embnet.py -n \"rand:5:3\" -pn ) -on2st\n"
-
+       " Print cost, improvements and stats (s); tree-child search (t)\n"
+       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -n $( embnet.py -n \"rand:5:3\" -pn ) -o2st\n"
 
        " Larger instance; tree-child search:\n"
-       "  supnet -g \"((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))\" -n $( embnet.py -n \"rand:10:8\" -pn ) -o2snt\n"
+       "  supnet -g \"((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))\" -n $( embnet.py -n \"rand:10:8\" -pn ) -o2st\n"
 
        " Print only improvements:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -on1\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o1\n"
        
        " Print only improvements and equal cost networks:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -on2\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o2\n"
 
-       " Print only improvements and equal cost networks; NNI moves:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -on3N\n"
+       " Print improvements and equal cost networks; NNI moves:\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o3N\n"
+
+       " Print improvements; skip odt.log creation:\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o3Nq\n"
        ;
        
 

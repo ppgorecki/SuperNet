@@ -85,11 +85,13 @@ protected:
 	vector<RootedTree*> &genetrees;
 	int verbose;
 	bool printstats;
+	string odtfile;
 
 public:
 
 	// Initializes Gene Trees
-	HillClimb(vector<RootedTree*> &gtvec, int _verbose = 0, bool _printstats = false): genetrees(gtvec), verbose(_verbose), printstats(_printstats) {}
+	HillClimb(vector<RootedTree*> &gtvec, int _verbose = 0, 
+			bool _printstats = false, string _odtfile=""): genetrees(gtvec), verbose(_verbose), printstats(_printstats), odtfile(_odtfile) {}
 
 	// Executes hill climbing using edit operation
 	// Starts from net, net is modified
