@@ -257,7 +257,7 @@ int usage(int argc, char **argv) {
        "       2 (simple output), 3 (detailed output)\n"
        "  -w NUM - print NUM quasi-consensus species trees and exit\n"              
        "  -r NUM - print NUM random species trees and exit\n"
-       "  -S SPECIESNUM - define SPECIESNUM species a,b,...\n"
+       "  -A SPECIESNUM - define SPECIESNUM species a,b,...\n"
 
        "  -e [gsrD...]+ - multiple options:\n"
        "     g - print a gene tree\n"
@@ -305,10 +305,10 @@ int usage(int argc, char **argv) {
        "Examples: \n\n"
 
        "Print 10 quasi consensus trees\n"
-       " supnet -g '(a,((b,c),d));(a,(b,d))' -w10\n"
+       "  supnet -g '(a,((b,c),d));(a,(b,d))' -w10\n"
        
        "Print 10 quasi consensus trees with preserved split of the root (-er)\n"
-       " supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -w10 -er\n"
+       "  supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -w10 -er\n"
 
        "Detailed tree/network info\n"
        "  supnet -g '(a,((b,a),c))' -eD\n"
@@ -335,7 +335,7 @@ int usage(int argc, char **argv) {
        "  supnet -n '((a)#A,(#A,(c,b)))' -d | dot -Tpdf > n.pdf\n"
        "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf\n"
        "  supnet -n $( embnet.py -n 'rand:20:10' -pn ) -d | dot -Tpdf > n.pdf\n"
-       "N=$( embnet.py -n 'rand:3:1' -pn ); echo $N; supnet -n$N -d | dot -Tpdf > n.pdf\n"
+       "  N=$( embnet.py -n 'rand:3:1' -pn ); echo $N; supnet -n$N -d | dot -Tpdf > n.pdf\n"
 
        "\nHill climbing heuristic\n"
 
