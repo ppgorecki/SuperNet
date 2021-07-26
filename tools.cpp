@@ -357,11 +357,14 @@ int usage(int argc, char **argv) {
        " Print only improvements and equal cost networks:\n"
        "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o2\n"
 
-       " Print improvements and equal cost networks; NNI moves:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o3N\n"
+       " Print all visited networks:\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o3\n"
 
-       " Print improvements; skip odt.log creation:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o3Nq\n"
+       " Print only improvements and equal cost networks; NNI moves:\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o2N\n"
+
+       " Print only improvements and equal cost networks; NNI moves; skip odt.log creation:\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o2Nq\n"
        ;
        
 
