@@ -393,7 +393,10 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 	bool saveodtfile = odtfile.length();
 
 	if (saveodtfile) 
+	{
 		odtf.open (odtfile, std::ofstream::out);
+		odtf << *net << endl; // save the first network
+	}
     
 
 	while (op.next())

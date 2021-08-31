@@ -360,8 +360,12 @@ int usage(int argc, char **argv) {
        " Print improvements and equal cost networks; NNI moves:\n"
        "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o3N\n"
 
-       " Print improvements; skip odt.log creation:\n"
+       " Print improvements; skip odt.log:\n"
        "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o3Nq\n"
+
+       " Display trees usage stats:\n"
+       "  supnet -N odt.log -et | sort | uniq -c | sort -k1 -n\n"
+
        ;
        
 
