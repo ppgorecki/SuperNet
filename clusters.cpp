@@ -27,7 +27,7 @@ public:
 
 // Generate quasi consensus tree
 // If preserveroottree is given, the root split will be takes from the tree
-RootedTree* TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
+string TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
 {
   
   vector<GTCluster*> sc,compclusters;
@@ -175,10 +175,7 @@ RootedTree* TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
     }    
 
   
-  char *s = strdup(vs[0].s.c_str());
-  RootedTree *r = new RootedTree(s); 
-  free(s);
-  return r; 
+  return vs[0].s;
 
 }
 

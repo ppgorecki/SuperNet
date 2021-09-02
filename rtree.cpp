@@ -40,12 +40,19 @@ SPID** RootedTree::getspclusterrepr()
 // }
 
 
-RootedTree *randspeciestree()
+string randspeciestreestr()
 {
   SPID tr[specnames.size()];
   for (int i = 0; i < (int)specnames.size(); i++) tr[i] = i;
-  return new RootedTree(strdup(genrandomtree(tr, specnames.size()).c_str()));
+  return genrandomtree(tr, specnames.size());
 }
+
+
+RootedTree *randspeciestree()
+{  
+  return new RootedTree(randspeciestreestr());
+}
+
 
 
 double RootedTree::cost(RootedTree &speciestree, int costfunc)

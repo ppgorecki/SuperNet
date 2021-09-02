@@ -120,6 +120,7 @@ struct comparespids
 
 
 
+void shuffle(SPID *a, size_t n);
 
 
 #endif /* TOOLS_H_ */

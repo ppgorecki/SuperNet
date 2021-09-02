@@ -1,8 +1,9 @@
 #ifndef _DAG_H
 #define _DAG_H
 
-
+#include <cstring>
 #include "tools.h"
+
 
 // TODO: cycles are allowed; add top. sort.
 
@@ -99,10 +100,16 @@ supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf
 
 public:
 
+  // Parse Dag from a string
   Dag(char *s, double dagweight=1.0);
+  Dag(string s, double dagweight=1.0) : Dag(strdup(s.c_str()),dagweight) {}
 
-  // Build caterpillar tree; first two leaves makes cherry
+  // Build caterpillar tree; first two leaves make cherry
   Dag(int _lf, SPID *labels, double dagweight=1.0);
+
+  // Create dag by inserting new edge  
+  // (v,p) --> (w,q); p,q are (ret)parents of v,w resp.
+  Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight=1.0);
 
   // Find leaf with a given label
   // returns MAXSP if such a leaf does not exist
@@ -141,6 +148,17 @@ public:
   SPID sibling(SPID u) { 
     SPID p = parent[u];
     if (lf<=p<rtstartid) return leftchild[p]==u?rightchild[p]:leftchild[p];
+    return MAXSP;
+  }
+
+  // Sibling of retnode u where w.r.t tree node retparent(u)
+  // MAXSP otherwise
+  SPID retsibling(SPID u) { 
+    if (u>=rtstartid)
+    {
+      SPID p = retparent[u];
+      if (lf<=p<rtstartid) return leftchild[p]==u?rightchild[p]:leftchild[p];
+    }
     return MAXSP;
   }
 

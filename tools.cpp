@@ -9,6 +9,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -252,13 +253,20 @@ int usage(int argc, char **argv) {
        "       a - after delimiter; b - before delimiter; p - from position \n"
        
        "\n"
+       
+       "Random and quasi consensus generators\n"
+       "  -r NUM - gen NUM random species trees/networks\n"       
+       "  -q NUM - gen NUM quasi-consensus species trees/networks\n"              
+       "  -R NUM - inserts NUM reticulation nodes in all networks/trees from -q, -r, -n, -N (default 0)\n"
+       "  -A SPECIESNUM - define SPECIESNUM species a,b,...\n"       
+       
+       "  By default generator produces tree-child networks. Use -e1, -e2 for other classes (see below)\n"
+       "\n"
+
+
        "ADDITIONAL OPTIONS\n"
        "  -v NUM - verbose level 1 (print the name of outputfile only),\n"
-       "       2 (simple output), 3 (detailed output)\n"
-       "  -w NUM - print NUM quasi-consensus species trees and exit\n"              
-       "  -r NUM - print NUM random species trees and exit\n"
-       "  -S SPECIESNUM - define SPECIESNUM species a,b,...\n"
-
+       "       2 (simple output), 3 (detailed output)\n"       
        "  -e [gsrD...]+ - multiple options:\n"
        "     g - print a gene tree\n"
        "     s - print a species tree\n"
@@ -270,7 +278,9 @@ int usage(int argc, char **argv) {
        "     D - detailed tree info\n"       
        "     i - list species dictionary\n"       
        "     c - print cost\n"       
-       "     C - print cost with trees\n"       
+       "     C - print cost with trees\n"              
+       "     1 - class 1 networks in rand generator (int node has at most one reticulation child); see -R\n"       
+       "     2 - networks with no restrictions; see -R\n"
 
        "\n"       
        "COST SETTING OPTIONS\n"
@@ -281,7 +291,7 @@ int usage(int argc, char **argv) {
 
        "ODT HEURISTIC SEARCH\n"
 
-       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail moves, all optimal networks are written in odt.log file\n"
+       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file\n"
        "       T - use TailMoves (default)\n"
        "       N - use NNI instead of TailMoves\n"      
 
@@ -300,15 +310,15 @@ int usage(int argc, char **argv) {
        // "       (def. is 1 if no user species tree is defined)\n"
        // "  -r NUM - generate NUM random trees (def. 0)\n"
        // "  -Q p - defines probability for sampling gene trees (use with -q, default 0.2)\n"
-       // "  See also -wNUM, -ei and -er.\n"
+       // "  See also -qNUM, -ei and -er.\n"
 
        "Examples: \n\n"
 
        "Print 10 quasi consensus trees\n"
-       " supnet -g '(a,((b,c),d));(a,(b,d))' -w10\n"
+       " supnet -g '(a,((b,c),d));(a,(b,d))' -q10 -en\n"
        
        "Print 10 quasi consensus trees with preserved split of the root (-er)\n"
-       " supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -w10 -er\n"
+       " supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -q10 -enr\n"
 
        "Detailed tree/network info\n"
        "  supnet -g '(a,((b,a),c))' -eD\n"
@@ -317,7 +327,7 @@ int usage(int argc, char **argv) {
        "  supnet -g '(b,(a,c))' -s '(a,(b,c))' -CDC -ec \n"
 
        "Print 10 random species trees over a..e (5)\n"
-       "  supnet -A5 -r10\n"
+       "  supnet -A5 -r10 -en\n"
 
        "Print display trees (based on reticulation switching; trees maybe non-unique)\n"
        "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -et\n"
@@ -325,8 +335,9 @@ int usage(int argc, char **argv) {
        "Print display trees with ids\n"
        "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -eT\n"
 
-       "Print min total cost 10 random gene trees vs random network with 5 reticulations\n"
-       "  supnet -r10 -A10 | supnet -G- -n $( embnet.py -n \"rand:10:5\" -pn ) -eo\n"
+       "Print min total cost 10 random gene trees vs random tree-child network with 5 reticulations over 8 species; print the initial network\n"
+       "  supnet -r10 -A8 -en  | supnet -G- -r1 -A8 -R5 -eon"
+       //"  supnet -r10 -A10 -en | supnet -G- -n $( embnet.py -n \"rand:10:5\" -pn ) -eo\n"
 
        "Printing and visualizing\n"
        "  supnet -n '((a)#A,(#A,(c,b)))' -enD\n"       
@@ -334,38 +345,43 @@ int usage(int argc, char **argv) {
        "  supnet -n '(((b)#A,a),(#A,c))' -d\n"
        "  supnet -n '((a)#A,(#A,(c,b)))' -d | dot -Tpdf > n.pdf\n"
        "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf\n"
-       "  supnet -n $( embnet.py -n 'rand:20:10' -pn ) -d | dot -Tpdf > n.pdf\n"
-       "N=$( embnet.py -n 'rand:3:1' -pn ); echo $N; supnet -n$N -d | dot -Tpdf > n.pdf\n"
+       "  supnet  -r1 -R10  -A20 -d | dot -Tpdf > n.pdf\n"
+       "  N=$( embnet.py -n 'rand:3:1' -pn ); echo $N; supnet -n$N -d | dot -Tpdf > n.pdf\n"
 
-       "\nHill climbing heuristic\n"
+       "\nHILL CLIMBING HEURISTIC (-o...)\n"
 
-       " Minimalistic run: print cost; result in odt.log\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -oT\n"
-
+       " Minimalistic run: print cost; result in odt.log; random initial network (-r1) with 2 (-R2) reticulations\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R2 -oT\n"
+       
        " Print cost and improvement networks + stats\n"
-       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a)))  ; ((b,c),(d,a))\" -n $( embnet.py -n \"rand:5:3\" -pn ) -o2s\n"
+       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -r1 -R3 -o2s\n"
 
-       " Print cost, improvements and stats (s); tree-child search (t)\n"
-       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -n $( embnet.py -n \"rand:5:3\" -pn ) -o2st\n"
+       " Print cost, improvements and stats (s); tree-child search (t); quasi consensus initial network (-q) with 3 random reticulations\n"
+       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -q1 -R3  -o2st\n"
 
        " Larger instance; tree-child search:\n"
-       "  supnet -g \"((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))\" -n $( embnet.py -n \"rand:10:8\" -pn ) -o2st\n"
+       "  supnet -g \"((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))\" -R8 -q1 -o2st\n"
 
        " Print only improvements:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o1\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o1\n"
        
        " Print only improvements and equal cost networks:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o2\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o2\n"
 
        " Print improvements and equal cost networks; NNI moves:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o3N\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o3N\n"
 
        " Print improvements; skip odt.log:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -n $( embnet.py -n \"rand:4:3\" -pn ) -o3Nq\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o3Nq\n"
 
        " Display trees usage stats:\n"
        "  supnet -N odt.log -et | sort | uniq -c | sort -k1 -n\n"
 
+       " Insert 2 reticulations into a network (tree-child output)\n"
+       "  supnet -R2 -n '(a,((d)#1,(b,(c,#1)))) -en\n"
+
+       " Insert 10 reticulations into a network (general network)\n"
+       "  supnet -R10 -n '(a,((d)#1,(b,(c,#1))))' -en2\n"
        ;
        
 
@@ -408,5 +424,17 @@ int strcount(char *s, char c)
 }
 
 
-
-
+void shuffle(SPID *a, size_t n)
+{
+    if (n > 1) 
+    {
+        size_t i;
+        for (i = 0; i < n - 1; i++) 
+        {
+          size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+          SPID t = a[j];
+          a[j] = a[i];
+          a[i] = t;
+        }
+    }
+}

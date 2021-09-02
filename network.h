@@ -6,6 +6,10 @@
 #include "dag.h"
 #include "rtree.h"
 
+#define NT_GENERAL 2   // no limits
+#define NT_CLASS1 1    // int node has >=1 tree node/leaf child
+#define NT_TREECHLD 0  // int node has <=1 ret. child
+
 // Bit represents reticulation switching
 // Range 0..2^{rt-1}, where rt is the number of reticulation nodes
 // Current limit is rt<=64
@@ -25,10 +29,9 @@ class Network: public Dag
 	virtual ostream& printdebstats(ostream&s);
 
 	void _getreachablefrom(SPID v, bool *reachable, bool *visited);
+	void _getreachableto(SPID v, bool *reachable, bool *visited);
 
-public:
-	
-	Network(char *s, double weight=1.0): Dag(s,weight) 
+	void initdid() 
 	{
 		if (rt > 8*sizeof(DISPLAYTREEID)) 
 	    {
@@ -38,6 +41,30 @@ public:
 		displaytreemaxid = 1 << rt;		
 	}
 
+public:
+	
+	Network(char *s, double weight=1.0): Dag(s,weight) { initdid(); }
+
+	Network(string s, double weight=1.0): Dag(s,weight) { initdid(); }
+
+	Network(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight=1.0):
+		Dag(d, v, p, w, q, retid, dagweight)
+	{
+		initdid();
+	}
+
+	// Copy network and add random reticulation node
+	// retid - reticulation label; if empty then the label will be automatically assigned to #NUM
+	//     if r==NULL then the label will be "#NUM" where NUM is the number of reticulations
+	// type - 0 - TC insertion
+	// type - 1 - non-TC type 1
+	// type - 2 - general
+	// 
+	// Returns NULL if such a network cannot be created
+	
+
+	Network *addrandreticulation(string retid, int networktype);
+	
 	// Generate id'th display tree; 
 	// id encodes switching reticulation nodes and should be in range 0..2^{rt-1}	
 	// id encodes reticulation schema -> for long size is 8 -> 64 bits
@@ -53,8 +80,11 @@ public:
 	// Compute min cost vs. gene trees
 	double odtnaivecost(vector<RootedTree*> &genetrees, int costfunc, DISPLAYTREEID &optid);
 
-	// Marks nodes reachable from v (including v)	
+	// Mark nodes reachable from v (including v)	
 	void getreachablefrom(SPID v, bool *reachable);
+
+	// Mark nodes w such that v is reachble from w (including v)	
+	void getreachableto(SPID v, bool *reachable);
 
 	friend class NNI;
 	friend class TailMove;

@@ -32,6 +32,8 @@ protected:
   // Set depth of nodes 
   void _setdepth(SPID i, int dpt);
 
+
+
   // Insert clusters of children node n into TreeClusters
   GTCluster* _getgtccluster(SPID n, TreeClusters *gtc);
 
@@ -66,6 +68,8 @@ public:
 
   // Gen tree from str
 	RootedTree(char *s, double weight=1.0);
+
+	RootedTree(string s, double weight=1.0): RootedTree(strdup(s.c_str()), weight) { }
 
 	// Gen caterpillar tree from labs; cherry from the first two labels
 	RootedTree(int _lf, SPID* labels, double weight=1.0); 
@@ -135,5 +139,6 @@ public:
 // Gen random species tree from defined set of species 
 RootedTree *randspeciestree();
 
+string randspeciestreestr();
 
 #endif

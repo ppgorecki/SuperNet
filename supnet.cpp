@@ -95,6 +95,22 @@ void insertstr(vector<char*> &v,const char *t)
   free(y);
 }
 
+Network *addrandreticulations(int reticulationcnt, Network *n, int networktype)
+{      
+    for (int i=0; i<reticulationcnt; i++)
+    {
+      Network *prev = n;
+      n = n->addrandreticulation("",networktype);
+      if (!n)
+      {
+        cerr << "Cannot insert random " << (i+1) << "-th reticulation into " << *prev << endl;
+        exit(-1);
+      }        
+      delete prev;      
+    }
+    return n;
+}
+
 int main(int argc, char **argv) 
 {
   
@@ -114,11 +130,13 @@ int main(int argc, char **argv)
   
   int costfunc = COSTDUPLICATIONLOSS;
   
-  int OPT_PRINTQUASICONSTREES = 0;
-  int OPT_PRINTRANDSPECIESTREES = 0;
+  int OPT_QUASICONSTREES = 0;
+  int OPT_RANDNETWORKS = 0;
+
   int OPT_PRINTGENE = 0;
   int OPT_PRINTNETWORK = 0;
   int OPT_PRINTSPECIES = 0;
+  
   int OPT_PRINTCOST = 0;
   int OPT_PRINTDETAILED = 0;
   int OPT_PRINTINFO=0;  
@@ -134,9 +152,12 @@ int main(int argc, char **argv)
   int randomtreescnt = 0;
   int quasiconsensuscnt = 0;
 
+  int reticulationcnt = 0;
+  int networktype = 0;
+
   string odtfile = "odt.log";
 
-  const char* optstring = "e:g:s:G:S:N:l:w:L:D:C:r:A:n:do:O:";
+  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:";
   vector<char*> sgtvec, sstvec, snetvec;
   
   while ((opt = getopt(argc, argv, optstring))   != -1)
@@ -161,6 +182,10 @@ int main(int argc, char **argv)
         if (strchr(optarg,'N')) OPT_EDITOPERATIONTEST = 1; // nni test
         if (strchr(optarg,'M')) OPT_EDITOPERATIONTEST = 2; // tailmove
 
+        if (strchr(optarg,'1')) networktype = NT_CLASS1; 
+        if (strchr(optarg,'2')) networktype = NT_GENERAL; 
+
+
         //if (strchr(optarg,'i')) OPT_USERSPTREEISSTARTING=0;        
         //if (strchr(optarg,'S')) OPT_SHOWSTARTINGTREES=1;
         break;
@@ -171,6 +196,10 @@ int main(int argc, char **argv)
 
     case 'g':    
       insertstr(sgtvec,optarg);                
+      break;
+
+    case 'R':    
+      reticulationcnt = atoi(optarg);
       break;
     
     case 's':
@@ -224,9 +253,9 @@ int main(int argc, char **argv)
       break;
     }
 
-    // Print quasi-consensus trees
-    case 'w':
-      OPT_PRINTQUASICONSTREES = 1;
+    // Gen quasi-consensus trees
+    case 'q':
+      OPT_QUASICONSTREES = 1;
       if (sscanf(optarg, "%d", &quasiconsensuscnt) != 1) {
         cerr << "Number expected in -w" << endl;
         exit(-1);
@@ -234,8 +263,9 @@ int main(int argc, char **argv)
       
       break;
 
+    // Gen random trees/networks
     case 'r':
-      OPT_PRINTRANDSPECIESTREES = 1;      
+      OPT_RANDNETWORKS = 1;      
       if (sscanf(optarg, "%d", &randomtreescnt) != 1) {
         cerr << "Number expected in -r" << endl;
         exit(-1);
@@ -344,8 +374,8 @@ int main(int argc, char **argv)
     {
       cerr << "Bijective leaf labelling expected in a network: " << *n << endl;
       exit(-1);
-    }
-    netvec.push_back(n);
+    }    
+    netvec.push_back(addrandreticulations(reticulationcnt,n,networktype));
   }
     
   // Print species names    
@@ -356,6 +386,75 @@ int main(int argc, char **argv)
   VecRootedTree::iterator stpos, gtpos;
   VecNetwork::iterator ntpos;
 
+
+
+
+  TreeClusters *gtc = NULL;
+
+  // Prepare clusters 
+  if (OPT_QUASICONSTREES || OPT_RANDNETWORKS)
+  {
+      gtc = new TreeClusters();    
+      for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)    
+        gtc->addtree(*gtpos);
+  }
+
+
+  // Gen quasi consensus trees and insert into netvec as networks 
+  // Add reticulations if -R is set 
+  if (OPT_QUASICONSTREES)
+  {
+    RootedTree *sr=NULL;
+    if (OPT_PRESERVEROOT)
+    {
+      if (stvec.size()>0) sr=stvec[0];
+      else 
+      {
+          cout << "Exactly one species tree should be defined for quasi-consensus trees with preserve-root option" << endl;
+          exit(2);        
+      }
+    }
+      
+    if (!gtvec.size())
+    {
+      cout << "Gene trees are required to infer quasi consensus" << endl;
+      return -1;
+    }
+    
+    for (int i = 0; i < quasiconsensuscnt; i++)
+    {
+      
+      string r = gtc->genrootedquasiconsensus(sr);
+      if (!r.length())
+      {
+        cerr << "Cannot create initial quasi consensus species tree" << endl;
+        exit(-1);
+      }      
+
+      netvec.push_back(addrandreticulations(reticulationcnt,new Network(r),networktype));
+    } 
+    
+
+  }
+
+
+  // Gen random trees and store in netvec
+  // Add reticulations if -R is set 
+  if (OPT_RANDNETWORKS)
+  {      
+      for (int i = 0; i < randomtreescnt; i++)
+      {
+        string r = randspeciestreestr();
+        if (!r.length())
+        {
+          cerr << "Cannot create initial random species tree" << endl;
+          exit(-1);
+        }        
+        netvec.push_back(addrandreticulations(reticulationcnt,new Network(r),networktype));        
+      }   
+  }     
+
+  // Just printing
   if (OPT_PRINTSPECIES)
     for (stpos = stvec.begin(); stpos != stvec.end(); ++stpos)    
     {
@@ -558,63 +657,7 @@ int main(int argc, char **argv)
   }
 
  
-  TreeClusters *gtc = NULL;
-
-  // Prepare clusters 
-  if (OPT_PRINTQUASICONSTREES || OPT_PRINTRANDSPECIESTREES)
-  {
-      gtc = new TreeClusters();    
-      for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)    
-        gtc->addtree(*gtpos);
-  }
-
-  if (OPT_PRINTQUASICONSTREES)
-  {
-    RootedTree *sr=NULL;
-    if (OPT_PRESERVEROOT)
-    {
-      if (stvec.size()>0) sr=stvec[0];
-      else 
-      {
-          cout << "Exactly one species tree should be defined for quasi-consensus trees with preserve-root option" << endl;
-          exit(2);        
-      }
-    }
-      
-    if (!gtvec.size())
-    {
-      cout << "Gene trees are required to infer quasi consensus" << endl;
-      return -1;
-    }
-
-    RootedTree *r;
-    for (int i = 0; i < quasiconsensuscnt; i++)
-    {
-      
-      r = gtc->genrootedquasiconsensus(sr);
-      if (!r)
-      {
-        cerr << "Cannot create initial species tree" << endl;
-        exit(-1);
-      }
-      cout << *r;
-    }    
-  }
-
-
-  if (OPT_PRINTRANDSPECIESTREES)
-  {      
-      for (int i = 0; i < randomtreescnt; i++)
-      {
-        RootedTree *r = randspeciestree();
-        if (!r)
-        {
-          cerr << "Cannot create initial random species tree" << endl;
-          exit(-1);
-        }
-        cout << *r << endl;
-      }   
-  }     
+  
       
   // Clean    
   for (size_t i = 0; i < sgtvec.size(); i++) 

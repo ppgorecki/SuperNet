@@ -76,7 +76,7 @@ public:
 
   void addtree(RootedTree *g);
 
-  RootedTree* genrootedquasiconsensus(RootedTree *preserveroottree);
+  string genrootedquasiconsensus(RootedTree *preserveroottree);
 
 };
 

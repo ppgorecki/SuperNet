@@ -587,3 +587,88 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
     // }
     return s;
   }
+
+Dag::Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight)
+{
+    init(d->lf,d->rt+1); 
+
+    for (SPID i=0; i<d->lf; i++) lab[i] = d->lab[i]; 
+
+#define CID(id)  ((id)>=d->rtstartid)?((id)+1):(id)
+
+    // leaves and tree nodes - parent
+    for (SPID i=0; i<d->rtstartid; i++)            
+      parent[i] = CID(d->parent[i]);      
+    
+    // ret. nodes - parent
+    for (SPID i=d->rtstartid; i<d->nn; i++)        
+      parent[i+1]=CID(d->parent[i]);     
+
+    // children of tree nodes
+    for (SPID i=lf; i<d->rtstartid; i++)  
+    {          
+      leftchild[i] = CID(d->leftchild[i]);
+      rightchild[i] = CID(d->rightchild[i]);
+    }
+
+    // children of retnodes
+    for (SPID i=d->rtstartid; i<d->nn; i++)            
+      retchild[i+1] = CID(d->retchild[i]);
+
+    // children of retnodes
+    for (SPID i=d->rtstartid; i<d->nn; i++)            
+      retparent[i+1] = CID(d->retparent[i]);
+
+    // ret labels        
+    for (SPID i=d->rtstartid; i<d->nn; i++)            
+      spid2retlabel[i+1] = d->spid2retlabel[i];
+
+    root = d->root;
+
+    parent[root] = MAXSP;
+
+    if (!retid.length())    
+        retid = "#"+std::to_string(rt);
+    
+
+    // insert ret. edge 
+    // new retid = nn-1 
+    // new treenode id = rtstartid-1
+
+    SPID nr = nn - 1;
+    SPID nt = rtstartid - 1;
+
+    spid2retlabel[nr] = retid;
+
+
+    p=CID(p);
+    v=CID(v);
+    q=CID(q);
+    w=CID(w);
+
+    parent[nt] = p;
+
+    parent[nr] = nt;
+    retparent[nr] = q;
+
+    leftchild[nt] = nr; 
+    rightchild[nt] = v;
+    retchild[nr] = w;
+
+    if (leftchild[p]==v) leftchild[p]=nt;
+    else rightchild[p]=nt;
+
+    if (parent[v]==p) parent[v]=nt;
+    else retparent[v]=nt;
+
+    if (leftchild[q]==w) leftchild[q]=nr;
+    else rightchild[q]=nr;
+
+    if (parent[w]==q) parent[w]=nr;
+    else retparent[w]=nr;
+
+    verifychildparent();
+
+    setexactspecies();
+
+}
