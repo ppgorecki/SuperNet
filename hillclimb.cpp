@@ -40,6 +40,8 @@ void TailMove::reset()
 
 bool TailMove::next() 
 { 
+	// TODO: uniform random sampling; store all candidates and uniformly draw
+
 
 	if (moved)
 	{
@@ -397,6 +399,8 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 		odtf.open (odtfile, std::ofstream::out);
 		odtf << *net << endl; // save the first network
 	}
+	if ((verbose==3) && (curcost>optcost))
+		cout << " = " << *net << " cost=" << curcost << endl;				
     
 
 	while (op.next())

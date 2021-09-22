@@ -650,7 +650,7 @@ int main(int argc, char **argv)
         {
           if (OPT_PRINTDISPLAYTREES==2)
             cout << tid << " ";
-          cout << *t << endl;       
+          t->printrepr(cout) << endl;       
           tid++;      
         }
     }
