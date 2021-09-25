@@ -301,19 +301,18 @@ int usage(int argc, char **argv) {
 
        "ODT HEURISTIC SEARCH\n"
 
-       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file\n"
+       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file; summary stats are save to odt.dat (cost, time of hill climbing in sec., number of networks, improvements and steps)\n"
        "       T - use TailMoves (default)\n"
        "       N - use NNI instead of TailMoves\n"      
-
        "       t - TailMoves limited to tree-child (with 3a-3c conditions)\n"
        "       1 - print visited network after each improvement (strictly)\n"
        "       2 - print visited networks if the cost is equal to the current or improved\n"
        "       3 - print all visited networks\n"
        "       s - print additional stats on heuristic run\n"
-       "       q - do not save odt.log file with optimal networks\n"
+       "       q - do not save odt.log (and odt.dat) with optimal networks\n"
 
        "\n"
-       "  -O ODTFILE - change the name of odt.log file\n"
+       "  -O ODTFILE - change the name of odt.log and odt.dat files\n"
               
        // "*Starting tree options:\n"
        // "  -q NUM - generate NUM quasi-consensus trees sampled from gene tree clusters;\n"
