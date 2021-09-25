@@ -526,7 +526,7 @@ int main(int argc, char **argv)
       {
         if (OPT_ODTNAIVE==2)        
           cout << **ntpos << " ";
-        cout << (*ntpos)->odtnaivecost(gtvec,costfunc,optid) << " optid=" << optid << endl;
+        cout << (*ntpos)->odtnaivecost(gtvec,costfunc) << endl;
         
     }
   }

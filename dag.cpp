@@ -165,12 +165,16 @@ Dag::Dag(int _lf, SPID *labels, double dagweight) : weight(dagweight)
     }
     root = nn-1;
     parent[root] = MAXSP;
+
+  setexactspecies();
+
+
 }
 
 // Find leaf label
 SPID Dag::findlab(SPID slab, int stoponerr)
 {
-    if (exactspecies && slab < lf) return slab;
+    if (exactspecies && (slab < lf)) return slab;
       
     for (SPID i=0; i<lf; i++)
     	if (slab == lab[i]) 
@@ -437,7 +441,7 @@ bool Dag::getchild(SPID i, SPID &ichild)
 		return true;
 	}
 
-	if (ichild==leftchild[i] && leftchild[i]!=rightchild[i] && i<rtstartid)
+	if (i<rtstartid && ichild==leftchild[i] && leftchild[i]!=rightchild[i])
 	{
 		// second run; 
 		ichild=rightchild[i];

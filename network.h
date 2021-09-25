@@ -78,7 +78,7 @@ public:
 	RootedTree* gendisplaytree(DISPLAYTREEID id, RootedTree *t = NULL);
 
 	// Compute min cost vs. gene trees
-	double odtnaivecost(vector<RootedTree*> &genetrees, int costfunc, DISPLAYTREEID &optid);
+	double odtnaivecost(vector<RootedTree*> &genetrees, int costfunc);
 
 	// Mark nodes reachable from v (including v)	
 	void getreachablefrom(SPID v, bool *reachable);

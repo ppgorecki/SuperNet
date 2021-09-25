@@ -233,6 +233,16 @@ void randomizearr(SPID *t, int size)
 }
 
 
+
+double gettime()
+{
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    return now.tv_sec + now.tv_nsec*1e-9;
+}
+
+
+
 extern const char *SUPNET;
 
 int usage(int argc, char **argv) {

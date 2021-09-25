@@ -96,6 +96,8 @@ bool spsubseteq(SPID *a, SPID *b);
 
 void cleanspecies();
 
+double gettime();
+
 struct comparespids
 {
   bool operator()(const SPID* a, const SPID* b) const

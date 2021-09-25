@@ -124,37 +124,40 @@ void Network::_getreachableto(SPID v, bool *reachable, bool *visited)
 }
 
 
-double Network::odtnaivecost(vector<RootedTree*> &genetrees, int costfunc, DISPLAYTREEID &optid)
+double Network::odtnaivecost(vector<RootedTree*> &genetrees, int costfunc)
 {
     RootedTree *t = NULL;
     DISPLAYTREEID tid = 0; // id of display tree
     double mincost;
     SPID *lcamaps[genetrees.size()];
+    double gtcost[genetrees.size()];
+        
     while ((t=gendisplaytree(tid,t))!=NULL)       
-    {       
-    	double ccost = 0;    
+    {           	
     	t->initlca();
-    	t->initdepth();
-    	
+    	t->initdepth();    	 	
 
     	// Compute cost of the current tree vs all gene trees
     	for (int gt=0; gt<genetrees.size(); gt++)
     	{    		
     		RootedTree *genetree = genetrees[gt];
     		SPID *lcamap = lcamaps[gt];
-    		if (tid) genetree->getlcamapping(*t,lcamaps[gt]);    // overwrite previous
+    		if (tid) genetree->getlcamapping(*t,lcamaps[gt]);    // overwrite previous    			    		
     		else lcamaps[gt] = genetrees[gt]->getlcamapping(*t); // init lcamap
-    		ccost += genetree->_cost(*t, lcamaps[gt], costfunc);
+
+    		double curcost = genetree->_cost(*t, lcamaps[gt], costfunc);
+
+    		if (!tid || (gtcost[gt] > curcost)) gtcost[gt] = curcost;    		
     	}
-        
-        if (!tid || mincost>ccost) 
-        { 
-        	// Store min
-            mincost = ccost;
-            optid = tid;
-        }
-        tid++;
+
+    	tid++;
+
     }
+
+    mincost = 0;
+	for (int gt=0; gt<genetrees.size(); gt++)
+		mincost += gtcost[gt];
+
     return mincost;        
 }
 

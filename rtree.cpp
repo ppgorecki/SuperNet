@@ -321,7 +321,7 @@ ostream& RootedTree::printrepr(ostream&s)
         else s << specnames[c];            
         if (t[i]<=0) s << ",";
     }    
-    free(t);
+    // free(t);
     return s;
 }
 

@@ -376,15 +376,14 @@ bool NNI::next()
 double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 {
 
-	DISPLAYTREEID optid;
+	double starttime = gettime();
 
 	// init edit operation
 	op.init(net);
 
 	// compute the first odt cost
-	double optcost = net->odtnaivecost(genetrees, costfunc, optid);
-
-	DISPLAYTREEID curoptid;
+	double optcost = net->odtnaivecost(genetrees, costfunc);
+	
 	double curcost; 
 
 	long steps = 0;
@@ -406,7 +405,7 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 	while (op.next())
 	{		
 		
-		double curcost = net->odtnaivecost(genetrees, costfunc, curoptid);
+		double curcost = net->odtnaivecost(genetrees, costfunc);
 		steps++;
 
 		if ((verbose==3) && (curcost>optcost))
@@ -426,8 +425,7 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 		if (curcost<optcost)
 		{
 			optcost = curcost; 
-			optid = curoptid;
-
+			
 			equalnets = 1;
 			improvements++;
 
@@ -446,8 +444,25 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 		}
 
 	}
+	string odtfiledat; 
+
 	if (saveodtfile) 
+	{
 		odtf.close();
+
+		//write dat file
+		odtfiledat = odtfile.substr(0,odtfile.find_last_of('.'))+".dat";
+
+		odtf.open ( odtfiledat, std::ofstream::out);
+		odtf << optcost << endl; // cost
+		odtf << (gettime() - starttime) << endl; // time
+		odtf << equalnets << endl; // networks
+		odtf << improvements << endl; // improvements
+		odtf << steps << endl; // steps
+		odtf.close();
+
+	}
+	
 
 	if (printstats)
 	{
@@ -457,7 +472,11 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 	}
 
 	if (verbose>=1 && saveodtfile)
-		cout << "Optimal networks saved: " << odtfile << endl;
+	{
+		cout << "Optimal networks saved: " << odtfile << endl;	
+		cout << "Stats data save to: " << odtfiledat << endl;
+	}
+
 
 	return optcost;
 
