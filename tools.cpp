@@ -291,6 +291,8 @@ int usage(int argc, char **argv) {
        "     C - print cost with trees\n"              
        "     1 - class 1 networks in rand generator (int node has at most one reticulation child); see -R\n"       
        "     2 - networks with no restrictions; see -R\n"
+       "     u - print unique networks; summary stats printed on stderr\n"
+       "     p - pairwise comparison of all networks\n"
 
        "\n"       
        "COST SETTING OPTIONS\n"
@@ -310,6 +312,7 @@ int usage(int argc, char **argv) {
        "       3 - print all visited networks\n"
        "       s - print additional stats on heuristic run\n"
        "       q - do not save odt.log (and odt.dat) with optimal networks\n"
+
 
        "\n"
        "  -O ODTFILE - change the name of odt.log and odt.dat files\n"
@@ -391,6 +394,15 @@ int usage(int argc, char **argv) {
 
        " Insert 10 reticulations into a network (general network)\n"
        "  supnet -R10 -n '(a,((d)#1,(b,(c,#1))))' -en2\n"
+
+       " Pairwise comparison of random dags (general dags)\n"
+       "  supnet -r10 -R4 -A2 -en2p\n"
+
+       " Print unique networks (-eu)\n"
+       "  supnet -r1000 -R1 -A2 -en2p # here only two networks are unique\n"
+
+       " Print unique networks from odt.log\n"
+       "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -r1 -R3 -o2 && supnet -eu -N odt.log\n"
        ;
        
 

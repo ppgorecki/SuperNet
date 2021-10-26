@@ -29,6 +29,8 @@
 
 typedef SPID *SPIDARR;
 
+typedef SPID SPIDPair[2];
+
 #define GSFULL 0
 #define GSPOS 1
 #define GSAFTER 2

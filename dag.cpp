@@ -1,7 +1,7 @@
 
-
 #include "tools.h"
 #include "dag.h"
+
 
 void Dag::init(int _lf, int _rt)
 {
@@ -16,7 +16,7 @@ void Dag::init(int _lf, int _rt)
     nn=2*lf+2*rt-1; 
 
     retchild = leftchild = new SPID[nn];
-    rightchild = new SPID[nn - lf - rt]; // proper indexing   
+    rightchild = new SPID[nn - lf - rt]; // !
     rightchild -= lf;
     rtstartid = nn - rt;
 
@@ -25,7 +25,7 @@ void Dag::init(int _lf, int _rt)
 
     if (rt)
     {
-      retparent = new SPID[rt];    
+      retparent = new SPID[rt];    // !  
       spid2retlabel  = new string[rt];
       retparent -= rtstartid; // shift to obtain easy adressing   
       spid2retlabel -= rtstartid;
@@ -136,9 +136,11 @@ SPID Dag::_parse(char *s, int &p, int num,
 }
 
 
-Dag::Dag(char *s, double dagweight): weight(dagweight)
+Dag::Dag(const char *s, double dagweight): weight(dagweight)
 {
-	parse(s);
+  char *t = strdup(s);
+	parse(t);
+  free(t);
 	setexactspecies();
 }
 
@@ -676,3 +678,24 @@ Dag::Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight)
     setexactspecies();
 
 }
+
+
+
+Dag::~Dag() 
+  {
+    
+    delete[] leftchild;
+    rightchild+=lf;
+    delete[] rightchild;
+    delete[] parent;
+    delete[] lab;
+    if (rt)
+    {
+      retparent+=rtstartid;
+      spid2retlabel+=rtstartid;
+      delete[] retparent;
+      delete[] spid2retlabel;
+    }
+
+
+  }

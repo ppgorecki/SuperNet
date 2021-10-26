@@ -142,6 +142,9 @@ int main(int argc, char **argv)
   int OPT_PRINTINFO=0;  
   int OPT_DOT=0;  
   int OPT_PRINTDISPLAYTREES = 0;
+  int OPT_COMPAREDAGS_BFTEST = 0;
+  int OPT_COMPAREDAGS = 0;
+  int OPT_UNIQUEDAGS = 0;
   char *odt = NULL;
 
   int OPT_PRESERVEROOT=0;
@@ -178,6 +181,11 @@ int main(int argc, char **argv)
         if (strchr(optarg,'c')) OPT_PRINTCOST = 1; // just numbers
         if (strchr(optarg,'C')) OPT_PRINTCOST = 2; // with trees
         if (strchr(optarg,'D')) OPT_PRINTDETAILED = 1;
+
+        if (strchr(optarg,'B')) OPT_COMPAREDAGS_BFTEST = 1; // hidden
+        if (strchr(optarg,'p')) OPT_COMPAREDAGS = 1;  // allvsall
+        if (strchr(optarg,'u')) OPT_UNIQUEDAGS = 1;   
+
 
         if (strchr(optarg,'N')) OPT_EDITOPERATIONTEST = 1; // nni test
         if (strchr(optarg,'M')) OPT_EDITOPERATIONTEST = 2; // tailmove
@@ -320,8 +328,6 @@ int main(int argc, char **argv)
     case 'O':
         odtfile = optarg;
         break;
-
-
 
     case 'o':        
         odt = strdup(optarg);
@@ -656,9 +662,81 @@ int main(int argc, char **argv)
     }
   }
 
- 
-  
-      
+ if (OPT_COMPAREDAGS_BFTEST)
+  {
+
+    int cnt=0;
+      while (1)
+      {
+        cnt++;
+        string r1 = randspeciestreestr();
+        string r2 = randspeciestreestr();
+        int EE=0;
+        int e1,e2,e3;
+        if (!r1.length() || !r2.length())
+        {
+           cerr << "Cannot create initial random species tree" << endl;
+           exit(-1);
+        }        
+        Network *n1 = addrandreticulations(reticulationcnt,new Network(r1),networktype);
+        Network *n2 = addrandreticulations(reticulationcnt,new Network(r2),networktype);
+
+        e1 = n1->eqdags(n2);                              
+        e2 = n1->eqdagsbypermutations(n2);            
+
+        cout << (*n1) << "\t" << (*n2) << "\tE1=" << e1 << "\tE2=" << e2 << "\tError=" << (e1!=e2) <<  endl;        
+
+        cerr << (*n1) << "\t" << (*n2) << "\tE1=" << e1 << "\tE2=" << e2 << "\tError=" << (e1!=e2) <<  endl;        
+
+        delete n1;
+        delete n2;
+
+        if (e1!=e2) break; // stop
+    }
+    exit(0);        
+  }
+
+  if (OPT_COMPAREDAGS)
+  {
+      int cnt=0, cntall=0;
+      for (int i=0; i<netvec.size(); i++)    
+      {
+        // cout << *(netvec[i]) << endl;
+        Network *n1 = netvec[i];
+        cout << endl;
+        for (int j=i+1; j<netvec.size(); j++)    
+        { 
+            Network *n2 = netvec[j];            
+            bool e1 = n1->eqdags(n2);                        
+            cout << *(n1) << "\t" << *(n2) << "\t" << e1 << endl;                        
+        }
+      }
+      //cout <<  "eqcnt=" << cnt << " all=" << cntall << endl;
+  }
+
+  if (OPT_UNIQUEDAGS)
+  {
+      int cnt=0, cntall=0, unique=netvec.size();
+      bool cpy[netvec.size()];
+      for (int i=0; i<netvec.size(); i++) cpy[i]=false;
+
+      for (int i=0; i<netvec.size(); i++)    
+      {       
+        if (cpy[i]) continue;
+        Network *n1 = netvec[i];        
+        cout << (*n1) << endl;
+        for (int j=i+1; j<netvec.size(); j++)    
+        { 
+            Network *n2 = netvec[j];                        
+            if (n1->eqdags(n2)) { 
+              cpy[j]=true;                                     
+              unique--;
+            }
+        }
+      }
+      cerr <<  "unique=" << unique << " all=" << netvec.size() << endl;
+  }
+
   // Clean    
   for (size_t i = 0; i < sgtvec.size(); i++) 
     free(sgtvec[i]);

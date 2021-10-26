@@ -98,11 +98,17 @@ supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf
   virtual ostream& printdebstats(ostream&s);
   virtual ostream& printdebarrays(ostream&s);
 
+  // iso dag tests
+  inline bool _addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands, int& first, int& last);
+  bool _eqdagsbypermutations(Dag *d, SPID *isomap); 
+  bool validisomap(Dag *d, SPID *isomap);
+  bool _eqdags(Dag *d, SPID *isomap);
+
 public:
 
   // Parse Dag from a string
-  Dag(char *s, double dagweight=1.0);
-  Dag(string s, double dagweight=1.0) : Dag(strdup(s.c_str()),dagweight) {}
+  Dag(const char *s, double dagweight=1.0);
+  Dag(string s, double dagweight=1.0) : Dag(s.c_str(),dagweight) {}
 
   // Build caterpillar tree; first two leaves make cherry
   Dag(int _lf, SPID *labels, double dagweight=1.0);
@@ -111,6 +117,8 @@ public:
   // (v,p) --> (w,q); p,q are (ret)parents of v,w resp.
   Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight=1.0);
 
+  virtual ~Dag();
+  
   // Find leaf with a given label
   // returns MAXSP if such a leaf does not exist
   SPID findlab(SPID slab, int stoponerr=1);
@@ -177,12 +185,18 @@ public:
   // 
   int verifychildparent();
 
-  
-
   // -----------------------------------------------------
   // TODO: Topological sort; optionally with returning top. ordering
   bool isdag() { return true; } 
-    
+
+  bool eqdags(Dag *d);
+  bool eqdagstc1(Dag *d); // only tree child and class 1 testing (to be proved)
+
+
+  bool eqdagsbypermutations(Dag *d); // brute force by permutations
+
+  
+  
 };
 
 
