@@ -367,11 +367,9 @@ bool NNI::next()
 		// and the same network is reached 
 		// Search for the next 
 		return next();
-	
 
 	return true;
 }
-
 
 double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 {
@@ -391,17 +389,16 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 	long equalnets = 0;
 	std::ofstream odtf;
 
-	bool saveodtfile = odtfile.length();
+	bool storenets = odtfile.length();
 
-	if (saveodtfile) 
-	{
-		odtf.open (odtfile, std::ofstream::out);
-		odtf << *net << endl; // save the first network
-	}
+	std::vector<Network> netcontainer;
+
+	if (storenets) 
+		netcontainer.push_back(*net); // save the first network
+	
 	if ((verbose==3) && (curcost>optcost))
 		cout << " = " << *net << " cost=" << curcost << endl;				
     
-
 	while (op.next())
 	{		
 		
@@ -416,8 +413,8 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 			equalnets++;
 			if (verbose>=2)					
 				cout << " = " << *net << " cost=" << curcost << endl;				
-			if (saveodtfile) 
-				odtf << *net << endl;
+			if (storenets) 
+				netcontainer.push_back(*net);
     
 		}
 			
@@ -432,11 +429,10 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 			if (verbose>=1)
 				cout << " > " << *net << " cost=" << optcost << endl;	
 
-			if (saveodtfile) 
+			if (storenets) 
 			{
-				odtf.close();
-				odtf.open (odtfile, std::ofstream::out);
-				odtf << *net << endl;		
+				netcontainer.clear(); // new optimal; forget old 
+				netcontainer.push_back(*net);		
 			}
 
 			// search in a new neighbourhood
@@ -446,8 +442,13 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 	}
 	string odtfiledat; 
 
-	if (saveodtfile) 
+	if (storenets) 
 	{
+
+		odtf.open (odtfile, std::ofstream::out);
+
+		for( size_t i = 0; i < netcontainer.size(); i++ )
+         	odtf << netcontainer[i] << endl;
 		odtf.close();
 
 		//write dat file
@@ -471,7 +472,7 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 		cout << "Equal-cost networks: " << equalnets << endl;
 	}
 
-	if (verbose>=1 && saveodtfile)
+	if (verbose>=1 && storenets)
 	{
 		cout << "Optimal networks saved: " << odtfile << endl;	
 		cout << "Stats data save to: " << odtfiledat << endl;

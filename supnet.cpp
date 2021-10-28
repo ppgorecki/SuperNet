@@ -665,7 +665,7 @@ int main(int argc, char **argv)
  if (OPT_COMPAREDAGS_BFTEST)
   {
 
-    int cnt=0;
+      int cnt=0;
       while (1)
       {
         cnt++;

@@ -15,8 +15,10 @@ void Dag::init(int _lf, int _rt)
     rt=_rt;
     nn=2*lf+2*rt-1; 
 
-    retchild = leftchild = new SPID[nn];
-    rightchild = new SPID[nn - lf - rt]; // !
+    retchild = leftchild = new SPID[nn-lf];
+    retchild -= lf;
+    leftchild -= lf;
+    rightchild = new SPID[nn - lf - rt]; 
     rightchild -= lf;
     rtstartid = nn - rt;
 
@@ -25,7 +27,7 @@ void Dag::init(int _lf, int _rt)
 
     if (rt)
     {
-      retparent = new SPID[rt];    // !  
+      retparent = new SPID[rt];    
       spid2retlabel  = new string[rt];
       retparent -= rtstartid; // shift to obtain easy adressing   
       spid2retlabel -= rtstartid;
@@ -679,11 +681,34 @@ Dag::Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight)
 
 }
 
+// copy constructor
+Dag::Dag(const Dag &d)
+{
+  init(d.lf,d.rt);
+  memcpy ( lab, d.lab, sizeof(SPID)*lf );
+  memcpy ( parent, d.parent, sizeof(SPID)*nn );
+  memcpy ( leftchild+lf, d.leftchild+lf, sizeof(SPID)*(nn-lf) );
+  memcpy ( rightchild+lf, d.rightchild+lf, sizeof(SPID)*(nn-lf-rt) );
+  if (rt)
+    memcpy ( retparent+rtstartid, d.retparent+rtstartid, sizeof(SPID)*(nn-rtstartid) );
+  
 
+  for (int i=rtstartid;i<nn;i++)
+    spid2retlabel[i]=d.spid2retlabel[i];
+
+  root=d.root;  
+  weight=d.weight;     
+  exactspecies=d.exactspecies; 
+
+  // if (verifychildparent())
+  //   { exit(-1); } 
+  
+}
 
 Dag::~Dag() 
   {
     
+    leftchild+=lf;
     delete[] leftchild;
     rightchild+=lf;
     delete[] rightchild;

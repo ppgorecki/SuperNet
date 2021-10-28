@@ -396,7 +396,7 @@ int usage(int argc, char **argv) {
        "  supnet -R10 -n '(a,((d)#1,(b,(c,#1))))' -en2\n"
 
        " Pairwise comparison of random dags (general dags)\n"
-       "  supnet -r10 -R4 -A2 -en2p\n"
+       "  supnet -r10 -R1 -A2 -en2p\n"
 
        " Print unique networks (-eu)\n"
        "  supnet -r1000 -R1 -A2 -en2p # here only two networks are unique\n"

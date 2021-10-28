@@ -117,6 +117,8 @@ public:
   // (v,p) --> (w,q); p,q are (ret)parents of v,w resp.
   Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight=1.0);
 
+  Dag(const Dag &d);
+
   virtual ~Dag();
   
   // Find leaf with a given label
