@@ -111,6 +111,62 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networktype)
     return n;
 }
 
+Network *randnetwork(int reticulationcnt, int networktype)
+{
+    string r = randspeciestreestr();
+    if (!r.length())
+    {
+      cerr << "Cannot create initial random species tree" << endl;
+      exit(-1);
+    }        
+    return addrandreticulations(reticulationcnt,new Network(r),networktype);        
+}
+
+Network *randquasiconsnetwork(int reticulationcnt, int networktype, TreeClusters *gtc, RootedTree *preserverootst)
+{
+    string r = gtc->genrootedquasiconsensus(preserverootst);
+    if (!r.length())
+    {
+      cerr << "Cannot create initial quasi consensus species tree" << endl;
+      exit(-1);
+    }      
+
+    return addrandreticulations(reticulationcnt, new Network(r), networktype);
+}
+
+
+
+// interator over networks
+// i should be initialized with -1
+Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, int &quasiconsensuscnt, 
+  TreeClusters *gtc,
+  RootedTree *preserverootst,
+  int reticulationcnt, int networktype)
+{
+  
+  i++;
+
+  if (netvec.size()>0 && i<netvec.size())  
+      return netvec[i];    
+  
+  
+  if (randomnetworkscnt!=0)   // with -1 infitite 
+  { 
+    if (randomnetworkscnt>0)  randomnetworkscnt--;             
+    return randnetwork(reticulationcnt, networktype);
+  }
+
+
+  if (quasiconsensuscnt!=0)  // with -1 infitite 
+  { 
+      if (quasiconsensuscnt>0) quasiconsensuscnt--;              
+      return randquasiconsnetwork(reticulationcnt, networktype, gtc, preserverootst);                     
+  }
+
+  return NULL;
+
+}
+
 int main(int argc, char **argv) 
 {
   
@@ -145,22 +201,25 @@ int main(int argc, char **argv)
   int OPT_COMPAREDAGS_BFTEST = 0;
   int OPT_COMPAREDAGS = 0;
   int OPT_UNIQUEDAGS = 0;
+  int OPT_UNIQUEDAGS_CNTS = 0;
   char *odt = NULL;
 
   int OPT_PRESERVEROOT=0;
   int OPT_EDITOPERATIONTEST = 0;
+  int OPT_UNIQUERANDDAGS = 0;
 
   int OPT_ODTNAIVE=0;
 
-  int randomtreescnt = 0;
+  int randomnetworkscnt = 0;
   int quasiconsensuscnt = 0;
 
   int reticulationcnt = 0;
   int networktype = 0;
+  int improvementthreshoold = 0;      
 
   string odtfile = "odt.log";
 
-  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:";
+  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:";
   vector<char*> sgtvec, sstvec, snetvec;
   
   while ((opt = getopt(argc, argv, optstring))   != -1)
@@ -185,6 +244,7 @@ int main(int argc, char **argv)
         if (strchr(optarg,'B')) OPT_COMPAREDAGS_BFTEST = 1; // hidden
         if (strchr(optarg,'p')) OPT_COMPAREDAGS = 1;  // allvsall
         if (strchr(optarg,'u')) OPT_UNIQUEDAGS = 1;   
+        if (strchr(optarg,'U')) OPT_UNIQUEDAGS_CNTS = 1;  // TODO: unified approach to rand test and generator
 
 
         if (strchr(optarg,'N')) OPT_EDITOPERATIONTEST = 1; // nni test
@@ -274,11 +334,18 @@ int main(int argc, char **argv)
     // Gen random trees/networks
     case 'r':
       OPT_RANDNETWORKS = 1;      
-      if (sscanf(optarg, "%d", &randomtreescnt) != 1) {
+      if (sscanf(optarg, "%d", &randomnetworkscnt) != 1) {
         cerr << "Number expected in -r" << endl;
         exit(-1);
       }
       
+      break;
+
+    case 'K':      
+      if (sscanf(optarg, "%d", &improvementthreshoold) != 1) {
+        cerr << "Number expected in -K" << endl;
+        exit(-1);
+      }
       break;
 
     // define letter based species a,b,c,...
@@ -408,12 +475,13 @@ int main(int argc, char **argv)
 
   // Gen quasi consensus trees and insert into netvec as networks 
   // Add reticulations if -R is set 
+  RootedTree *preserverootst = NULL;
   if (OPT_QUASICONSTREES)
   {
-    RootedTree *sr=NULL;
+  
     if (OPT_PRESERVEROOT)
     {
-      if (stvec.size()>0) sr=stvec[0];
+      if (stvec.size()>0) preserverootst=stvec[0];
       else 
       {
           cout << "Exactly one species tree should be defined for quasi-consensus trees with preserve-root option" << endl;
@@ -427,37 +495,17 @@ int main(int argc, char **argv)
       return -1;
     }
     
-    for (int i = 0; i < quasiconsensuscnt; i++)
-    {
-      
-      string r = gtc->genrootedquasiconsensus(sr);
-      if (!r.length())
-      {
-        cerr << "Cannot create initial quasi consensus species tree" << endl;
-        exit(-1);
-      }      
-
-      netvec.push_back(addrandreticulations(reticulationcnt,new Network(r),networktype));
-    } 
-    
-
+    if (!odt) // odt generated separately
+       for (int i = 0; i < quasiconsensuscnt; i++)      
+          netvec.push_back(randquasiconsnetwork(reticulationcnt, networktype, gtc, preserverootst));
   }
-
 
   // Gen random trees and store in netvec
   // Add reticulations if -R is set 
-  if (OPT_RANDNETWORKS)
+  if (OPT_RANDNETWORKS && !odt && !OPT_UNIQUERANDDAGS)
   {      
-      for (int i = 0; i < randomtreescnt; i++)
-      {
-        string r = randspeciestreestr();
-        if (!r.length())
-        {
-          cerr << "Cannot create initial random species tree" << endl;
-          exit(-1);
-        }        
-        netvec.push_back(addrandreticulations(reticulationcnt,new Network(r),networktype));        
-      }   
+      for (int i = 0; i < randomnetworkscnt; i++)      
+        netvec.push_back(randnetwork(reticulationcnt,networktype));              
   }     
 
   // Just printing
@@ -548,27 +596,66 @@ int main(int argc, char **argv)
     if (strchr(odt,'3')) verbose = 3;
     if (strchr(odt,'q')) odtfile = "";
 
-    HillClimb hc(gtvec,verbose,strchr(odt,'s'),odtfile);    
+    int printstats = 0;
+    if (strchr(odt,'s')) printstats=1;
+    if (strchr(odt,'S')) printstats=2;
 
-    for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
-      {
-        EditOp *op; 
+    HillClimb hc(gtvec, verbose);    
+    EditOp *op; 
+    if (strchr(odt,'N')) op = new NNI();
+    else op = new TailMove(strchr(odt,'t'));        
 
-        if (strchr(odt,'N')) op = new NNI();
-        else op = new TailMove(strchr(odt,'t'));        
+    NetworkHCStats *globalstats = new NetworkHCStats();
+    
+    long int i = -1;
+    int lastimprovement=0;
+    while (1)    
+    {
+        // stopping criterion
+        if (improvementthreshoold && (i-lastimprovement)>improvementthreshoold) break; // stop
+
+        // get next network 
+        Network *n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype);
+
+        if (!n) break;
         
+        NetworkHCStats nhcstats;
+        nhcstats.start();        
+
         // climb
-        double cost = hc.climb(*op,*ntpos, costfunc);
+        double cost = hc.climb(*op, n, costfunc, nhcstats);        
+
+        nhcstats.finalize();
         
-        // // Print network:
-        // if (strchr(odt,'n')) 
-        //   cout << **ntpos;
+        if (globalstats->merge(nhcstats, printstats)) lastimprovement=i;
+          
+        delete n; 
 
-        // Optimal cost         
-        cout << cost << endl;        
-
-        delete op;
+                  
     }
+
+    globalstats->print(true);      
+    delete op;
+
+
+    if (odtfile.length()) 
+    {
+
+      // save odt file
+      globalstats->save(odtfile);
+
+      //write dat file
+      string odtfiledat = odtfile.substr(0,odtfile.find_last_of('.'))+".dat";
+      globalstats->savedat(odtfiledat); 
+     
+
+      if (verbose>=1)
+      {
+        cout << "Optimal networks saved: " << odtfile << endl;  
+        cout << "Stats data save to: " << odtfiledat << endl;
+      }
+    }
+
   }
 
 
@@ -714,27 +801,29 @@ int main(int argc, char **argv)
       //cout <<  "eqcnt=" << cnt << " all=" << cntall << endl;
   }
 
-  if (OPT_UNIQUEDAGS)
+  if (OPT_UNIQUEDAGS || OPT_UNIQUEDAGS_CNTS)
   {
-      int cnt=0, cntall=0, unique=netvec.size();
-      bool cpy[netvec.size()];
-      for (int i=0; i<netvec.size(); i++) cpy[i]=false;
+      DagSet dagset(OPT_UNIQUEDAGS_CNTS);               
+      // get next network 
+      Network *n; 
+      long int i = -1;
+      while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype))!=NULL)
+              
+         dagset.add(n);        
 
-      for (int i=0; i<netvec.size(); i++)    
-      {       
-        if (cpy[i]) continue;
-        Network *n1 = netvec[i];        
-        cout << (*n1) << endl;
-        for (int j=i+1; j<netvec.size(); j++)    
-        { 
-            Network *n2 = netvec[j];                        
-            if (n1->eqdags(n2)) { 
-              cpy[j]=true;                                     
-              unique--;
-            }
-        }
-      }
-      cerr <<  "unique=" << unique << " all=" << netvec.size() << endl;
+
+      cout << dagset;     
+      cerr <<  "unique=" << dagset.size() << " all=" << netvec.size() << endl;
+  }
+
+
+  if (OPT_UNIQUERANDDAGS)
+  {
+      DagSet dagset(true);                  
+      while (randomnetworkscnt--)      
+        dagset.add(randnetwork(reticulationcnt, networktype));          
+      cout << dagset;     
+      cerr <<  "unique=" << dagset.size() << " all=" << netvec.size() << endl;
   }
 
   // Clean    

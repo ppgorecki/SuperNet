@@ -15,9 +15,10 @@ void Dag::init(int _lf, int _rt)
     rt=_rt;
     nn=2*lf+2*rt-1; 
 
-    retchild = leftchild = new SPID[nn-lf];
-    retchild -= lf;
+    leftchild = new SPID[nn-lf];
     leftchild -= lf;
+    retchild = leftchild;
+
     rightchild = new SPID[nn - lf - rt]; 
     rightchild -= lf;
     rtstartid = nn - rt;
@@ -698,16 +699,13 @@ Dag::Dag(const Dag &d)
 
   root=d.root;  
   weight=d.weight;     
-  exactspecies=d.exactspecies; 
-
-  // if (verifychildparent())
-  //   { exit(-1); } 
+  exactspecies=d.exactspecies;   
   
 }
 
 Dag::~Dag() 
-  {
-    
+{
+   
     leftchild+=lf;
     delete[] leftchild;
     rightchild+=lf;
@@ -721,6 +719,4 @@ Dag::~Dag()
       delete[] retparent;
       delete[] spid2retlabel;
     }
-
-
-  }
+}

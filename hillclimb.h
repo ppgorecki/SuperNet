@@ -4,6 +4,7 @@
 #include "rtree.h"
 #include "network.h"
 #include "tools.h"
+#include "dagset.h"
 
 
 // Network neighbourhood iterator using edit operation; in situ
@@ -77,27 +78,85 @@ public:
 
 };
 
+class NetworkHCStats
+{
+
+	DagSet *dagset;
+
+	double optcost;
+	long improvements;
+	double hctime;
+	double mergetime;
+	long steps; 
+	int startingnets;
+	int topnetworks; 
+
+public:
+
+	NetworkHCStats();
+	~NetworkHCStats();
+
+	void step() { steps++; }
+
+	int add(Dag &n) { 		
+		dagset->add(n);		
+		topnetworks = dagset->size();
+		return 1; 		
+	}
+
+	void setcost(double cost) { 
+		improvements++;
+		dagset->clear(); 
+		optcost = cost;
+	}
+
+	void save(string file)
+	{
+		dagset->save(file);
+	}
+	
+
+	void finalize()
+	{
+		hctime = gettime()-hctime;
+	}
+
+	void start()
+	{
+		hctime = gettime();
+	}
+
+	// Save dat file
+	void savedat(string file);
+
+	// Print stats
+	void print(bool global=false);
+
+	// Merge HC results
+	int merge(NetworkHCStats &nhc, int printstats);
+	
+
+}; 
+
 
 class HillClimb
 {
 protected:
 
 	vector<RootedTree*> &genetrees;
-	int verbose;
-	bool printstats;
-	string odtfile;
+	int verbose;	
 
 public:
 
 	// Initializes Gene Trees
-	HillClimb(vector<RootedTree*> &gtvec, int _verbose = 0, 
-			bool _printstats = false, string _odtfile=""): genetrees(gtvec), verbose(_verbose), printstats(_printstats), odtfile(_odtfile) {}
+	HillClimb(vector<RootedTree*> &gtvec, int _verbose = 0): 
+		genetrees(gtvec), verbose(_verbose) {}
 
 	// Executes hill climbing using edit operation
 	// Starts from net, net is modified
 	// Returns optimal cost 
 	// TODO: additional info (stats, more optimal solutions, etc.) 
-	double climb(EditOp &op, Network *net, int costfunc);
+	double climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &nhcstats);
 
 };
 

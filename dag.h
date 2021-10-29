@@ -27,6 +27,7 @@ protected:
   
   double weight;     // Dag weight (unused)
   bool exactspecies; // True iff leaf ids == species ids
+  long int count;    // for counting networks
 
 /* Example of tree structures:
 
@@ -197,6 +198,9 @@ public:
 
   bool eqdagsbypermutations(Dag *d); // brute force by permutations
 
+  friend class DagSet;
+
+  long int getcount() { return count; }
   
   
 };

@@ -290,9 +290,10 @@ int usage(int argc, char **argv) {
        "     c - print cost\n"       
        "     C - print cost with trees\n"              
        "     1 - class 1 networks in rand generator (int node has at most one reticulation child); see -R\n"       
-       "     2 - networks with no restrictions; see -R\n"
-       "     u - print unique networks; summary stats printed on stderr\n"
+       "     2 - general phylogenetic networks (no restrictions); see -R\n"
        "     p - pairwise comparison of all networks\n"
+       "     u - print unique networks; summary stats printed on stderr\n"
+       "     U - similar to u plus counts of networks\n"
 
        "\n"       
        "COST SETTING OPTIONS\n"
@@ -304,15 +305,19 @@ int usage(int argc, char **argv) {
        "ODT HEURISTIC SEARCH\n"
 
        "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file; summary stats are save to odt.dat (cost, time of hill climbing in sec., number of networks, improvements and steps)\n"
+       "   By default each HC step starts from the set of predefined networks (if -n or -N are provided); otherwise by using quasi-random networks\n"
        "       T - use TailMoves (default)\n"
        "       N - use NNI instead of TailMoves\n"      
        "       t - TailMoves limited to tree-child (with 3a-3c conditions)\n"
        "       1 - print visited network after each improvement (strictly)\n"
        "       2 - print visited networks if the cost is equal to the current or improved\n"
        "       3 - print all visited networks\n"
-       "       s - print additional stats on heuristic run\n"
+       "       S - print stats after locating optimal networks after each HC runs\n"
+       "       s - print extended stats after each HC run\n"
        "       q - do not save odt.log (and odt.dat) with optimal networks\n"
+       
 
+       "  -K NUM - stopping criterion: stop when there is no new network after NUM HC runs\n"
 
        "\n"
        "  -O ODTFILE - change the name of odt.log and odt.dat files\n"
@@ -362,11 +367,11 @@ int usage(int argc, char **argv) {
 
        "\nHILL CLIMBING HEURISTIC (-o...)\n"
 
-       " Minimalistic run: print cost; result in odt.log; random initial network (-r1) with 2 (-R2) reticulations\n"
+       " Minimalistic run: print cost; result in odt.log; one random initial network (-r1, i.e., one HC climb) with 2 (-R2) reticulations\n"
        "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R2 -oT\n"
        
-       " Print cost and improvement networks + stats\n"
-       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -r1 -R3 -o2s\n"
+       " Print summary stats; 10 HC runs with random networks\n"
+       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -r10 -R3 -o2S\n"
 
        " Print cost, improvements and stats (s); tree-child search (t); quasi consensus initial network (-q) with 3 random reticulations\n"
        "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -q1 -R3  -o2st\n"
@@ -382,15 +387,21 @@ int usage(int argc, char **argv) {
 
        " Print improvements and equal cost networks; NNI moves:\n"
        "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o3N\n"
-
+       
        " Print improvements; skip odt.log:\n"
        "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o3Nq\n"
+
+       " Recommended with large HC-runs using quasi-consensus rand networks\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -q1000 -R3 -oS\n"
+
+       " Using stoppning criterion (-K1000) with quasi-consensus rand networks\n"
+       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -q-1 -R3 -oS -K1000\n"
 
        " Display trees usage stats:\n"
        "  supnet -N odt.log -et | sort | uniq -c | sort -k1 -n\n"
 
        " Insert 2 reticulations into a network (tree-child output)\n"
-       "  supnet -R2 -n '(a,((d)#1,(b,(c,#1)))) -en\n"
+       "  supnet -R2 -n '(a,((d)#1,(b,(c,#1))))' -en\n"
 
        " Insert 10 reticulations into a network (general network)\n"
        "  supnet -R10 -n '(a,((d)#1,(b,(c,#1))))' -en2\n"
@@ -398,12 +409,16 @@ int usage(int argc, char **argv) {
        " Pairwise comparison of random dags (general dags)\n"
        "  supnet -r10 -R1 -A2 -en2p\n"
 
-       " Print unique networks (-eu)\n"
-       "  supnet -r1000 -R1 -A2 -en2p # here only two networks are unique\n"
-
-       " Print unique networks from odt.log\n"
+       " Print unique networks from odt.log (-eu)\n"
        "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -r1 -R3 -o2 && supnet -eu -N odt.log\n"
+
+       " Print unique random networks with counts\n"
+       "  supnet -r100000 -R1 -A3 -eU\n"
+
+
        ;
+
+
        
 
   exit(-1);

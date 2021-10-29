@@ -371,7 +371,7 @@ bool NNI::next()
 	return true;
 }
 
-double HillClimb::climb(EditOp &op, Network *net, int costfunc)
+double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &nhcstats)
 {
 
 	double starttime = gettime();
@@ -382,19 +382,11 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 	// compute the first odt cost
 	double optcost = net->odtnaivecost(genetrees, costfunc);
 	
-	double curcost; 
-
-	long steps = 0;
-	long improvements = 0;
-	long equalnets = 0;
+	double curcost; 	
 	std::ofstream odtf;
 
-	bool storenets = odtfile.length();
-
-	std::vector<Network> netcontainer;
-
-	if (storenets) 
-		netcontainer.push_back(*net); // save the first network
+	nhcstats.setcost(optcost);
+	nhcstats.add(*net); // save the first network
 	
 	if ((verbose==3) && (curcost>optcost))
 		cout << " = " << *net << " cost=" << curcost << endl;				
@@ -403,82 +395,144 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc)
 	{		
 		
 		double curcost = net->odtnaivecost(genetrees, costfunc);
-		steps++;
+		nhcstats.step();
 
 		if ((verbose==3) && (curcost>optcost))
 			cout << " < " << *net << " cost=" << curcost << endl;				
 		
 		if (curcost==optcost)
 		{
-			equalnets++;
 			if (verbose>=2)					
 				cout << " = " << *net << " cost=" << curcost << endl;				
-			if (storenets) 
-				netcontainer.push_back(*net);
+			
+			nhcstats.add(*net);								
     
 		}
 			
 		// Yeah, new better network
 		if (curcost<optcost)
 		{
-			optcost = curcost; 
-			
-			equalnets = 1;
-			improvements++;
-
+			optcost = curcost; 						
 			if (verbose>=1)
 				cout << " > " << *net << " cost=" << optcost << endl;	
 
-			if (storenets) 
-			{
-				netcontainer.clear(); // new optimal; forget old 
-				netcontainer.push_back(*net);		
-			}
+			nhcstats.setcost(optcost); // new optimal; forget old   
+			nhcstats.add(*net);		
+			
 
 			// search in a new neighbourhood
 			op.reset();
 		}
 
 	}
-	string odtfiledat; 
-
-	if (storenets) 
-	{
-
-		odtf.open (odtfile, std::ofstream::out);
-
-		for( size_t i = 0; i < netcontainer.size(); i++ )
-         	odtf << netcontainer[i] << endl;
-		odtf.close();
-
-		//write dat file
-		odtfiledat = odtfile.substr(0,odtfile.find_last_of('.'))+".dat";
-
-		odtf.open ( odtfiledat, std::ofstream::out);
-		odtf << optcost << endl; // cost
-		odtf << (gettime() - starttime) << endl; // time
-		odtf << equalnets << endl; // networks
-		odtf << improvements << endl; // improvements
-		odtf << steps << endl; // steps
-		odtf.close();
-
-	}
-	
-
-	if (printstats)
-	{
-		cout << "Steps (networks evaluated): " << steps << endl;
-		cout << "Improvements: " << improvements << endl;
-		cout << "Equal-cost networks: " << equalnets << endl;
-	}
-
-	if (verbose>=1 && storenets)
-	{
-		cout << "Optimal networks saved: " << odtfile << endl;	
-		cout << "Stats data save to: " << odtfiledat << endl;
-	}
 
 
 	return optcost;
 
 }
+
+void NetworkHCStats::print(bool global)
+{
+    cout << "Cost:" << optcost    
+     << " Steps:" << steps 
+     << " Climbs:" << improvements 
+     << " TopNetworks:" << topnetworks; 
+     if (global) 
+     	cout 
+     		<< " HCruns:" << startingnets 
+     		<< " HCTime:" << hctime
+     		<< " MergeTime:" << mergetime
+     		<< endl;
+}
+
+// Merge stats. Returns 
+//    1 - new cost
+//    2 - new networks with the same cost
+//    0 - no improvement
+int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats) 
+{
+	double mtime = gettime();
+	int res = 0;
+
+  startingnets++;
+  improvements += nhc.improvements;
+  steps += nhc.steps;
+  improvements += nhc.improvements;
+  hctime += nhc.hctime;
+
+  // cout << "merge " << optcost << " " << dagset->size() << endl;
+
+  if (!dagset->size() || nhc.optcost < optcost)
+  {
+    delete dagset;
+    optcost = nhc.optcost;
+    dagset = nhc.dagset;
+    nhc.dagset = NULL;
+    if (printstats)   
+    {
+    	cout << startingnets << ". ";
+      nhc.print();    
+      cout << " NewOptCost!" << endl;             
+    }
+    res = 1;
+  }
+  else 
+  	if (nhc.optcost == optcost)
+    {      
+
+      int insnets = dagset->merge(*nhc.dagset);
+
+      if ((printstats==2  && insnets) || printstats==1)
+      {
+      	cout << startingnets << ". ";
+        nhc.print();    
+        cout << " NewNets:" << insnets << " " << "Total:" << dagset->size() << endl;
+      }
+      if (insnets) res=2;  // new opt nets.            
+
+    }
+    else 
+    	if (printstats==1)
+	    {     
+	      cout << startingnets << ". ";
+	      nhc.print();    
+	      cout << endl;
+	    }
+
+  mergetime += gettime()-mtime;
+	topnetworks = dagset->size();
+  return res; 
+   
+}
+
+
+void NetworkHCStats::savedat(string file)
+{
+    std::ofstream odtf;
+    odtf.open ( file, std::ofstream::out);
+    odtf << optcost << endl; // cost
+    odtf << (hctime + mergetime) << endl; // time
+    odtf << topnetworks << endl; // networks
+    odtf << improvements << endl; // improvements
+    odtf << steps << endl; // steps
+    odtf << startingnets << endl; // networks merged
+    odtf.close();
+}
+
+NetworkHCStats::NetworkHCStats() 
+{ 
+    dagset = new DagSet();
+    improvements = -1; 
+    hctime = 0;
+    steps = 0;
+    startingnets = 0;
+    mergetime = 0;
+    topnetworks = 0;
+}
+
+NetworkHCStats::~NetworkHCStats()
+{ 
+    if (dagset)
+      delete dagset;
+}
+
