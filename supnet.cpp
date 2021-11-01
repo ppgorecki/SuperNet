@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 
   int OPT_PRESERVEROOT=0;
   int OPT_EDITOPERATIONTEST = 0;
-  int OPT_UNIQUERANDDAGS = 0;
+  
 
   int OPT_ODTNAIVE=0;
 
@@ -460,8 +460,6 @@ int main(int argc, char **argv)
   VecNetwork::iterator ntpos;
 
 
-
-
   TreeClusters *gtc = NULL;
 
   // Prepare clusters 
@@ -500,13 +498,22 @@ int main(int argc, char **argv)
           netvec.push_back(randquasiconsnetwork(reticulationcnt, networktype, gtc, preserverootst));
   }
 
-  // Gen random trees and store in netvec
-  // Add reticulations if -R is set 
-  if (OPT_RANDNETWORKS && !odt && !OPT_UNIQUERANDDAGS)
-  {      
-      for (int i = 0; i < randomnetworkscnt; i++)      
-        netvec.push_back(randnetwork(reticulationcnt,networktype));              
-  }     
+  // Random networks generated on the fly
+  if (OPT_UNIQUEDAGS || OPT_UNIQUEDAGS_CNTS)
+  {
+      DagSet dagset(OPT_UNIQUEDAGS_CNTS);               
+      // get next network 
+      Network *n; 
+      long int i = -1;
+      while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype))!=NULL)              
+         dagset.add(n);        
+      
+      cout << dagset;     
+      cerr <<  "unique=" << dagset.size() << " all=" << netvec.size() << endl;
+      exit(0); // ignore rest opt
+  }
+
+
 
   // Just printing
   if (OPT_PRINTSPECIES)
@@ -519,7 +526,28 @@ int main(int argc, char **argv)
      
   if (OPT_PRINTGENE)
     for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
-      cout << **gtpos << endl;     
+      cout << **gtpos << endl;  
+
+
+  if (OPT_PRINTCOST)
+  {    
+    for (stpos = stvec.begin(); stpos != stvec.end(); ++stpos)        
+      for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)        
+      {
+        if (OPT_PRINTCOST==2)        
+          cout << **stpos << " " << **gtpos << " ";
+        cout << (*gtpos)->cost(*(*stpos),costfunc)  << endl;
+      }
+  }   
+
+
+  // Gen random trees and store in netvec
+  // Add reticulations if -R is set 
+  if (OPT_RANDNETWORKS && !odt)
+  {      
+      for (int i = 0; i < randomnetworkscnt; i++)      
+        netvec.push_back(randnetwork(reticulationcnt,networktype));              
+  }     
 
   if (OPT_PRINTNETWORK)
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)      
@@ -561,18 +589,6 @@ int main(int argc, char **argv)
     s << "}" << endl;
   }
 
-  if (OPT_PRINTCOST)
-  {    
-    for (stpos = stvec.begin(); stpos != stvec.end(); ++stpos)        
-      for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)        
-      {
-        if (OPT_PRINTCOST==2)        
-          cout << **stpos << " " << **gtpos << " ";
-        cout << (*gtpos)->cost(*(*stpos),costfunc)  << endl;
-      }
-  }
-
-
   if (OPT_ODTNAIVE)
   {
     DISPLAYTREEID optid;
@@ -584,7 +600,6 @@ int main(int argc, char **argv)
         
     }
   }
-
 
   // Run hill climbing
   if (odt)
@@ -749,6 +764,7 @@ int main(int argc, char **argv)
     }
   }
 
+  // Debug on
  if (OPT_COMPAREDAGS_BFTEST)
   {
 
@@ -801,31 +817,7 @@ int main(int argc, char **argv)
       //cout <<  "eqcnt=" << cnt << " all=" << cntall << endl;
   }
 
-  if (OPT_UNIQUEDAGS || OPT_UNIQUEDAGS_CNTS)
-  {
-      DagSet dagset(OPT_UNIQUEDAGS_CNTS);               
-      // get next network 
-      Network *n; 
-      long int i = -1;
-      while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype))!=NULL)
-              
-         dagset.add(n);        
-
-
-      cout << dagset;     
-      cerr <<  "unique=" << dagset.size() << " all=" << netvec.size() << endl;
-  }
-
-
-  if (OPT_UNIQUERANDDAGS)
-  {
-      DagSet dagset(true);                  
-      while (randomnetworkscnt--)      
-        dagset.add(randnetwork(reticulationcnt, networktype));          
-      cout << dagset;     
-      cerr <<  "unique=" << dagset.size() << " all=" << netvec.size() << endl;
-  }
-
+  
   // Clean    
   for (size_t i = 0; i < sgtvec.size(); i++) 
     free(sgtvec[i]);
