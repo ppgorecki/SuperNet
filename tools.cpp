@@ -294,6 +294,7 @@ int usage(int argc, char **argv) {
        "     p - pairwise comparison of all networks\n"
        "     u - print unique networks; summary stats printed on stderr\n"
        "     U - similar to u plus counts of networks\n"
+       "     x - two networks are equal if their shapes are isomorphic in u,U,p (i.e., ignore leaf labels)\n"
        "     L - for each v in V(N), print the number of nodes reachable from v (only from networks)\n"
        "\n"       
        "COST SETTING OPTIONS\n"
@@ -415,6 +416,8 @@ int usage(int argc, char **argv) {
        " Print unique random networks with counts\n"
        "  supnet -r100000 -R1 -A3 -eU\n"
 
+       " Print unique random shapes of networks with counts\n"
+       "  supnet -r100000 -R1 -A3 -eUx\n"
 
        ;
 

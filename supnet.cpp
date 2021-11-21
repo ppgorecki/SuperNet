@@ -200,6 +200,7 @@ int main(int argc, char **argv)
   int OPT_PRINTDISPLAYTREES = 0;
   int OPT_COMPAREDAGS_BFTEST = 0;
   int OPT_COMPAREDAGS = 0;
+  int OPT_DAGSHAPES = 0;
   int OPT_UNIQUEDAGS = 0;
   int OPT_UNIQUEDAGS_CNTS = 0;
   char *odt = NULL;
@@ -245,6 +246,7 @@ int main(int argc, char **argv)
 
         if (strchr(optarg,'B')) OPT_COMPAREDAGS_BFTEST = 1; // hidden
         if (strchr(optarg,'p')) OPT_COMPAREDAGS = 1;  // allvsall
+        if (strchr(optarg,'x')) OPT_DAGSHAPES = 1;  
         if (strchr(optarg,'u')) OPT_UNIQUEDAGS = 1;   
         if (strchr(optarg,'U')) OPT_UNIQUEDAGS_CNTS = 1;  // TODO: unified approach to rand test and generator
 
@@ -503,7 +505,7 @@ int main(int argc, char **argv)
   // Random networks generated on the fly
   if (OPT_UNIQUEDAGS || OPT_UNIQUEDAGS_CNTS)
   {
-      DagSet dagset(OPT_UNIQUEDAGS_CNTS);               
+      DagSet dagset(OPT_UNIQUEDAGS_CNTS,OPT_DAGSHAPES);               
       // get next network 
       Network *n; 
       long int i = -1;
@@ -819,7 +821,7 @@ int main(int argc, char **argv)
         for (int j=i+1; j<netvec.size(); j++)    
         { 
             Network *n2 = netvec[j];            
-            bool e1 = n1->eqdags(n2);                        
+            bool e1 = n1->eqdags(n2,!OPT_DAGSHAPES);                        
             cout << *(n1) << "\t" << *(n2) << "\t" << e1 << endl;                        
         }
       }

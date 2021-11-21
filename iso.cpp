@@ -20,15 +20,23 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
       return false; // diff      
     }
 
+#define rtype(n) (((n)<lf)?1:(((n)<rtstartid)?2:3))
+
     // check types locally
-    if (src>=rtstartid && dest<rtstartid) return false; 
-    if (src<rtstartid && dest>=rtstartid) return false; 
+    int srctype = rtype(src);
+    int desttype = rtype(dest);
+    if (srctype!=desttype) return false;
+
+    // if (src>=rtstartid && dest<rtstartid) return false; 
+    // if (src<rtstartid && dest>=rtstartid) return false; 
+
+    // if (src<lf && dest>=lf) return false; 
+    // if (src>=lf && dest<lf) return false; 
 
 
     SPIDPair csrc[3];    
     int lst=0;
 
-#define rtype(n) (((n)<lf)?1:(((n)<rtstartid)?2:3))
 
 #define inscand(a,b)  { csrc[lst][0]=a; csrc[lst++][1]=b; } 
 
@@ -48,8 +56,8 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
           inscand(retchild[src],d->retchild[dest]);          
         }   
     }    
-    else 
-    {
+    else if (src>=lf)
+      {
         // tree node
         SPID dl = isomap[leftchild[src]];
         SPID dr = isomap[rightchild[src]];
@@ -96,7 +104,12 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
 
         }
 
-    }
+      }
+    else
+      {
+        // leaf case
+        // skip
+      }
 
     // check parents
     if (root==src && d->root==dest) return true; // root case
@@ -150,9 +163,9 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
         }
 
     }
-    else
+    else 
     {
-      // tree node
+      // tree node/leaf
       SPID pr = isomap[parent[src]];
       if (pr!=MAXSP)
         { if (d->parent[dest]!=pr) return false; }
@@ -163,6 +176,7 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
          inscand(parent[src],d->parent[dest]); 
       }
     }    
+
 
     if (lst && cands)
     {
@@ -259,7 +273,7 @@ bool Dag::eqdagsbypermutations(Dag *d)
 }
 
 
-bool Dag::eqdags(Dag *d)
+bool Dag::eqdags(Dag *d, bool maplabels)
 {
 
   if (d->lf!=lf || d->rt!=rt || d->nn!=nn) return false;
@@ -268,11 +282,12 @@ bool Dag::eqdags(Dag *d)
   for (SPID i=0; i<nn; i++) isomap[i]=MAXSP;  
 
   // leaves
-  for (SPID i=0; i<lf; i++) 
-    {
-      isomap[i]=d->findlab(lab[i]);
-      if (isomap[i]==MAXSP) return 0;          
-    }
+  if (maplabels)
+    for (SPID i=0; i<lf; i++) 
+      {
+        isomap[i]=d->findlab(lab[i]);
+        if (isomap[i]==MAXSP) return 0;          
+      }
 
   int _;
 

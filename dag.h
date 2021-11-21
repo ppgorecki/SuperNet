@@ -192,7 +192,7 @@ public:
   // TODO: Topological sort; optionally with returning top. ordering
   bool isdag() { return true; } 
 
-  bool eqdags(Dag *d);
+  bool eqdags(Dag *d, bool maplabels=true);
   bool eqdagstc1(Dag *d); // only tree child and class 1 testing (to be proved)
 
 

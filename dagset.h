@@ -12,10 +12,12 @@ class DagSet
 {
 	std::vector<Dag*> *v;
 	bool usecounts = 0;
+	bool maplabels = 0;
 
 public:
-	DagSet(bool counts=false) 
+	DagSet(bool counts=false, bool dagshapes=false) 
 	{
+		maplabels = !dagshapes;
 		usecounts = counts;
 		v = new std::vector<Dag*>;
 	}
@@ -24,7 +26,7 @@ public:
 	Dag* contains(Dag &n) 
 	{		
 		for (size_t i=0; i<v->size(); i++)
-			if ((*v)[i]->eqdags(&n)) return (*v)[i];
+			if ((*v)[i]->eqdags(&n,maplabels)) return (*v)[i];
 		return NULL;
 	}
 
