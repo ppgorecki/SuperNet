@@ -512,6 +512,8 @@ void NetworkHCStats::savedat(string file)
     odtf.open ( file, std::ofstream::out);
     odtf << optcost << endl; // cost
     odtf << (hctime + mergetime) << endl; // time
+    odtf << hctime << endl; // hill climbing time 
+    odtf << mergetime << endl; // merge time
     odtf << topnetworks << endl; // networks
     odtf << improvements << endl; // improvements
     odtf << steps << endl; // steps
