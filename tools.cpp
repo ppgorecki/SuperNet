@@ -304,7 +304,7 @@ int usage(int argc, char **argv) {
 
        "ODT HEURISTIC SEARCH\n"
 
-       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file; summary stats are save to odt.dat (cost, time of hill climbing in sec., number of networks, improvements and steps)\n"
+       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file; summary stats are save to odt.dat (opt cost, total time in sec., time of hill climbing, time of merge step, number of networks, improvements, steps and the number of starting networks)\n"
        "   By default each HC step starts from the set of predefined networks (if -n or -N are provided); otherwise by using quasi-random networks\n"
        "       T - use TailMoves (default)\n"
        "       N - use NNI instead of TailMoves\n"      
