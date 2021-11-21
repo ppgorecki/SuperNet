@@ -85,11 +85,31 @@ SPID Network::_gendisplaytree(DISPLAYTREEID id, RootedTree *t, SPID i, SPID ipar
 }
 
 // Marks nodes reachable from v (including v)	
+// supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -eL
+// 1 1 1 4 4 8 9 2 5 
+// supnet -n '((a,b),c)' -eL 
+// 1 1 1 3 5
 void Network::getreachablefrom(SPID v, bool *reachable)
 {
 	bool visited[nn];
 	for (SPID i=0; i<nn; i++) reachable[i] = visited[i] = false;
 	_getreachablefrom(v,reachable, visited);
+}
+
+// Print how many nodes are reachable from all nodes
+ostream& Network::printlfstats(ostream&s)
+{
+	bool *vreachable = new bool[nn];	
+	for (SPID i=0; i<nn; i++)		
+	{	
+		getreachablefrom(i, vreachable);
+		int cnt = 0;
+		for (SPID j=0; j<nn; j++)		
+			if (vreachable[j]) cnt++;
+		s << cnt << " ";
+	}
+	return s;
+
 }
 
 void Network::_getreachablefrom(SPID v, bool *reachable, bool *visited)

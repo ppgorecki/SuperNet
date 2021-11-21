@@ -206,6 +206,7 @@ int main(int argc, char **argv)
 
   int OPT_PRESERVEROOT=0;
   int OPT_EDITOPERATIONTEST = 0;
+  int OPT_PRINTLEAFSTATS = 0;
   
 
   int OPT_ODTNAIVE=0;
@@ -240,6 +241,7 @@ int main(int argc, char **argv)
         if (strchr(optarg,'c')) OPT_PRINTCOST = 1; // just numbers
         if (strchr(optarg,'C')) OPT_PRINTCOST = 2; // with trees
         if (strchr(optarg,'D')) OPT_PRINTDETAILED = 1;
+        if (strchr(optarg,'L')) OPT_PRINTLEAFSTATS = 1;
 
         if (strchr(optarg,'B')) OPT_COMPAREDAGS_BFTEST = 1; // hidden
         if (strchr(optarg,'p')) OPT_COMPAREDAGS = 1;  // allvsall
@@ -569,6 +571,13 @@ int main(int argc, char **argv)
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)    
       (*ntpos)->printdeb(cout,2) << endl;     
   }
+
+  if (OPT_PRINTLEAFSTATS)    
+  {    
+    for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)    
+      (*ntpos)->printlfstats(cout) << endl;     
+  }
+
 
   if (OPT_DOT)
   {

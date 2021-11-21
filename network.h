@@ -84,7 +84,8 @@ public:
 	void getreachablefrom(SPID v, bool *reachable);
 
 	// Mark nodes w such that v is reachble from w (including v)	
-	void getreachableto(SPID v, bool *reachable);
+	void getreachableto(SPID v, bool *reachable);	
+	ostream& printlfstats(ostream&s);
 
 	friend class NNI;
 	friend class TailMove;

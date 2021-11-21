@@ -294,7 +294,7 @@ int usage(int argc, char **argv) {
        "     p - pairwise comparison of all networks\n"
        "     u - print unique networks; summary stats printed on stderr\n"
        "     U - similar to u plus counts of networks\n"
-
+       "     L - for each v in V(N), print the number of nodes reachable from v (only from networks)\n"
        "\n"       
        "COST SETTING OPTIONS\n"
        // " TODO: -D dupweight  - set weight of gene duplications (def. 1.0)\n"
