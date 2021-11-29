@@ -85,7 +85,10 @@ public:
 
 	// Mark nodes w such that v is reachble from w (including v)	
 	void getreachableto(SPID v, bool *reachable);	
-	ostream& printlfstats(ostream&s);
+
+	// nodetype==1 -> count visible leaves 
+	// nodetype==2 -> count all visible nodes
+	ostream& visibilenodestats(int nodetypes, ostream&s);
 
 	friend class NNI;
 	friend class TailMove;

@@ -296,6 +296,7 @@ int usage(int argc, char **argv) {
        "     U - similar to u plus counts of networks\n"
        "     x - two networks are equal if their shapes are isomorphic in u,U,p (i.e., ignore leaf labels)\n"
        "     L - for each v in V(N), print the number of nodes reachable from v (only from networks)\n"
+       "     l - for each v in V(N), print the number of leaves reachable from v (only from networks)\n"
        "\n"       
        "COST SETTING OPTIONS\n"
        // " TODO: -D dupweight  - set weight of gene duplications (def. 1.0)\n"

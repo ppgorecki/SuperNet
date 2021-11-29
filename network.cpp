@@ -100,14 +100,19 @@ void Network::getreachablefrom(SPID v, bool *reachable)
 // supnet -n '((a,b),c);(a,b)' -eL
 // 1 1 1 3 5 
 // 1 1 3 
-ostream& Network::printlfstats(ostream&s)
+
+// nodetype==1 -> count visible leaves 
+// nodetype==2 -> count all visible nodes
+ostream& Network::visibilenodestats(int nodetypes, ostream&s)
 {
 	bool *vreachable = new bool[nn];	
+	int last = nn;
+	if (nodetypes==1) last=lf;
 	for (SPID i=0; i<nn; i++)		
 	{	
 		getreachablefrom(i, vreachable);
 		int cnt = 0;
-		for (SPID j=0; j<nn; j++)		
+		for (SPID j=0; j<last; j++)		
 			if (vreachable[j]) cnt++;
 		s << cnt << " ";
 	}
