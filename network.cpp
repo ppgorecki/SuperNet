@@ -189,17 +189,17 @@ double Network::odtnaivecost(vector<RootedTree*> &genetrees, int costfunc)
     return mincost;        
 }
 
- 
+// #define RNDDEBUG 
 
 Network* Network::addrandreticulation(string retid, int networktype)
 {
-	int len=nn+rt-1; // v<->parent.v, addtionally v->retparent; exclude v==root
+	int len=nn+rt-1; 
 	SPID esrc[len];
 	SPID dsrc[len];
 	
 	len=0;
 	for (SPID i = 0; i<rtstartid; i++) 		
-		if (i!=root) esrc[len++]=i;
+		esrc[len++]=i;
 
 	if (networktype==NT_GENERAL)
 		for (SPID i = rtstartid; i < nn; i++) 
@@ -208,10 +208,6 @@ Network* Network::addrandreticulation(string retid, int networktype)
 			esrc[len++]=-i;
 		}
 
-	// for (SPID i = 0; i<len; i++)
-	// 	cout << esrc[i] << " ";
-	// cout << endl;
-
 	if (!len)
 	{
 		cerr << "Src edge does not exist" << endl;
@@ -219,20 +215,23 @@ Network* Network::addrandreticulation(string retid, int networktype)
 	}
 
 	// shuffle nodes for randomness
-	shuffle(esrc,len);
+	shuffle(esrc,len);	
 	bool reachable[size()];	
 	for (SPID i = 0; i<len; i++)
 	{		
 		SPID v = esrc[i];
-		SPID p;
+		SPID p = MAXSP;
 		SPID dlen = 0;
-		if (v<0)
+		if (v!=root) 
 		{
-			v=-v;
-			p = retparent[v];			
+			if (v<0)
+			{
+				v=-v;
+				p = retparent[v];			
+			}
+			else
+				p = parent[v];			
 		}
-		else
-			p = parent[v];			
 		// src edge (v,p)
 
 		// gen reachable 	
@@ -294,6 +293,8 @@ Network* Network::addrandreticulation(string retid, int networktype)
 
 #ifdef RNDDEBUG		
 		cout << " v=" << v << " p=" << p << endl;
+		cout << " escr=";
+		for (SPID i = 0; i < len; i++) cout << " " << esrc[i] ;
 		cout << " dscr=";
 		for (SPID i = 0; i < dlen; i++) cout << " " << dsrc[i] ;
 		cout << endl;
