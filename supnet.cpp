@@ -95,12 +95,12 @@ void insertstr(vector<char*> &v,const char *t)
   free(y);
 }
 
-Network *addrandreticulations(int reticulationcnt, Network *n, int networktype)
+Network *addrandreticulations(int reticulationcnt, Network *n, int networktype, bool uniform)
 {      
     for (int i=0; i<reticulationcnt; i++)
     {
       Network *prev = n;
-      n = n->addrandreticulation("",networktype);
+      n = n->addrandreticulation("",networktype, uniform);
       if (!n)
       {
         cerr << "Cannot insert random " << (i+1) << "-th reticulation into " << *prev << endl;
@@ -111,7 +111,7 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networktype)
     return n;
 }
 
-Network *randnetwork(int reticulationcnt, int networktype)
+Network *randnetwork(int reticulationcnt, int networktype, bool uniform)
 {
     string r = randspeciestreestr();
     if (!r.length())
@@ -119,7 +119,7 @@ Network *randnetwork(int reticulationcnt, int networktype)
       cerr << "Cannot create initial random species tree" << endl;
       exit(-1);
     }        
-    return addrandreticulations(reticulationcnt,new Network(r),networktype);        
+    return addrandreticulations(reticulationcnt,new Network(r),networktype, uniform);        
 }
 
 Network *randquasiconsnetwork(int reticulationcnt, int networktype, TreeClusters *gtc, RootedTree *preserverootst)
@@ -131,7 +131,7 @@ Network *randquasiconsnetwork(int reticulationcnt, int networktype, TreeClusters
       exit(-1);
     }      
 
-    return addrandreticulations(reticulationcnt, new Network(r), networktype);
+    return addrandreticulations(reticulationcnt, new Network(r), networktype, false);
 }
 
 
@@ -141,7 +141,7 @@ Network *randquasiconsnetwork(int reticulationcnt, int networktype, TreeClusters
 Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, int &quasiconsensuscnt, 
   TreeClusters *gtc,
   RootedTree *preserverootst,
-  int reticulationcnt, int networktype)
+  int reticulationcnt, int networktype, bool randnetuniform)
 {
   
   i++;
@@ -153,7 +153,7 @@ Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, in
   if (randomnetworkscnt!=0)   // with -1 infitite 
   { 
     if (randomnetworkscnt>0)  randomnetworkscnt--;             
-    return randnetwork(reticulationcnt, networktype);
+    return randnetwork(reticulationcnt, networktype, randnetuniform);
   }
 
 
@@ -219,6 +219,8 @@ int main(int argc, char **argv)
   int networktype = 0;
   int improvementthreshoold = 0;      
 
+  bool randnetuniform = false;
+
   string odtfile = "odt.log";
 
   const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:";
@@ -258,6 +260,7 @@ int main(int argc, char **argv)
         if (strchr(optarg,'1')) networktype = NT_CLASS1; 
         if (strchr(optarg,'2')) networktype = NT_GENERAL; 
 
+        if (strchr(optarg,'f')) randnetuniform = true;  
 
         //if (strchr(optarg,'i')) OPT_USERSPTREEISSTARTING=0;        
         //if (strchr(optarg,'S')) OPT_SHOWSTARTINGTREES=1;
@@ -453,7 +456,7 @@ int main(int argc, char **argv)
       cerr << "Bijective leaf labelling expected in a network: " << *n << endl;
       exit(-1);
     }    
-    netvec.push_back(addrandreticulations(reticulationcnt,n,networktype));
+    netvec.push_back(addrandreticulations(reticulationcnt,n,networktype, randnetuniform));
   }
     
   // Print species names    
@@ -510,7 +513,7 @@ int main(int argc, char **argv)
       // get next network 
       Network *n; 
       long int i = -1;
-      while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype))!=NULL)              
+      while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype, randnetuniform))!=NULL)              
          dagset.add(n);        
       
       cout << dagset;     
@@ -551,7 +554,7 @@ int main(int argc, char **argv)
   if (OPT_RANDNETWORKS && !odt)
   {      
       for (int i = 0; i < randomnetworkscnt; i++)      
-        netvec.push_back(randnetwork(reticulationcnt,networktype));              
+        netvec.push_back(randnetwork(reticulationcnt,networktype,randnetuniform));              
   }     
 
   if (OPT_PRINTNETWORK)
@@ -642,7 +645,7 @@ int main(int argc, char **argv)
         if (improvementthreshoold && (i-lastimprovement)>improvementthreshoold) break; // stop
 
         // get next network 
-        Network *n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype);
+        Network *n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype, randnetuniform);
 
         if (!n) break;
         
@@ -793,8 +796,8 @@ int main(int argc, char **argv)
            cerr << "Cannot create initial random species tree" << endl;
            exit(-1);
         }        
-        Network *n1 = addrandreticulations(reticulationcnt,new Network(r1),networktype);
-        Network *n2 = addrandreticulations(reticulationcnt,new Network(r2),networktype);
+        Network *n1 = addrandreticulations(reticulationcnt,new Network(r1),networktype, randnetuniform);
+        Network *n2 = addrandreticulations(reticulationcnt,new Network(r2),networktype, randnetuniform);
 
         e1 = n1->eqdags(n2);                              
         e2 = n1->eqdagsbypermutations(n2);            

@@ -191,11 +191,14 @@ double Network::odtnaivecost(vector<RootedTree*> &genetrees, int costfunc)
 
 // #define RNDDEBUG 
 
-Network* Network::addrandreticulation(string retid, int networktype)
+/*
+	Add random reticulation	
+*/
+Network* Network::addrandreticulation(string retid, int networktype, bool uniform)
 {
 	int len=nn+rt-1; 
-	SPID esrc[len];
-	SPID dsrc[len];
+	SPID esrc[len];        // source 
+	SPID dsrc[len*len][2]; // cand pairs
 	
 	len=0;
 	for (SPID i = 0; i<rtstartid; i++) 		
@@ -214,26 +217,27 @@ Network* Network::addrandreticulation(string retid, int networktype)
 		return NULL; // no source edges 
 	}
 
+	
 	// shuffle nodes for randomness
 	shuffle(esrc,len);	
-	bool reachable[size()];	
+	bool reachable[size()];
+
+
+// set v and parent
+#define getvenc(nod,par) if (nod==root) { par=MAXSP; } else  { if (nod<0) { nod=-nod; par = retparent[nod]; } else { par = parent[nod]; } }
+
+	SPID dlen = 0;
+	SPID v,p,w,q;
+
 	for (SPID i = 0; i<len; i++)
 	{		
-		SPID v = esrc[i];
-		SPID p = MAXSP;
-		SPID dlen = 0;
-		if (v!=root) 
-		{
-			if (v<0)
-			{
-				v=-v;
-				p = retparent[v];			
-			}
-			else
-				p = parent[v];			
-		}
-		// src edge (v,p)
+		v = esrc[i];
+		SPID vsrc = v;		
+		if (!uniform) dlen=0; // initialize after each
 
+		getvenc(v,p);
+		
+		// src edge (v,p)
 		// gen reachable 	
 		getreachableto(v, reachable);
 
@@ -248,63 +252,72 @@ Network* Network::addrandreticulation(string retid, int networktype)
 					// w, parent of w and sib w must be tree nodes/leaves
 					if (w<rtstartid && parent[w]<rtstartid)
 						if (sibling(w)<rtstartid)
-							dsrc[dlen++]=w;						
+						{
+							dsrc[dlen][0]=vsrc;			
+							dsrc[dlen++][1]=w;						
+						}
 				}
 				else if (networktype==NT_CLASS1)
 				{										
 					// w is a tree node or ret
 					// par tree node ->  sibling not ret. 
 					if (parent[w]>=rtstartid || sibling(w)<rtstartid)
-						dsrc[dlen++]=w;						
+					{
+						
+						dsrc[dlen][0]=vsrc;					
+						dsrc[dlen++][1]=w;						
+					}
 					
 
 					if (w>=rtstartid) 
 					{
 						// check second parent
 						if (retparent[w]>=rtstartid || retsibling(w)<rtstartid)
-							dsrc[dlen++]=-w;						
+						{
+							dsrc[dlen][0]=vsrc;						
+							dsrc[dlen++][1]=-w;						
+						}
 					}										
 				}
 				else 
-					{
-						dsrc[dlen++]=w;						
+					{					
+						dsrc[dlen][0]=vsrc;		
+						dsrc[dlen++][1]=w;						
 						if (w>=rtstartid) 
-							dsrc[dlen++]=-w;	
+						{
+							dsrc[dlen][0]=vsrc;		
+							dsrc[dlen++][1]=-w;	
+						}
 					}
 
 
 			}		
+			
+		if (!uniform && dlen) break; // take the first non-empty
 		
+	}
 
-		if (!dlen) continue;
+	int pair = rand()%dlen;
 
-		SPID w = dsrc[rand()%dlen];
-		SPID q;
-
-
-		if (w<0) 
-		{ 
-			w = -w;
-			q = retparent[w];
-		}
-		else q = parent[w];
-
-		// yeah, connect (v,p) --> (w,q)
+	v = dsrc[pair][0];
+	w = dsrc[pair][1];
+	getvenc(v,p);		
+	getvenc(w,q);		
+	
+	// yeah, connect (v,p) --> (w,q)
 
 #ifdef RNDDEBUG		
+		cout << " dlen=" << dlen << endl;
 		cout << " v=" << v << " p=" << p << endl;
-		cout << " escr=";
-		for (SPID i = 0; i < len; i++) cout << " " << esrc[i] ;
+		
 		cout << " dscr=";
-		for (SPID i = 0; i < dlen; i++) cout << " " << dsrc[i] ;
+		for (SPID i = 0; i < dlen; i++) cout << " " << dsrc[i][0] << "." << dsrc[i][1];
 		cout << endl;
 		cout << v << " " << p << " -> " << w << " " << q << endl;
 #endif	
 
 		
-		return new Network(this, v, p, w, q, retid);
-
-	}
+	return new Network(this, v, p, w, q, retid);
 
 
 
