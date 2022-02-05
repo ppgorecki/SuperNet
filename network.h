@@ -63,7 +63,7 @@ public:
 	// Returns NULL if such a network cannot be created
 	
 
-	Network *addrandreticulation(string retid, int networktype);
+	Network *addrandreticulation(string retid, int networktype, bool unform=false);
 	
 	// Generate id'th display tree; 
 	// id encodes switching reticulation nodes and should be in range 0..2^{rt-1}	
@@ -74,7 +74,7 @@ public:
 	// Typical usage:
 	//   RootedTree *t = NULL;
 	//   DISPLAYTREEID tid = 0;
-	//   while ((t=n->gendisplaytree(tid,t))!=NULL)   { ... use display tree t ... }    
+//   while ((t=n->gendisplaytree(tid,t))!=NULL)   { ... use display tree t ... }    
 	RootedTree* gendisplaytree(DISPLAYTREEID id, RootedTree *t = NULL);
 
 	// Compute min cost vs. gene trees
@@ -86,12 +86,16 @@ public:
 	// Mark nodes w such that v is reachble from w (including v)	
 	void getreachableto(SPID v, bool *reachable);	
 
+	// approxDC by DP
+	double retmindc(RootedTree &genetree);
+	
 	// nodetype==1 -> count visible leaves 
 	// nodetype==2 -> count all visible nodes
 	ostream& visibilenodestats(int nodetypes, ostream&s);
 
 	friend class NNI;
-	friend class TailMove;
+	friend class TailMove;	
+	friend class DP;
 
 };
 

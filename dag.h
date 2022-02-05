@@ -116,6 +116,7 @@ public:
 
   // Create dag by inserting new edge  
   // (v,p) --> (w,q); p,q are (ret)parents of v,w resp.
+  // v may be root
   Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight=1.0);
 
   Dag(const Dag &d);
@@ -199,8 +200,11 @@ public:
   bool eqdagsbypermutations(Dag *d); // brute force by permutations
 
   friend class DagSet;
+  friend class DP;
 
   long int getcount() { return count; }
+
+  
   
   
 };

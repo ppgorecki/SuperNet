@@ -8,7 +8,7 @@
 // TODO: test which one is more efficient
 // TODO: lca queries in O(1)
 
-// LCATAB seems not helpfull when display trees are often used
+// LCATAB seems not helpful when display trees are often used
 // #define LCATAB 
 
 #include "tools.h"

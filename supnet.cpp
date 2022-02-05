@@ -208,6 +208,7 @@ int main(int argc, char **argv)
   int OPT_PRESERVEROOT=0;
   int OPT_EDITOPERATIONTEST = 0;
   int OPT_PRINTNODESTATS = 0;
+  int OPT_DP = 0;
   
 
   int OPT_ODTNAIVE=0;
@@ -257,6 +258,7 @@ int main(int argc, char **argv)
 
         if (strchr(optarg,'1')) networktype = NT_CLASS1; 
         if (strchr(optarg,'2')) networktype = NT_GENERAL; 
+        if (strchr(optarg,'d')) OPT_DP = 1;
 
 
         //if (strchr(optarg,'i')) OPT_USERSPTREEISSTARTING=0;        
@@ -611,6 +613,16 @@ int main(int argc, char **argv)
         cout << (*ntpos)->odtnaivecost(gtvec,costfunc) << endl;
         
     }
+  }
+
+  if (OPT_DP)
+  {
+    for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
+      for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
+          cout << ((*ntpos)->retmindc(**gtpos)) << endl; 
+          // << " " << **ntpos << " " << **gtpos << endl;
+  
+    
   }
 
   // Run hill climbing

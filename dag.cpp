@@ -176,7 +176,7 @@ Dag::Dag(int _lf, SPID *labels, double dagweight) : weight(dagweight)
 
 }
 
-// Find leaf label
+// Find a leaf by a label
 SPID Dag::findlab(SPID slab, int stoponerr)
 {
     if (exactspecies && (slab < lf)) return slab;
@@ -256,7 +256,7 @@ int Dag::verifychildparent()
       SPID p = parent[i];
       if (p==MAXSP) continue;      
       if (p<lf) { 
-        cerr << (int)i << ": parent " << (int)p << "is a leaf?";
+        cerr << (int)i << ": parent " << (int)p << " is a leaf?";
         return 23; // Parent is a leaf?
       }
 
@@ -649,27 +649,37 @@ Dag::Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight)
 
     spid2retlabel[nr] = retid;
 
+    bool rootcase = v==root;
 
-    p=CID(p);
     v=CID(v);
     q=CID(q);
     w=CID(w);
 
-    parent[nt] = p;
+    if (rootcase) // start node above the root
+    {
+      root = nt;
+      parent[root] = MAXSP;
+      parent[v] = root; 
+    }
+    else
+    {
+      p=CID(p);
+      parent[nt] = p;
 
+      if (leftchild[p]==v) leftchild[p]=nt;
+      else rightchild[p]=nt;
+
+      if (parent[v]==p) parent[v]=nt;
+      else retparent[v]=nt;
+    }
+    
     parent[nr] = nt;
     retparent[nr] = q;
 
     leftchild[nt] = nr; 
     rightchild[nt] = v;
-    retchild[nr] = w;
-
-    if (leftchild[p]==v) leftchild[p]=nt;
-    else rightchild[p]=nt;
-
-    if (parent[v]==p) parent[v]=nt;
-    else retparent[v]=nt;
-
+    retchild[nr] = w;    
+    
     if (leftchild[q]==w) leftchild[q]=nr;
     else rightchild[q]=nr;
 
@@ -677,7 +687,6 @@ Dag::Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight)
     else retparent[w]=nr;
 
     verifychildparent();
-
     setexactspecies();
 
 }

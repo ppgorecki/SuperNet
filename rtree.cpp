@@ -355,7 +355,7 @@ ostream& RootedTree::printdeb(ostream&s, int gse, string tn)
     }
     else
     {
-      s << " depth array is uninitialized";
+      s << " depth=uninitialized";
     }
     return s << endl;
 }
