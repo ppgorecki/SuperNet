@@ -1,11 +1,13 @@
-VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
+# VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
+VALGRIND=valgrind --show-leak-kinds=all --track-origins=yes --tool=memcheck
 CPPFLAGS = -O3 
 CC = g++ 
 LFLAGS =  
+MAKEFLAGS += -j10 # parallel
 
 all: supnet
 
-SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp network.cpp dp.cpp hillclimb.cpp supnet.cpp iso.cpp 
+SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp network.cpp dp.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp
 
 clusters.o: clusters.h clusters.cpp tools.h
 tools.o : tools.cpp tools.h clusters.h 
@@ -15,8 +17,9 @@ dag.o: dag.cpp dag.h tools.cpp tools.h dagset.h
 iso.o: iso.cpp dag.cpp dag.h tools.cpp tools.h
 hillclimb.o: hillclimb.h hillclimb.cpp tools.h dagset.h
 dp.o: dp.cpp network.cpp network.h rtree.h rtree.cpp
+contrnet.o: contrnet.cpp contrnet.h network.h
 
-supnet: tools.o clusters.o dag.o rtree.o network.o hillclimb.o supnet.o iso.o dp.o
+supnet: tools.o clusters.o dag.o rtree.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o
 	$(CC) $(LFLAGS) -o $@ $^
 
 gdb: clean  
@@ -38,7 +41,16 @@ check-syntax:
 	gcc -o nul -S ${CHK_SOURCES}
 
 valgrinddp: gdb 
-	${VALGRIND} supnet -r100 -R2 -A3 -g "(a,(b,c))"-ed
+	${VALGRIND} supnet -r100 -R2 -A3 -g "(a,(b,c))" -ed
+
+valgrinddpbb: gdb
+	${VALGRIND} supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -r1 -R2 -oTe3
+
+valgrinddc: gdb
+	${VALGRIND} supnet -n "(#2,((#1)#2,((d,((a)#1,b)),c)))" -g "(a,(b,(c,d)))" -eY
+
+valgrinddc2: gdb
+	${VALGRIND} supnet -r1 -R3 -A4 -g "(a,(b,(c,d)))" -eY
 
 profiler: 
 	g++ -Wall -pg -O3 -o supnet ${SRC}	

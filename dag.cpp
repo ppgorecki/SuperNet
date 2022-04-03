@@ -1,4 +1,8 @@
 
+#include <algorithm>
+#include <iterator>
+#include<bits/stdc++.h>
+using namespace std;
 #include "tools.h"
 #include "dag.h"
 
@@ -15,21 +19,23 @@ void Dag::init(int _lf, int _rt)
     rt=_rt;
     nn=2*lf+2*rt-1; 
 
-    leftchild = new SPID[nn-lf];
+#define GUARD 1  
+
+    leftchild = new SPID[nn-lf+GUARD];  
     leftchild -= lf;
     retchild = leftchild;
 
-    rightchild = new SPID[nn - lf - rt]; 
+    rightchild = new SPID[nn - lf - rt + GUARD]; 
     rightchild -= lf;
     rtstartid = nn - rt;
 
-    parent = new SPID[nn];
-    lab = new SPID[nn];
+    parent = new SPID[nn+GUARD];
+    lab = new SPID[nn+GUARD];
 
     if (rt)
     {
-      retparent = new SPID[rt];    
-      spid2retlabel  = new string[rt];
+      retparent = new SPID[rt+GUARD];    
+      spid2retlabel  = new string[rt+GUARD];
       retparent -= rtstartid; // shift to obtain easy adressing   
       spid2retlabel -= rtstartid;
     }
@@ -38,6 +44,7 @@ void Dag::init(int _lf, int _rt)
       retparent = NULL; 
       spid2retlabel = NULL;
     }
+    shallow = false;
 }
 
 void Dag::parse(char *s)
@@ -147,6 +154,194 @@ Dag::Dag(const char *s, double dagweight): weight(dagweight)
 	setexactspecies();
 }
 
+
+inline bool hrcompare(const std::pair<SPID, SPID> &p1, const std::pair<SPID, SPID> &p2)
+{
+    return p1.first < p2.first;
+}
+
+
+void Dag::_dagrtreplace(SPID s, SPID d)
+{
+  cout << "REPL: " << s << "->" << d << endl; 
+
+  SPID p = parent[s];
+  SPID q = retparent[s];
+  SPID c = retchild[s];
+
+  if (p>=rtstartid) retchild[p]=d;
+  else if (leftchild[p]==s) leftchild[p]=d;
+       else rightchild[p]=d;
+
+  if (q>=rtstartid) retchild[q]=d;
+  else if (leftchild[q]==s) leftchild[q]=d;
+       else rightchild[q]=d;
+
+  if (c>=rtstartid) 
+    { 
+      if (parent[c]==s) parent[c]=d;
+      else retparent[c]=d; 
+    }
+  else parent[c]=d;
+
+  retchild[d] = retchild[s];
+  parent[d] = parent[s];
+  retparent[d] = retparent[s];
+
+}
+
+void Dag::sortrtnodes()
+{
+  if (rt<=1) return;
+
+  int height[nn];
+  memset(height,0,sizeof(int)*nn);
+  for (int i=0;i<lf;i++) height[i]=1;
+  for (SPID i=rtstartid;i<nn;i++) _height(i, height);
+  vector<pair<SPID, SPID>> ren;
+  int j=0;
+  for (SPID i=rtstartid; i<nn; i++)
+    ren.push_back(make_pair(height[i],i));
+
+  std::sort( std::begin( ren ), std::end( ren ), hrcompare );
+  cout << rtstartid << " " << nn << endl;
+  for (int i=0; i<ren.size(); i++)
+  {        
+        cout << i+rtstartid << " " << ren[i].first << " "
+             << ren[i].second << endl;        
+  }
+
+  // set first to the destination rtid
+  for (int i=0; i<ren.size(); i++)  
+    ren[ren[i].second-rtstartid].first=i+rtstartid;
+  
+  cout << "====" << endl;
+  for (int i=0; i<ren.size(); i++)
+  {
+      SPID newid = ren[i].first; 
+      cout << i+rtstartid << " " <<  ren[i].first  << " "  << "newid=" << newid << " " 
+             << ren[i].second << endl;        
+  }
+
+  // gen rtid permutation cycles
+  SPID rtcycles[rt*2];
+  rtcycles[0]=0; // guard
+  SPID rtc = 1;
+  for (int i=0; i<ren.size(); i++)
+  {
+       if (ren[i].second==0) continue;
+       SPID start = i+rtstartid;
+       SPID next = ren[i].first;
+       if (start==next) continue; // singleton cycle
+       rtcycles[rtc++] = start;       
+       SPID prev = start;
+       while (start!=next)
+       {
+          rtcycles[rtc++]=next;
+          ren[next-rtstartid].second=0;
+          prev = next;
+          next = ren[next-rtstartid].first;            
+       }
+       rtcycles[rtc++]=0; // guard
+  }
+
+
+  // SPID *parent;  // Parent array
+  // SPID *leftchild, *rightchild; // Left and right child arrays
+  // SPID *retchild, *retparent;   
+
+  cout << "Cycles: ";
+  for (int i=0; i<rtc; i++)
+    cout << rtcycles[i] << " "; 
+  cout << endl;
+
+
+
+  
+
+
+  SPID i = rtc-1;
+  while (i>0)
+  {
+    if (rtcycles[i]==0)
+    { 
+      i--;
+      SPID last = rtcycles[i];      
+      _dagrtreplace(last,nn);
+      i--;
+      while (rtcycles[i])
+      {                        
+        _dagrtreplace(rtcycles[i],rtcycles[i+1]);        
+        i--;
+      }
+      _dagrtreplace(nn,rtcycles[i+1]);        
+    }
+  }
+    
+  //     SPID p = parent[prev];
+  //     SPID q = retparent[prev];
+  //         SPID c = retchild[prev];
+
+  //         if (rp>=rtstartid) retchild[p]=next;
+  //         else if (leftchild[p]==prev) leftchild[p]=next;
+  //              else rightchild[p]=next;
+
+  //         if (leftchild)
+
+  // }
+  // // cout << endl;
+
+
+
+  string _spid2retlabel[rt];
+  for (SPID oldid=rtstartid; oldid<nn; oldid++)
+  {
+    SPID newid = ren[oldid-rtstartid].first; 
+    _spid2retlabel[newid-rtstartid] = spid2retlabel[oldid];
+    // replace oldid by newid
+  }
+  for (SPID rtid=rtstartid; rtid<nn; rtid++)
+  {
+    spid2retlabel[rtid] = _spid2retlabel[rtid-rtstartid];    
+  }
+
+
+  verifychildparent();
+
+
+
+  // SPID *parent;  // Parent array
+  // SPID *leftchild, *rightchild; // Left and right child arrays
+  // SPID *retchild, *retparent;   
+  // // In implementation retchild == leftchild 
+  // // Reticulation child and parent (only for ret. nodes)
+
+  // string* spid2retlabel;        // Dict. of reticulation labels (spid -> string)
+
+
+  // convert?
+
+
+
+}
+
+inline int Dag::_height(SPID v, int heightarr[])
+{
+  if (v<lf) return 1;
+  if (!heightarr[v]) 
+  {
+    if (v>=rtstartid)   
+       heightarr[v]=_height(retchild[v],heightarr)+1;
+    else  
+    {
+      int a = _height(leftchild[v],heightarr);
+      int b = _height(rightchild[v],heightarr);
+      heightarr[v]=1+max(a,b);
+    }
+  }
+  return heightarr[v];
+    
+}
 
 Dag::Dag(int _lf, SPID *labels, double dagweight) : weight(dagweight)
 {
@@ -336,7 +531,7 @@ ostream& Dag::printdot(ostream&s, int dagnum)
 		  s << endl;
 
   		SPID iparent = MAXSP;
-  		while (getparent(i,iparent))          
+  		while (getparentiter(i,iparent))          
   		{
   		    s << "v" << (int)iparent << "x" << dagnum << " -> v" << (int)i << "x" << dagnum;
 
@@ -369,6 +564,7 @@ ostream& Dag::printsubtree(ostream&s, SPID i, SPID iparent, int level)
     s << "...loop?" << endl;
     return s;
   }
+  // cout << "HERE" << i << endl;
 	if (i < lf) return s << species(lab[i]); 
 
 	// internals via getchild	
@@ -403,11 +599,19 @@ ostream& Dag::printsubtree(ostream&s, SPID i, SPID iparent, int level)
 	return s; 
 }
 
+bool Dag::getnodeiter(SPID &i)
+{
+  if (i==MAXSP) { 
+    i=0; 
+    return true; 
+  }
+  return ++i<nn;  
+}
 
 // Returns the parents; to get all parents use:
 // SPID p=MAXSP;
 // while (getparent(i,p)) { .. p is a parent ... }
-bool Dag::getparent(SPID i, SPID &rparent)
+bool Dag::getparentiter(SPID i, SPID &rparent)
 {
 	if (rparent==MAXSP) 
 	{
@@ -554,7 +758,7 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
           s << setw(0) << " c=" << (int)ic;    			                  
    		
     		SPID ip = MAXSP;        
-    		while (getparent(i,ip)) 
+    		while (getparentiter(i,ip)) 
           s << setw(0) << " p=" << (int)ip;   	    	
           
        
@@ -691,30 +895,48 @@ Dag::Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight)
 
 }
 
-// copy constructor
-Dag::Dag(const Dag &d)
+// Copy constructor (includes shallow copy)
+Dag::Dag(const Dag &d, bool shallowcopy)
 {
-  init(d.lf,d.rt);
-  memcpy ( lab, d.lab, sizeof(SPID)*lf );
-  memcpy ( parent, d.parent, sizeof(SPID)*nn );
-  memcpy ( leftchild+lf, d.leftchild+lf, sizeof(SPID)*(nn-lf) );
-  memcpy ( rightchild+lf, d.rightchild+lf, sizeof(SPID)*(nn-lf-rt) );
-  if (rt)
-    memcpy ( retparent+rtstartid, d.retparent+rtstartid, sizeof(SPID)*(nn-rtstartid) );
-  
-
-  for (int i=rtstartid;i<nn;i++)
-    spid2retlabel[i]=d.spid2retlabel[i];
+  if (shallowcopy)
+  {
+    shallow = false;
+    lab = d.lab;
+    parent = d.parent;
+    leftchild = d.leftchild;
+    rightchild = d.rightchild;
+    retparent = d.retparent;
+    retchild = d.retchild;
+    spid2retlabel = d.spid2retlabel;
+    lf = d.lf;
+    rt = d.rt;
+    nn = d.nn;
+    count = d.count; // TODO: check
+    rtstartid = d.rtstartid;
+  }
+  else
+  {
+    init(d.lf,d.rt);
+    memcpy ( lab, d.lab, sizeof(SPID)*lf );
+    memcpy ( parent, d.parent, sizeof(SPID)*nn );
+    memcpy ( leftchild+lf, d.leftchild+lf, sizeof(SPID)*(nn-lf) );
+    memcpy ( rightchild+lf, d.rightchild+lf, sizeof(SPID)*(nn-lf-rt) );  
+    if (rt)
+      memcpy ( retparent+rtstartid, d.retparent+rtstartid, sizeof(SPID)*(nn-rtstartid) );
+    for (int i=rtstartid; i<nn; i++)
+      spid2retlabel[i]=d.spid2retlabel[i];
+  }
 
   root=d.root;  
   weight=d.weight;     
   exactspecies=d.exactspecies;   
-  
+
 }
 
 Dag::~Dag() 
 {
-   
+    if (shallow) return; 
+    
     leftchild+=lf;
     delete[] leftchild;
     rightchild+=lf;

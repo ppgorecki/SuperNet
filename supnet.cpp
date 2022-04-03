@@ -1,6 +1,6 @@
 /************************************************************************
- SuperNetwork Inference - based on FastUrec v2.05 
-(c) Copyright 2005-2020 by Pawel Gorecki
+ SuperNetwork Inference - based partially on FastUrec v2.05 
+(c) Copyright 2005-2022 by Pawel Gorecki
  Written by P.Gorecki.
  Permission is granted to copy and use this program provided no fee is
  charged for it and provided that this copyright notice is not removed.
@@ -28,6 +28,7 @@ using namespace std;
 #include "clusters.h"
 #include "rtree.h"
 #include "network.h"
+#include "contrnet.h"
 #include "hillclimb.h"
 
 #include <sstream>
@@ -209,7 +210,8 @@ int main(int argc, char **argv)
   int OPT_EDITOPERATIONTEST = 0;
   int OPT_PRINTNODESTATS = 0;
   int OPT_DP = 0;
-  
+  int OPT_CONTRACTTEST = 0;
+  int OPT_BBTEST = 0;
 
   int OPT_ODTNAIVE=0;
 
@@ -260,6 +262,16 @@ int main(int argc, char **argv)
         if (strchr(optarg,'2')) networktype = NT_GENERAL; 
         if (strchr(optarg,'d')) OPT_DP = 1;
 
+      
+        // 
+        // one net -r1 
+        // 3 species -A3
+        // 5 reticulations
+        // 
+        // ./supnet -R5 -r1 -A3  -e1X 6 1 && dot -Tpdf contr.dot -o c.pdf && evince c.pdf
+
+        if (strchr(optarg,'X')) OPT_CONTRACTTEST = 1;
+        if (strchr(optarg,'Y')) OPT_BBTEST = 1;
 
         //if (strchr(optarg,'i')) OPT_USERSPTREEISSTARTING=0;        
         //if (strchr(optarg,'S')) OPT_SHOWSTARTINGTREES=1;
@@ -584,6 +596,8 @@ int main(int argc, char **argv)
   }
 
 
+
+  // Generate dot file with networks and trees
   if (OPT_DOT)
   {
     ostream &s = cout; // todo files
@@ -603,6 +617,8 @@ int main(int argc, char **argv)
     s << "}" << endl;
   }
 
+
+  // Compute ODT cost by naive enumeration of display trees
   if (OPT_ODTNAIVE)
   {
     DISPLAYTREEID optid;
@@ -610,19 +626,18 @@ int main(int argc, char **argv)
       {
         if (OPT_ODTNAIVE==2)        
           cout << **ntpos << " ";
-        cout << (*ntpos)->odtnaivecost(gtvec,costfunc) << endl;
+        cout << (*ntpos)->odtcostnaive(gtvec,costfunc) << endl;
         
     }
   }
 
+  // Run DP algorithm to compute approx DC 
   if (OPT_DP)
   {
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
       for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
-          cout << ((*ntpos)->retmindc(**gtpos)) << endl; 
+          cout << ((*ntpos)->approxmindc(**gtpos)) << endl; 
           // << " " << **ntpos << " " << **gtpos << endl;
-  
-    
   }
 
   // Run hill climbing
@@ -630,10 +645,12 @@ int main(int argc, char **argv)
   {
     DISPLAYTREEID optid;
     int verbose = 0;
+    bool usenaive = false; 
     if (strchr(odt,'1')) verbose = 1;
     if (strchr(odt,'2')) verbose = 2;
     if (strchr(odt,'3')) verbose = 3;
     if (strchr(odt,'q')) odtfile = "";
+    if (strchr(odt,'e')) usenaive = true; // use exhaustive enumeration
 
     int printstats = 0;
     if (strchr(odt,'s')) printstats=1;
@@ -662,7 +679,7 @@ int main(int argc, char **argv)
         nhcstats.start();        
 
         // climb
-        double cost = hc.climb(*op, n, costfunc, nhcstats);        
+        double cost = hc.climb(*op, n, costfunc, nhcstats, usenaive);        
 
         nhcstats.finalize();
         
@@ -841,6 +858,86 @@ int main(int argc, char **argv)
       //cout <<  "eqcnt=" << cnt << " all=" << cntall << endl;
   }
 
+  if (OPT_CONTRACTTEST)
+  {
+      // Last two args: leftretusage rightretusage
+      // ./supnet -g "(a,(b,c))" -n "((b)#1,(((#2)#3,((#1)#2,(c,#3))),a))" -eXng 2 1
+
+      RETUSAGE retusage;
+      emptyretusage(retusage);            
+
+      //ugly
+      if (optind+1<=argc)      
+      {
+        
+        long us = atol(argv[optind]);
+        
+        int rid=0;
+        while (us)
+        {
+          cout << "A" << us << " " << rid << endl;
+          if (us&1) addleftretusage(retusage,rid);
+          us=us>>1;
+          rid++;
+        }
+      }
+
+
+      if (optind+2<=argc)
+      {        
+        long us = atol(argv[optind+1]);
+        int rid=0;
+        while (us)
+        {
+          cout << "B" << us << " " << rid << endl;
+          if (us&1) addrightretusage(retusage,rid);
+          us=us>>1;
+          rid++;
+        }
+      }
+
+      cout << "R" << retusage << endl;
+      cout << "Conflicted" << conflicted(retusage)  << endl;;
+
+      for (int i=0; i<netvec.size(); i++)    
+      {       
+
+        Network *n1 = netvec[i];        
+        std::stringstream ss;
+        n1->print(ss);
+        cout << ss.str() << endl;
+        
+        ContractedNetwork *c=new ContractedNetwork(ss.str());
+
+        c->contract(retusage);        
+
+        for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
+          cout << "retmindc:" << (c->approxmindc(**gtpos)) << endl;
+
+        // ofstream s("contr.dot");
+        
+        // std::ofstream sf;
+        // sf.open ("contr.dot", std::ofstream::out );
+        // sf << "digraph SN {" << endl;
+        // sf << " inp [label=\"InRT=" <<  retusage << "\"]" <<endl;
+        // c->gendot(sf);
+        // c->gendotcontracted(sf);
+        // sf << "}" << endl;
+        // sf.close();        
+        cout << c->newickrepr() << endl;
+
+
+      }
+  }
+
+  if (OPT_BBTEST)
+  {
+      for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
+        for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
+        {          
+          cout << "mindc:" << (*ntpos)->mindc(**gtpos) << endl;     
+        }      
+  }
   
   // Clean    
   for (size_t i = 0; i < sgtvec.size(); i++) 

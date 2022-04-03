@@ -371,7 +371,7 @@ bool NNI::next()
 	return true;
 }
 
-double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &nhcstats)
+double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &nhcstats, bool usenaive)
 {
 
 	double starttime = gettime();
@@ -380,9 +380,10 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &
 	op.init(net);
 
 	// compute the first odt cost
-	double optcost = net->odtnaivecost(genetrees, costfunc);
+	// cout << " INITNET: "	 << *net << endl;
+	double optcost = net->odtcost(genetrees, costfunc, usenaive);
 	
-	double curcost; 	
+	double curcost = optcost; 	
 	std::ofstream odtf;
 
 	nhcstats.setcost(optcost);
@@ -392,9 +393,11 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &
 		cout << " = " << *net << " cost=" << curcost << endl;				
     
 	while (op.next())
-	{		
+	{	
+		// cout << " CURNET: "	 << *net << endl;
+		double curcost = net->odtcost(genetrees, costfunc, usenaive);
 		
-		double curcost = net->odtnaivecost(genetrees, costfunc);
+		 
 		nhcstats.step();
 
 		if ((verbose==3) && (curcost>optcost))
@@ -405,7 +408,7 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &
 			if (verbose>=2)					
 				cout << " = " << *net << " cost=" << curcost << endl;				
 			
-			nhcstats.add(*net);								
+			nhcstats.add(*net);	
     
 		}
 			
@@ -417,11 +420,12 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &
 				cout << " > " << *net << " cost=" << optcost << endl;	
 
 			nhcstats.setcost(optcost); // new optimal; forget old   
-			nhcstats.add(*net);		
-			
 
+			nhcstats.add(*net);					
+	
 			// search in a new neighbourhood
 			op.reset();
+			
 		}
 
 	}

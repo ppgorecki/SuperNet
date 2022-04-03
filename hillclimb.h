@@ -156,7 +156,7 @@ public:
 	// Starts from net, net is modified
 	// Returns optimal cost 
 	// TODO: additional info (stats, more optimal solutions, etc.) 
-	double climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &nhcstats);
+	double climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &nhcstats, bool usenaive);
 
 };
 

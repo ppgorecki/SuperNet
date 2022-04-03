@@ -29,6 +29,8 @@ protected:
   bool exactspecies; // True iff leaf ids == species ids
   long int count;    // for counting networks
 
+  bool shallow; // whether the pointer arrays are allocated elsewhere (do not clean if true)
+
 /* Example of tree structures:
 
 > supnet -g '(a,((b,a),c))' -eD 
@@ -96,6 +98,8 @@ supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf
   // allocates arrays based on lf and rf sizes
   void init(int _lf, int _rt);
 
+  void _dagrtreplace(SPID s, SPID d);
+
   virtual ostream& printdebstats(ostream&s);
   virtual ostream& printdebarrays(ostream&s);
 
@@ -114,12 +118,16 @@ public:
   // Build caterpillar tree; first two leaves make cherry
   Dag(int _lf, SPID *labels, double dagweight=1.0);
 
-  // Create dag by inserting new edge  
+  // Make a dag by inserting new edge 
   // (v,p) --> (w,q); p,q are (ret)parents of v,w resp.
   // v may be root
   Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight=1.0);
 
-  Dag(const Dag &d);
+  // Copy constructor
+  Dag(const Dag &d) : Dag(d, false) {}
+
+  // Copy constructor (shallow)
+  Dag(const Dag &d, bool shallowcopy);
 
   virtual ~Dag();
   
@@ -130,11 +138,22 @@ public:
   // Returns true if the leaf labelling is bijective
   bool bijectiveleaflabelling();
 
+
+  // Sort reticulation nodes such that the first is the lowest
+  void sortrtnodes();
+
+  int _height(SPID n, int heightarr[]);
+
   // Returns the parents; to get all parents use:
   // SPID p=MAXSP;
-  // while (getparent(i,p)) { .. p is the parent ... }
+  // while (getparentiter(i,p)) { .. p is the parent ... }
   // Double edges are colapsed
-  bool getparent(SPID i, SPID &rparent);
+  bool getparentiter(SPID i, SPID &rparent);
+
+  // Returns nodes; to get all nodes use:
+  // SPID i=MAXSP;
+  // while (getnodeiter(i)) { .. i is a node ... }  
+  virtual bool getnodeiter(SPID &i);
   
   // As above but for children
   // Double edges are colapsed
@@ -204,8 +223,10 @@ public:
 
   long int getcount() { return count; }
 
-  
-  
+  virtual SPID getparent(SPID v) { return parent[v]; }
+  virtual SPID getleftchild(SPID v) { return leftchild[v]; }
+  virtual SPID getrightchild(SPID v) { return rightchild[v]; }
+  virtual SPID getretchild(SPID v) { return retchild[v]; }
   
 };
 

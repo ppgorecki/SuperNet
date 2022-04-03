@@ -151,8 +151,30 @@ void Network::_getreachableto(SPID v, bool *reachable, bool *visited)
 		_getreachableto(retparent[v],reachable, visited);		
 }
 
+double Network::odtcost(vector<RootedTree*> &genetrees, int costfunc, bool usenaive)
+{
+	if (usenaive) return odtcostnaive(genetrees, costfunc);
+	return odtcostdpbb(genetrees,costfunc);
+}
 
-double Network::odtnaivecost(vector<RootedTree*> &genetrees, int costfunc)
+double Network::odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc)
+{
+
+	if (costfunc!=COSTDEEPCOAL)
+	{
+		cerr << "DP&BB cost computation only for DC " << costfunc << endl;
+		exit(-1);
+	}
+
+	double cost = 0;
+	for (int gt=0; gt<genetrees.size(); gt++)
+		cost+=mindc(*genetrees[gt]);
+    
+    return cost;        
+}
+
+
+double Network::odtcostnaive(vector<RootedTree*> &genetrees, int costfunc)
 {
     RootedTree *t = NULL;
     DISPLAYTREEID tid = 0; // id of display tree
@@ -315,11 +337,193 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 		return new Network(this, v, p, w, q, retid);
 
 	}
-
-
-
-
-
-
 	return NULL;
+}
+
+#if MAXRTNODES > 32
+ostream& operator<<(ostream& os, const RETUSAGE& r)
+{ 
+	return os << r.lft <<"|" << r.rgh; 
+}
+#endif
+
+
+
+
+// void Network::contract(RETUSAGE &retcontract)
+// {
+
+// 	uint8_t mark[nn]; 
+// 	// 0 - edge(s) to parent(s) OK
+// 	// 1 - node-parent remove (or leftret) P
+// 	// 2 - node-retparent R
+// 	// 3 - remove both (ret only)
+// 	// 4 - visited (ret only) V
+
+// 	// cout << "rtstartid" << rtstartid << endl;
+
+// 	//sortrtnodes();
+// 	cout << "============== CONTRACT " << retcontract << endl;
+	
+// #define CON_VISITED 4
+// #define CON_DELPARENT 1
+// #define CON_DELRETPARENT 2
+
+
+// 	memset(mark,0,sizeof(uint8_t)*nn);
+// 	SPID queue[nn]; // nodes whose all parent edges must be removed
+// 	int qstart=0, qend=0;
+
+// 	SPID vmapped[nn]; 
+// 	int vmappedlen=0;
+
+
+// #define qadd(v,p) \
+// 	cout << "qadd:" << v << " " << p << ":" << (int)mark[p] << endl; \
+// 	if (p<nn && !(mark[p]&CON_VISITED)) { \
+// 		if (p>=rtstartid) { queue[qend++]=p; } \
+// 		else { if (leftchild[p]==v) { \
+// 				  if (mark[rightchild[p]]) queue[qend++]=p; \
+// 			  	  else { vmapped[vmappedlen++]=p; vmap[p]=vmap[rightchild[p]]; } \
+// 			   } \
+// 			   else if (rightchild[p]==v) { \
+// 			   	  if (mark[leftchild[p]]) queue[qend++]=p; \
+// 			   	  else { vmapped[vmappedlen++]=p; vmap[p]=vmap[leftchild[p]]; } \
+// 			   }}}
+
+// 	SPID rtid = rtstartid;
+
+// 	SPID vmap[nn];
+// 	for (int i=0; i<nn; i++) vmap[i]=i;
+
+
+// #define pq() printf("Q:"); for (int j=qstart; j<qend; j++) printf(" %d[%d] ",queue[j],mark[queue[j]]);	printf("\n");
+
+// 	for (int i=0; i<rt; i++, rtid++)
+// 	{
+		
+// 		if (leftret(retcontract, i))  // (rtstartid+i, parent) -> remove
+// 		{
+// 			mark[rtid] |= CON_DELPARENT; 
+// 			SPID p = parent[rtid];					
+// 			cout << "\nRTL:" << " " << i << " " << rtid << " p=" << p << endl;
+// 			qadd(rtid, p);							
+// 			pq();
+// 		}
+// 		if (rightret(retcontract, i))  // (rtstartid+i, retparent) -> remove
+// 		{
+// 			mark[rtid] |= CON_DELRETPARENT; 			
+// 			SPID p = retparent[rtid];			
+// 			cout << "\nRTR:" << i << " " << rtid << " p=" << p << endl;
+// 			qadd(rtid, p);
+// 			pq();
+// 		}
+
+// 		if (mark[rtid])
+// 		{
+// 			vmap[rtid] = vmap[retchild[rtid]];
+// 			vmapped[vmappedlen++]=rtid; 
+// 		}
+// 	}
+// 	cout << "\n";
+// 	while (qstart!=qend)
+// 	{
+// 		pq();
+// 		SPID v = queue[qstart++]; // pop					
+// 		if (v==root) continue; // skip root - weird?
+// 		SPID p = parent[v];
+		
+// 		mark[v] = CON_DELPARENT|CON_VISITED; // remove edge 
+// 		qadd(v,p);  // search
+
+// 		if (v>=rtstartid)
+// 		{
+// 			mark[v] |= CON_DELRETPARENT|CON_VISITED; // remove edge 
+// 			p = retparent[v];
+// 			qadd(v,p);  
+// 		}
+// 	}	
+
+// 	// rebuild the network from mark info
+// 	for (SPID i=0; i<vmappedlen; i++)		
+// 	{
+// 		SPID vsrc = vmapped[i];
+// 		//SPID dest = vmap[vsrc];
+// 		if (!(mark[vsrc]&CON_VISITED) && vmap[vsrc]!=vsrc) 
+// 		{
+// 			cout << "unmap " << vsrc << endl;
+// 			unmap(vsrc,vmap);			
+// 		}
+// 	}
+
+//  	std::ofstream s;
+//     s.open ("contr.dot", std::ofstream::out );
+//     s << "digraph SN {" << endl;
+//     int dagnum=1;
+//     for (SPID i = 0; i < nn; i++ ) 
+//     {     
+		
+// 		s << "v" << (int)i << "x" << dagnum << " [";
+// 		if (i>=rtstartid)
+//   		{
+//   			s << "shape=box,color=red,";
+//   		}
+
+//   		s << "label=\"" << (int)i;
+//   		if (vmap[i]!=i) s << " !" << vmap[i] << " "; 
+//   		if (mark[i])
+//   			{
+//   				if (mark[i]&CON_VISITED) s << "V";
+//   				if (mark[i]&CON_DELPARENT) s << "P";
+//   				if (mark[i]&CON_DELRETPARENT) s << "R";
+  				
+//   			}
+
+//   		if (i<lf)    
+//   		  	s << " " << species(lab[i]) << " ";
+//   		s << "\"]" << endl;  
+
+//   		SPID iparent = MAXSP;
+//   		while (getparent(i,iparent))          
+//   		{
+//   		  s << "v" << (int)iparent << "x" << dagnum << " -> v" << (int)i << "x" << dagnum;
+//           s << " [ penwidth=1";
+//           if (leftchild[iparent]==i)  // leftchild - thicker edge
+//             s << ",arrowhead=vee"; 
+//           else s << "";
+
+//           if (iparent==parent[i] && mark[i]&CON_DELPARENT) s << ",style=dashed";  // from a leaf #A  		    		
+// 		  if (i>=rtstartid)
+// 		    	{	
+// 		    		s << ",label=\"" << spid2retlabel[i];
+// 		    		if (iparent==retparent[i]) s<<" rp"; 
+// 		    			s << "\"";  
+// 		    		if (iparent==retparent[i] && mark[i]&CON_DELRETPARENT) 
+// 		    			s << ",style=dotted";  // from a leaf #A  		    		
+		    		
+// 		    	}        
+//   		    s << "]" << endl;
+//   		}
+
+// 	}
+
+// 	s << " info [ shape=plaintext, label=\"";
+// 	print(s);
+// 	s << "\"] " << endl;
+// 	s << " info2 [ shape=plaintext, label=\"" << retcontract;
+// 	s << "\"] " << endl;
+
+//     s << "}" << endl;
+//     s.close();
+
+// }
+
+void Network::initdid()
+{
+	if (rt > 8*sizeof(DISPLAYTREEID)) 
+    {
+      cout << "Network has too many reticulation nodes (" << rt << "). The limit is " << 8*sizeof(DISPLAYTREEID) << "." << endl;    
+      exit(-1);
+    }
+	displaytreemaxid = 1 << rt;		
 }

@@ -42,6 +42,12 @@ SPID** RootedTree::getspclusterrepr()
 
 string randspeciestreestr()
 {
+
+  if (!specnames.size())
+  {
+        cerr << "No species is defined (e.g., use -A NUM opt.)" << endl;
+        exit(-1);
+  }
   SPID tr[specnames.size()];
   for (int i = 0; i < (int)specnames.size(); i++) tr[i] = i;
   return genrandomtree(tr, specnames.size());

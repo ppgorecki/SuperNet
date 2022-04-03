@@ -98,6 +98,8 @@ public:
 		for( size_t i = 0; i < ds.v->size(); i++ )
 		{
 			Dag *d = (*ds.v)[i];
+
+			d->verifychildparent();
 			if (ds.usecounts) os << d->getcount() << "\t";
 	     	os << *d << endl;
 	    }

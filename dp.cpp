@@ -1,41 +1,11 @@
+#include <queue>
 
 #include "rtree.h"
 #include "tools.h"
 #include "network.h"
+#include "contrnet.h"
 #include "dag.h"
 
-#define MAXRTNODES 32
-
-typedef long COSTT;
-COSTT INFTY = 1000000;
-
-#if  MAXRTNODES < 33
-	
-	typedef uint64_t RETUSAGE;
-
-	#define emptyretusage(r) r=0
-	#define unionretusage(r,a,b) r=((a)|(b))
-
-	#define addleftretusage(r, rtid)  r|=(1<<((rtid)*2)) // via parent
-	#define addrightretusage(r, rtid)  r|=(1<<((rtid)*2-1)) // via retparent
-
-
-#elif MAXRTNODES < 65
-
-	typedef struct { uint64_t lft, rgh; } RETUSAGE;
-
-	#define emptyretusage(r) { r.lft=0; r.rgh=0; }
-	#define unionretusage(r,a,b) { r.rgh=a.rgh|b.rgh; r.lft=a.lft|b.lft; }
-
-	#define addleftretusage(r, rtid)  r.lft|=1<<(rtid) // via parent
-	#define addrightretusage(r, rtid)  r.rgh|=1<<(rtid) // via retparent
-
- 	ostream& operator<<(ostream& os, const RETUSAGE& r) { return os << r.lft <<"|" << r.rgh; }
-#else
-
- 	// TODO!
-
-#endif
 
 #define DELTA 1
 #define DELTAUP0 2
@@ -70,7 +40,7 @@ public:
 		memset(deltaup1retusage,0,sizeof(RETUSAGE)*sz);	
 
 		// assign leaves compute delta, deltaup0, deltaup1 for leaves
-		// todo: optimize leaves arrays
+		// todo: optimize leaf arrays
     	for (SPID g=0; g < genetree.lf; g++)    
     	{    		
 		    SPID gmap = network.findlab(genetree.lab[g]);
@@ -105,7 +75,7 @@ public:
 		    	c << " deltaup0[" << g << " " << n << "]="	<< " " << deltaup0[idx] << "@" << deltaup0retusage[idx]<< endl;
 		    
 				if (computed[idx]&DELTAUP1 && deltaup1[idx]<INFTY) 
-		    	c << " deltaup1[" << g << " " << n << "]="	<< " " << deltaup1[idx] << "@" << deltaup1retusage[idx] << endl;
+	    	c << " deltaup1[" << g << " " << n << "]="	<< " " << deltaup1[idx] << "@" << deltaup1retusage[idx] << endl;
 		    }	    	
 	}
 
@@ -132,8 +102,31 @@ public:
 		free(computed);
 	}
 
+	RETUSAGE _deltaretusage(SPID g, SPID n) 
+	{
+		size_t nidx = naddr(n);
+		size_t idx = g+nidx;
+		return deltaretusage[idx];
+	} 	
 
-	inline COSTT _delta(SPID g, SPID n) { 		
+	COSTT mindeltaroot(RETUSAGE &retusage)
+	{
+		COSTT res = INFTY;
+   		SPID s = MAXSP;   		
+		while (network.getnodeiter(s))		
+		{					
+			COSTT r = _delta(genetree.root, s);
+			if (res > r) 
+			{ 
+				res = r; 
+				retusage = _deltaretusage(genetree.root, s);
+			}
+		}
+		return res;
+	}
+
+
+	COSTT _delta(SPID g, SPID n) { 		
 		size_t nidx = naddr(n);
 		size_t idx = g+nidx;
 
@@ -188,8 +181,8 @@ public:
 		{
 			// n is a tree node with two children
 			
-			SPID s0 = network.leftchild[n];
-			SPID s1 = network.rightchild[n];
+			SPID s0 = network.getleftchild(n);
+			SPID s1 = network.getrightchild(n);
 
 			int s0reticulation = (s0>=network.rtstartid)?1:0;
 			int s1reticulation = (s1>=network.rtstartid)?1:0;
@@ -206,7 +199,8 @@ public:
 	        COSTT res1 = 1 - s1reticulation + du1;                   	
 	        res = min3(res, res0, res1);                    
 					
-	        COSTT sc = 0, optval = 0;
+	        SPID sc = 0;
+	        COSTT optval = 0;
 	        bool has = false;
 	        RETUSAGE retusagec;
 
@@ -235,9 +229,10 @@ public:
 	            if (sc>=network.rtstartid)
 	            {
 	                // kid is a reticulation node
-	                SPID rtid = network.rtstartid-sc;
+	                SPID rtid = sc-network.rtstartid;
+	                // cout << ">>1 " << rtid << endl;
 	                retusage = retusagec;
-	                if (n == network.parent[sc])
+	                if (n == network.getparent(sc))
 	                	addleftretusage( retusage, rtid);                                
 	                else
 	                	addrightretusage( retusage, rtid);
@@ -255,7 +250,7 @@ public:
 
 	}
 	
-	inline COSTT _deltaup0(SPID g, SPID n) 
+	COSTT _deltaup0(SPID g, SPID n) 
 	{ 
 		size_t nidx = naddr(n);
 		size_t idx = g+nidx;
@@ -272,15 +267,16 @@ public:
 
 		if (n>=network.rtstartid) // reticulation
     	{
-    		SPID sc = network.retchild[n];
+    		SPID sc = network.getretchild(n);
     		size_t scidx = g+naddr(sc);	
     		res = _deltaup0(g,sc);
     		retusage = deltaup0retusage[scidx]; 
     		
     		if (sc>=network.rtstartid) // special new case nonTC1
     		{
-    			SPID rtid = network.rtstartid-sc;
-    			if (network.parent[sc] == n)
+    			SPID rtid = sc-network.rtstartid;
+    			// cout << ">>2" << rtid << endl;
+    			if (network.getparent(sc) == n)
     				addleftretusage( retusage, rtid );
     			else
     				addrightretusage( retusage, rtid );	
@@ -300,8 +296,8 @@ public:
 		
 	    		// s has 2 children s0 and s1
 	    		
-				SPID s0 = network.leftchild[n];
-				SPID s1 = network.rightchild[n];						
+				SPID s0 = network.getleftchild(n);
+				SPID s1 = network.getrightchild(n);						
 
 	    		int s0reticulation = (s0>=network.rtstartid)?1:0;
 	    		int s1reticulation = (s1>=network.rtstartid)?1:0;
@@ -324,7 +320,7 @@ public:
 	        	}
 	        	else if (s0reticulation && s1reticulation)
 	        	{
-	        		cerr << "Tree child network expected" << endl;
+	        		cerr << "A node with two reticulation children is not allowed in DP" << endl;
 	        		exit(-1);
 	        	}
 
@@ -333,7 +329,7 @@ public:
 	        	if (res>res01)
 	        	{
 
-	        		bool used = false, notused = false;
+	        		SPID used = 0, notused = 0;
 	        		res = res01;
 
 	        		if (res==res0)
@@ -351,8 +347,9 @@ public:
 
 	        		if (used)
 	        		{        			
-						SPID rtid = network.rtstartid-used;
-						if (network.parent[used] == n)
+						SPID rtid = used-network.rtstartid;
+						// cout << ">>3 " << rtid << " " << used << endl;
+						if (network.getparent(used) == n)
 							addleftretusage( retusage, rtid);
 						else
 							addrightretusage( retusage, rtid);	    			
@@ -361,8 +358,9 @@ public:
 
 	        		if (notused)
 	        		{
-	        			SPID rtid = network.rtstartid-notused;
-						if (network.parent[notused] == n)
+	        			SPID rtid = notused-network.rtstartid;
+	        			// cout << ">>4" << rtid << endl;
+						if (network.getparent(notused) == n)
 							addrightretusage( retusage, rtid);
 						else
 							addleftretusage(retusage, rtid);	    			
@@ -380,8 +378,14 @@ public:
 };
 
 
+COSTT Network::approxmindc(RootedTree &genetree)
+{
+	RETUSAGE _;
+	return approxmindcusage(genetree, _);
+}
 
-double Network::retmindc(RootedTree &genetree)
+
+COSTT Network::approxmindcusage(RootedTree &genetree, RETUSAGE &retusage)
 {
 
 #ifdef _DPDEBUG_	
@@ -390,27 +394,127 @@ double Network::retmindc(RootedTree &genetree)
 	cout << " NETWORK ----------------------------------------- " << endl;
 	printdeb(cout,2);
 	cout << " ----------------------------------------- " << endl;
-
 #endif	
-
-	SPID gnn = genetree.nn;
-	SPID glf = genetree.lf;
-    
+	        
     DP dp(genetree,*this);
+    dp.preprocess();    
+    return dp.mindeltaroot(retusage);
 
-    dp.preprocess();
+}
 
-   	COSTT res = INFTY;
-	for (SPID s=0; s<nn; s++)	
-	{			
-		COSTT r = dp._delta(genetree.root, s);
-		if (res > r) res = r; 
+// double Network::_mindc(RootedTree &genetree, ContractedNetwork &c, COSTT &cost)
+// {
+// 	return 0;
+// }
+
+// DC via BB
+COSTT  Network::mindc(RootedTree &genetree)
+{      
+	
+	RootedTree *t = gendisplaytree(0);
+	if (!t)
+	{
+		cerr << "No display tree generated" << endl;
+		exit(-2);
 	}
+	COSTT best_cost = genetree.cost(*t,COSTDEEPCOAL)+genetree.lf*2-2; // convert to non-classic 
 
-#ifdef _DPDEBUG_
-	dp.print(cout);
+#ifdef _DEBUG_DPBB_
+	cout << " (t)-cost:" << best_cost << endl;
 #endif	
+	delete t;
 
-	return res;
-       
+	long branching_count = 0;
+    int max_depth = 0;
+    int best_depth = 0;
+    long dp_called = 0;
+
+    queue<ContractedNetwork *> q;
+
+    ContractedNetwork *start = new ContractedNetwork(*this, true);
+
+    q.push(start);
+
+    while (!q.empty())
+    {
+    	ContractedNetwork *c = q.front();
+   		q.pop();
+
+   		// run DP
+   		RETUSAGE retusage;
+
+   		COSTT cost = c->approxmindcusage(genetree, retusage);
+
+   		dp_called++;
+#ifdef _DEBUG_DPBB_
+   		cout << " cost=" << cost << endl;
+#endif
+   		// If a cost for a potentially incomplete tree is higher than the one we achieved,
+        // we can stop at that point
+        if (cost >= best_cost)
+        {
+#ifdef _DEBUG_DPBB_        	
+        	cout << "cost>=" << endl;
+#endif
+       		continue;
+       	}
+
+       	// Solution has all reticulation parents set, we can use the cost
+#ifdef _DEBUG_DPBB_        	       	
+       	cout << "Retusage " << retusage << endl;
+#endif       	
+     	if (!conflicted(retusage)) // || branch_left == 0)
+     	{
+#ifdef _DEBUG_DPBB_        	     		
+     		cout << "best" << endl;
+#endif     		
+            best_cost = cost;
+            // best_depth = depth;
+            continue;
+        }    
+
+        // Find conflicted reticulation
+        SPID rtid = c->getconflictedreticulation(retusage);
+
+#ifdef _DEBUG_DPBB_ 
+        cout << "CR:" << rtid << " " << spid2retlabel[rtid+rtstartid] << endl;
+#endif        
+
+        ContractedNetwork *lft = new ContractedNetwork(*c, true);
+        RETUSAGE retusagelft;
+        emptyretusage(retusagelft);
+        addleftretusage(retusagelft,rtid);
+        lft->contract(retusagelft);
+        q.push(lft);
+
+
+        ContractedNetwork *rgh = new ContractedNetwork(*c, true);
+        RETUSAGE retusagergh;
+        emptyretusage(retusagergh);
+        addrightretusage(retusagergh,rtid);
+        rgh->contract(retusagergh);
+        q.push(rgh);
+
+        // delete c;
+
+    }
+
+	//_mindc(genetree, ContractedNetwork n(*this, true), cost);
+
+    //ContractedNetwork tn = 
+
+ //    DP dp(genetree,*this);   
+ //    dp.preprocess();
+    
+ //   	COSTT res = INFTY;
+ //   	SPID s = MAXSP;
+	// while (getnodeiter(s))		
+	// {					
+	// 	COSTT r = dp._delta(genetree.root, s);
+	// 	// cerr << s << ":" << r << endl;
+	// 	if (res > r) res = r; 
+	// }
+	// return 0;
+	return best_cost - genetree.lf*2 + 2; 
+
 }
