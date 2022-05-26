@@ -1,5 +1,5 @@
-# VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
-VALGRIND=valgrind --show-leak-kinds=all --track-origins=yes --tool=memcheck
+VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
+#VALGRIND=valgrind --show-leak-kinds=all --track-origins=yes --tool=memcheck 
 CPPFLAGS = -O3 
 CC = g++ 
 LFLAGS =  
@@ -52,15 +52,20 @@ valgrinddc: gdb
 valgrinddc2: gdb
 	${VALGRIND} supnet -r1 -R3 -A4 -g "(a,(b,(c,d)))" -eY
 
+valgrindhc: gdb
+	${VALGRIND} supnet -N /tmp/hcnet.txt -G /tmp/hcgtr.txt -oT1t -CDC
+
+
 profiler: 
 	g++ -Wall -pg -O3 -o supnet ${SRC}	
 	supnet -r100 -R2 -A10 -g "((a,b),(c,d))" -ed
 	gprof supnet
 
 profilerlines: 
-	rm *gcov *gcda *gcno
+	rm -f *gcov *gcda *gcno
 	g++ -Wall -pg -fprofile-arcs -ftest-coverage -o supnet ${SRC}
-	supnet -r1000 -R2 -A10 -g "((a,b),(c,d))" -ed
+	supnet -N /tmp/hcnet.txt -G /tmp/hcgtr.txt -oT1t -CDC
+	#supnet -r1000 -R2 -A10 -g "((a,b),(c,d))" -ed
 	gcov supnet
 
 

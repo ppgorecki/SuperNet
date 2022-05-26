@@ -43,8 +43,9 @@ public:
 		// todo: optimize leaf arrays
     	for (SPID g=0; g < genetree.lf; g++)    
     	{    		
-		    SPID gmap = network.findlab(genetree.lab[g]);
+		    	
 		    COSTT c = 0;
+		    SPID gmap = network.findlab(genetree.lab[g]);
 	    	for (SPID s=0; s < network.nn; s++)	
 		    {	    		
 	    		SPID idx = g+naddr(s);		    
@@ -299,7 +300,7 @@ public:
 				SPID s0 = network.getleftchild(n);
 				SPID s1 = network.getrightchild(n);						
 
-	    		int s0reticulation = (s0>=network.rtstartid)?1:0;
+	    		int s0reticulation  = (s0>=network.rtstartid)?1:0;
 	    		int s1reticulation = (s1>=network.rtstartid)?1:0;
 
 	    		SPID idx0 = naddr(s0)+g;
@@ -320,7 +321,7 @@ public:
 	        	}
 	        	else if (s0reticulation && s1reticulation)
 	        	{
-	        		cerr << "A node with two reticulation children is not allowed in DP" << endl;
+	        		cerr << "A node with two reticulation children is not allowed in DP (use -ot option)" << endl;
 	        		exit(-1);
 	        	}
 
@@ -384,7 +385,6 @@ COSTT Network::approxmindc(RootedTree &genetree)
 	return approxmindcusage(genetree, _);
 }
 
-
 COSTT Network::approxmindcusage(RootedTree &genetree, RETUSAGE &retusage)
 {
 
@@ -397,6 +397,7 @@ COSTT Network::approxmindcusage(RootedTree &genetree, RETUSAGE &retusage)
 #endif	
 	        
     DP dp(genetree,*this);
+
     dp.preprocess();    
     return dp.mindeltaroot(retusage);
 
@@ -408,10 +409,10 @@ COSTT Network::approxmindcusage(RootedTree &genetree, RETUSAGE &retusage)
 // }
 
 // DC via BB
-COSTT  Network::mindc(RootedTree &genetree)
+COSTT Network::mindc(RootedTree &genetree, int runnaiveleqrt)
 {      
 	
-	RootedTree *t = gendisplaytree(0);
+	RootedTree *t = gendisplaytree(0,NULL);
 	if (!t)
 	{
 		cerr << "No display tree generated" << endl;
@@ -428,24 +429,83 @@ COSTT  Network::mindc(RootedTree &genetree)
     int max_depth = 0;
     int best_depth = 0;
     long dp_called = 0;
+    long naive_called = 0;
 
-    queue<ContractedNetwork *> q;
+    typedef struct {
+		ContractedNetwork *src;
+		SPID rtid;
+		bool left;
+    } QData;
 
-    ContractedNetwork *start = new ContractedNetwork(*this, true);
+    queue<QData> q;
 
-    q.push(start);
+    
+
+    q.push({.src=NULL,.rtid=this->rt,.left=false}); // init
 
     while (!q.empty())
     {
-    	ContractedNetwork *c = q.front();
+    	QData qdata = q.front();    	
    		q.pop();
 
-   		// run DP
+   		ContractedNetwork *srcc = qdata.src;
+   		SPID rtid = qdata.rtid;
+   		bool left = qdata.left;
+
+   		//cout << "SRC:" << srcc << " " << left << endl;
+
    		RETUSAGE retusage;
+   		ContractedNetwork *c;
 
-   		COSTT cost = c->approxmindcusage(genetree, retusage);
+   		if (!srcc)
+   		{   			   		
+   			c = new ContractedNetwork(*this, true);
+   		}  		
+   		else
+   		{
+   			// build a new contracted network
+   			c = new ContractedNetwork(*srcc, true);
+        	RETUSAGE retusage;
+        	emptyretusage(retusage);
+        	if (left)
+        		addleftretusage(retusage,rtid);
+        	else addrightretusage(retusage,rtid);
+        	c->contract(retusage);        
+   		}	
 
-   		dp_called++;
+   		// run DP
+
+		COSTT cost;
+		bool naivecomputed = false;
+		int trt = c->rtcount();
+
+   		if (runnaiveleqrt>trt)   		
+   		{
+   			//cout <<" Naive at : " << trt << " " << runnaiveleqrt << endl;
+
+
+        // ofstream s("contr.dot");
+        // std::ofstream sf;	
+        // sf.open ("contr.dot", std::ofstream::out );
+        // sf << "digraph SN {" << endl;
+        // sf << " inp [label=\"InRT=" <<  retusage << "\"]" <<endl;
+        // if (srcc) c->gendot(sf);
+        // c->gendotcontracted(sf);
+        // sf << "}" << endl;
+        // sf.close();        
+        
+
+   			cost =  c->odtcostnaive(&genetree, COSTDEEPCOAL) + genetree.lf*2 - 2;  		
+   			naive_called++;
+   			naivecomputed = true;
+
+   		}
+   		else 
+   		{ 
+   			cost = c->approxmindcusage(genetree, retusage);
+   			dp_called++;
+   		}
+   		
 #ifdef _DEBUG_DPBB_
    		cout << " cost=" << cost << endl;
 #endif
@@ -456,6 +516,9 @@ COSTT  Network::mindc(RootedTree &genetree)
 #ifdef _DEBUG_DPBB_        	
         	cout << "cost>=" << endl;
 #endif
+
+        	if (left) delete srcc;
+        	delete c;
        		continue;
        	}
 
@@ -463,58 +526,35 @@ COSTT  Network::mindc(RootedTree &genetree)
 #ifdef _DEBUG_DPBB_        	       	
        	cout << "Retusage " << retusage << endl;
 #endif       	
-     	if (!conflicted(retusage)) // || branch_left == 0)
+     	if (naivecomputed || !conflicted(retusage)) // || branch_left == 0)
      	{
 #ifdef _DEBUG_DPBB_        	     		
      		cout << "best" << endl;
 #endif     		
             best_cost = cost;
-            // best_depth = depth;
+            // best_depth = depth;     
+
+            if (left)  
+            	delete srcc;    
+
+            delete c;   
             continue;
         }    
 
         // Find conflicted reticulation
-        SPID rtid = c->getconflictedreticulation(retusage);
+        rtid = c->getconflictedreticulation(retusage);
 
 #ifdef _DEBUG_DPBB_ 
         cout << "CR:" << rtid << " " << spid2retlabel[rtid+rtstartid] << endl;
 #endif        
+ 		
+ 		q.push({.src=c,.rtid=rtid,.left=false}); 
+ 		q.push({.src=c,.rtid=rtid,.left=true}); 
 
-        ContractedNetwork *lft = new ContractedNetwork(*c, true);
-        RETUSAGE retusagelft;
-        emptyretusage(retusagelft);
-        addleftretusage(retusagelft,rtid);
-        lft->contract(retusagelft);
-        q.push(lft);
-
-
-        ContractedNetwork *rgh = new ContractedNetwork(*c, true);
-        RETUSAGE retusagergh;
-        emptyretusage(retusagergh);
-        addrightretusage(retusagergh,rtid);
-        rgh->contract(retusagergh);
-        q.push(rgh);
-
-        // delete c;
+        if (left) delete srcc;
 
     }
-
-	//_mindc(genetree, ContractedNetwork n(*this, true), cost);
-
-    //ContractedNetwork tn = 
-
- //    DP dp(genetree,*this);   
- //    dp.preprocess();
-    
- //   	COSTT res = INFTY;
- //   	SPID s = MAXSP;
-	// while (getnodeiter(s))		
-	// {					
-	// 	COSTT r = dp._delta(genetree.root, s);
-	// 	// cerr << s << ":" << r << endl;
-	// 	if (res > r) res = r; 
-	// }
-	// return 0;
+	
 	return best_cost - genetree.lf*2 + 2; 
 
 }

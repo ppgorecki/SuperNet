@@ -1,6 +1,7 @@
 
 #include "rtree.h"
 #include "contrnet.h"
+#include "network.h"
 
 #define CON_VISITED 4
 #define CON_DELPARENT 1
@@ -177,74 +178,10 @@ void ContractedNetwork::contract(RETUSAGE &retcontract)
 
 			propagate_maps(rtid);
 			
-
-
-			// update map parent
-			// SPID newpar = mapup[rtid];
-			// cout << "\n up:" << mapup[rtid] << " " << 
-			// 		" dn:" << mapdn[rtid] <<
-			// 		" newpar:" << newpar << endl;
-			// if (newpar<rtstartid)
-			// {
-			// 	if (mapdn[leftchild[newpar]]==rtid) 
-			// 		mapdn[leftchild[newpar]]=mapdn[rtid];
-			// 	else 
-			// 		if (mapdn[rightchild[newpar]]==rtid) 
-			// 			mapdn[rightchild[newpar]]=mapdn[rtid];
-			// }
-			// else
-			// {
-			// 	cout << " --> here " 
-			// 		<< retchild[newpar] << " "
-			// 		<< mapdn[retchild[newpar]]  << " "
-			// 		<< rtid << " "
-			// 		<< mapdn[rtid] 
-			// 		<< endl;
-			// 	if (mapdn[retchild[newpar]]==rtid) 
-			// 		mapdn[retchild[newpar]]=mapdn[rtid];
-			// 	cout << " --> aft " 
-			// 		<< retchild[newpar] << " "
-			// 		<< mapdn[retchild[newpar]]  << " "
-			// 		<< rtid << " "
-			// 		<< mapdn[rtid] 
-			// 		<< endl;
-
-			// }
-
-			// update map child
-
-			// SPID child = retchild[rtid];
-
-			// cout << " --> herechild " 
-			// 		<< child << " "
-			// 		// << mapdn[retchild[newpar]]  << " "
-			// 		<< rtid << " "
-			// 		<< mapup[child] << " "
-			// 		<< mapdn[child] << " "
-			// 		<< endl;
-
-			// if (mapup[child]!=child) mapup[child] = mapup[rtid];
-			// if (mapdn[child]!=child) 
-			// { 
-			// 	// correct bottom desc
-			// 	SPID rdesc = mapdn[child];
-			// 	cout << "rdesc" << rdesc << endl;
-			// 	if (mapup[parent[rdesc]]==rtid) 
-			// 		mapup[parent[rdesc]]=mapup[rtid];
-
-			// 	if (rdesc>=rtstartid)
-			// 	{					
-			// 		if (mapup[retparent[rdesc]]==rtid) 
-			// 		mapup[retparent[rdesc]]=mapup[rtid];				
-			// 	}
-				
-
-			// }
 #ifdef _CONTRDEBUG_
 			checkmaps();
 			cout << newickrepr() << endl;
 #endif			
-
 		}
 
 		if (rightret(retcontract, i) && !rightret(retdeleted, i))  
@@ -266,6 +203,11 @@ void ContractedNetwork::contract(RETUSAGE &retcontract)
 #endif			
 		}
 	}
+	initdid();
+
+	// correct root 
+	while (mapdn[root]!=root) root=mapdn[root];
+
 }
 
 
@@ -335,13 +277,6 @@ void ContractedNetwork::_checkmaps(SPID v, SPID p)
   	_checkmaps(mapdn[leftchild[v]],v);
   	_checkmaps(mapdn[rightchild[v]],v);
 
-}
-
-
-
-void ContractedNetwork::checkmaps()
-{
-	SPID croot = mapdn[root];
 }
 
 
@@ -460,33 +395,21 @@ void ContractedNetwork::gendot(ostream &s)
 	s << " info [ shape=plaintext, label=\"";
 	print(s);
 	s << "\"] " << endl;
-	s << "info2 [ shape=plaintext, label=\"" << retdeleted ;
+	s << "info2 [ shape=plaintext, label=\"" << retdeleted << " DTmax=" << displaytreemaxid();
 	s << "\"] " << endl;
 	s << "info2  ->  info" << endl;
-	s << "info" << " -> " << "v" << (int)root << "x" << dagnum  << endl;
-	
- }
+	s << "info" << " -> " << "v" << (int)root << "x" << dagnum  << endl;	
+}
 
-// void ContractedNetwork::_checkmaps(SPID v, SPID p, int &dcnt, int &ucnt)
-// {
-// 	while (mapdn[v]!=v) { v = mapdn[v]; }
-// 	if (v<lf) return;
-// 	if (v<rtstartid)
-// 		return "("+_newickrepr(leftchild[v],v)+","+_newickrepr(rightchild[v],v) +")";
 
-// 	// retid
-// 	SPID rp = retparent[v];
-// 	while (mapup[rp]!=rp) rp = mapup[rp];
-// 	if (rp==p)
-// 		return "("+_newickrepr(retchild[v],v)+")"+spid2retlabel[v];
-// 	return spid2retlabel[v];
+SPID ContractedNetwork::rtcount()
+{
+	SPID cnt=rt;
+	for (SPID i=0; i<rt; i++)		
+		 if (leftret(retdeleted,i) || rightret(retdeleted,i)) cnt--;
+	return cnt;
+}
 
-// }
-
-// bool ContractedNetwork::checkmaps()
-// {
-// 	int dcnt = 0;
-// }
 
 string ContractedNetwork::_newickrepr(SPID v, SPID p)
 {
@@ -510,7 +433,6 @@ string ContractedNetwork::newickrepr()
 	return _newickrepr(root,MAXSP);
 }
 
-
 void ContractedNetwork::_init()
 {	
 	emptyretusage(retdeleted);
@@ -521,16 +443,28 @@ void ContractedNetwork::_init()
 		mapdn[i]=i;
 		mapup[i]=i;
 	}
+	initdid();
+	localbitmask=NULL;
 }
 
-ContractedNetwork::ContractedNetwork(ContractedNetwork &net, int shallowcopy) : Network(net,shallowcopy) 
+
+ContractedNetwork::ContractedNetwork(ContractedNetwork &net, int shallowcopy) : Network(net, shallowcopy) 
 { 
 	mapdn = new SPID[nn];  
 	mapup = new SPID[nn];  	
 	memcpy ( mapdn, net.mapdn, sizeof(SPID)*nn );
 	memcpy ( mapup, net.mapup, sizeof(SPID)*nn );
 	retdeleted = net.retdeleted;
+	localbitmask=NULL;
 }	
+
+ContractedNetwork::~ContractedNetwork()
+{
+	delete[] mapup;
+	delete[] mapdn;
+	if (localbitmask)
+		delete[] localbitmask;
+}
 
 
 bool ContractedNetwork::getnodeiter(SPID &i)
@@ -557,14 +491,33 @@ SPID ContractedNetwork::getconflictedreticulation(RETUSAGE &retusage)
 	return MAXSP;
 }
 
+extern DISPLAYTREEID bitmask[]; 
 
+RootedTree* ContractedNetwork::gendisplaytree(DISPLAYTREEID id, RootedTree *t)
+{
+	// prepare local bitmask
+	if (!id)
+	{			
+		if (!localbitmask) 
+			localbitmask = new DISPLAYTREEID[rt];
+		int bit = 0;
+		for (SPID i=0; i<rt; i++)
+		{
+			if (!(leftret(retdeleted,i) || rightret(retdeleted,i)))
+			{
+				localbitmask[i]=bitmask[bit];							
+				//cout << "bit=" << bit << " rt=" << i << " " << localbitmask[i] << endl;
+				bit++;
+			}
+		}
+	}
 
-// ContractedNetwork::ContractedNetwork(Network &net, double weight)
-// {
-// 	nn = net.nn;
-// 	lf = net.lf;
-// 	rtstartid = net.rtstartid;
-// 	rt = net.rt;
-// 	_init();
-// 	initdid();
-// }
+	// cout << "=====" << id  << endl;
+	return Network::gendisplaytree(id,t);
+}
+
+bool ContractedNetwork::_skiprtedge(SPID i, SPID iparent, DISPLAYTREEID id)
+{
+	// cout << "i=" << i << " ipar=" << iparent << " par[i]=" << getparent(i) << " id=" << id << " lbm=" << localbitmask[i-rtstartid] << endl;;
+	return ((iparent != getparent(i)) == bool(id & localbitmask[i-rtstartid]));
+}

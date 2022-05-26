@@ -1,25 +1,29 @@
 #!/usr/bin/fish
 
  
-set --local options 'h/help' 't/contracttest' 'r/rtcount=!_validate_int --min 0' 'l/lfcount=!_validate_int --min 2' 'L/retusageleft=!_validate_int --min 0' 'R/retusageright=!_validate_int --min 0' 'd/draw' 'n/net=' 'g/genetree=' 'D/dc' 'P/dptest' 'B/bbtest=' 'H/hctest='
+set --local options 'h/help' 'X/contracttest' 'r/rtcount=!_validate_int --min 0' 'l/lfcount=!_validate_int --min 2' 'L/retusageleft=!_validate_int --min 0' 'R/retusageright=!_validate_int --min 0' 'd/draw' 'n/net=' 'g/genetree=' 'G/randomgenetreescnt=' 'D/dc' 'P/dptest' 'B/bbtest=' 'H/hctest=' 't/runnaiveleqrt='
 
 argparse $options -- $argv; or set _flag_help 1
 
 if set --query _flag_help
     printf "Usage: $0 [OPTIONS]\n\n"
     printf "Options:\n"
-    printf "  -h/--help     Prints help and exits\n"
-    printf "  -t/--contracttest       Prints help and exits\n"
+    printf "  -h/--help     Prints help and exit\n"
+    printf "  -X/--contracttest       \n"
     printf "  -r/--rtcount=NUM  Ret. count (minimum 0, default 5)\n"
     printf "  -l/--lfcount=NUM  Leaf count (minimum 2, default 2)\n"
     printf "  -d/--draw=NUM  Draw\n"
     printf "  -L/--retusage=NUM  Ret usage left\n"
     printf "  -R/--retusage=NUM  Ret usage right\n"
     printf "  -g/--genetree=TREE  Gene tree\n"    
+    printf "  -G/--randomgenetreescnt=NUM  Number of random gene trees to generate\n"    
     printf "  -D/--dc=TREE  DC test\n"    
     printf "  -P/--dptest  DP/contr test\n" 
     printf "  -B/--bbtest  BB test\n" 
-    printf "  -H/--hctest  HC test\n"       
+    printf "  -H/--hctest  HC test\n"   
+    printf "  -t/--runnaiveleqrt=NUM BB naive threshold\n"
+
+    printf " Examples:\n testcontr.fish  -g \"(a,b)\"  -D "
     exit 0
 end
 
@@ -27,6 +31,10 @@ set --query _flag_rtcount; or set --local _flag_rtcount 5
 set --query _flag_lfcount; or set --local _flag_lfcount 2
 set --query _flag_retusageleft; or set --local _flag_retusageleft 0
 set --query _flag_retusageright; or set --local _flag_retusageright 0
+set --query _flag_randomgenetreescnt; or set --local _flag_randomgenetreescnt 1
+set --query _flag_runnaiveleqrt; or set --local _flag_runnaiveleqrt 0
+
+printf "HERE $_flag_rtcount"
 
 if [ $_flag_contracttest ];
     
@@ -67,7 +75,7 @@ if [ $_flag_dc ];
     set retmindc ( cat x.log | head -1 | cut -f2 -d: )
     set contrnet ( cat x.log | tail -1 )
     set retmindcc (./supnet -g $_flag_genetree -n $contrnet -ed)    
-    echo $retmindc $retmindcc $contrnet $_flag_net
+    echo TU $retmindc $retmindcc $contrnet $_flag_net
     if [ $retmindcc != $retmindc ];         
         echo
         echo "==============="
@@ -154,21 +162,19 @@ if [ "$_flag_bbtest" = 'c' ];
     exit 0
 end       
 
-
-
 if [ $_flag_bbtest ];    
 
      if [ $_flag_bbtest = l ];
-        set net (cat tmp/bbnet.txt)
-        set gtree (cat tmp/bbgtree.txt)
+        set net (cat /tmp/bbnet.txt)
+        set gtree (cat /tmp/bbgtree.txt)
      else
-        set net (supnet -r1 -R10 -A10 -e1n)
-        set gtree (supnet -r1 -R0 -A10 -en)
+        set net (supnet -r1 -R20 -A35 -e1n)
+        set gtree (supnet -r10 -R0 -A35 -en)
         #set gtree (embretnet/embnet.py -g rand:10:0 -pg)
         #set net (embretnet/embnet.py -n rand:13:0  -pn)
         #set gtree (embretnet/embnet.py -g rand:13:0 -pg)
-        echo $net > tmp/bbnet.txt
-        echo $gtree > tmp/bbgtree.txt
+        echo $net > /tmp/bbnet.txt
+        echo $gtree > /tmp/bbgtree.txt
      end
 
      echo $net $gtree
@@ -197,29 +203,33 @@ end
 
 if [ $_flag_hctest ];    
 
-     if [ $_flag_hctest = l ];
-        set net (cat tmp/hcnet.txt)
-        set gtree (cat tmp/hcgtree.txt)
-     else
-        set net (supnet -r1 -R20 -A10 -e1n)
-        supnet -r3 -R0 -A10 -en > tmp/hcgtree.txt
-        echo $net > tmp/hcnet.txt        
+     set hcnet /tmp/hcnet.txt
+     set hcgtr /tmp/hcgtr.txt
+
+     if [ $_flag_hctest != l ]; # do not repeat last run        
+        # gen new sets
+        supnet -r1 -R$_flag_rtcount -A$_flag_lfcount -e1n > $hcnet
+        supnet -r$_flag_randomgenetreescnt -R0 -A$_flag_lfcount -e1n > $hcgtr
+        #supnet -r3 -R0 -A10 -en > $hcgtr  # 3 gene trees
+        #supnet -r1 -R0 -A10 -en > $hcgtr  # 1 gene tree
+        #supnet -r2 -R0 -A10 -en > $hcgtr  # 1 gene tree        
      end
 
-     echo $net $gtree
+     cat $hcnet 
+     cat $hcgtr
 
      echo "DP&BB"
-     supnet -n $net -G tmp/hcgtree.txt -oT1t -CDC
-     mv odt.dat tmp/dpbb_odt.dat
+     echo "supnet -N $hcnet -G $hcgtr -oT1t -CDC -t$_flag_runnaiveleqrt"
+     supnet -N $hcnet -G $hcgtr -oT1t -CDC -t$_flag_runnaiveleqrt
+     mv odt.dat tmp/$_flag_hctest.dpbb_odt.dat
 
      echo "Exhaustive"
-     supnet -n $net -G tmp/hcgtree.txt -oT1te -CDC
-     mv odt.dat tmp/naive_odt.dat
+     supnet -N $hcnet -G $hcgtr -oT1te -CDC
+     mv odt.dat tmp/$_flag_hctest.naive_odt.dat
 
-     
-
-     cat tmp/naive_odt.dat
-     cat tmp/dpbb_odt.dat
+    
+     cat tmp/$_flag_hctest.naive_odt.dat
+     cat tmp/$_flag_hctest.dpbb_odt.dat
      
 
      exit 0

@@ -144,6 +144,8 @@ public:
 
   int _height(SPID n, int heightarr[]);
 
+  virtual SPID rtcount() { return rt; }
+
   // Returns the parents; to get all parents use:
   // SPID p=MAXSP;
   // while (getparentiter(i,p)) { .. p is the parent ... }
@@ -169,10 +171,7 @@ public:
   virtual ostream& printdeb(ostream&s, int gse, string tn="");
 
   // The number of nodes
-  SPID size() { return nn; }
-
-  // Return the root
-  SPID getroot() { return root; }
+  SPID size() { return nn; }  
 
   // Sibling of u; where parent(u) is a tree node u
   // MAXSP otherwise
@@ -227,6 +226,7 @@ public:
   virtual SPID getleftchild(SPID v) { return leftchild[v]; }
   virtual SPID getrightchild(SPID v) { return rightchild[v]; }
   virtual SPID getretchild(SPID v) { return retchild[v]; }
+  virtual SPID getroot() { return root; }
   
 };
 

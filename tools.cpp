@@ -303,6 +303,12 @@ int usage(int argc, char **argv) {
        // " TODO: -L lossweight - set weight of gene losses (def. 1.0)\n" 
        "  -C COST - set cost function from {DL,D,L,DC,RF}\n"
        "\n"
+       
+       "BB algorithm for DC\n"
+       "  -t THRESHOLD - run naive odt computation, when the number of reticulations is <= THRESHOLD; otherwise run DP;"
+       "\n"
+
+
 
        "ODT HEURISTIC SEARCH\n"
 

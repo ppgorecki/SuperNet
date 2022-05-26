@@ -73,6 +73,8 @@ void initbitmask();
 class Network: public Dag
 {
 
+protected:
+
 	SPID _gendisplaytree(DISPLAYTREEID id, RootedTree *t, SPID i, SPID iparent, SPID &freeint);
 
 	virtual ostream& printdebstats(ostream&s);
@@ -80,10 +82,7 @@ class Network: public Dag
 	void _getreachablefrom(SPID v, bool *reachable, bool *visited);
 	void _getreachableto(SPID v, bool *reachable, bool *visited);
 
-protected:
-
-	DISPLAYTREEID displaytreemaxid;
-
+	virtual bool _skiprtedge(SPID i, SPID iparent, DISPLAYTREEID id);
 	virtual void initdid();
 
 public:
@@ -100,6 +99,9 @@ public:
 
 	SPID tchild_contract(uint8_t mark[], SPID leftc[], SPID rightc[]);
 
+	// Max id + 1 of a display tree 
+	DISPLAYTREEID displaytreemaxid() { return 1 << rtcount(); }
+	
 	// Copy network and add random reticulation node
 	// retid - reticulation label; if empty then the label will be automatically assigned to #NUM
 	//     if r==NULL then the label will be "#NUM" where NUM is the number of reticulations
@@ -121,16 +123,22 @@ public:
 	//   DISPLAYTREEID tid = 0;
 	//   while ((t=n->gendisplaytree(tid,t))!=NULL)   { ... use display tree t ... }    
 
-	RootedTree* gendisplaytree(DISPLAYTREEID id, RootedTree *t = NULL);
+
+	virtual RootedTree* gendisplaytree(DISPLAYTREEID id, RootedTree *t);
+
+	virtual ~Network() {}
 
 	// Compute min cost vs. gene trees via enumeration of all display trees
 	double odtcostnaive(vector<RootedTree*> &genetrees, int costfunc);
 
+	// Compute min cost vs. gene tree via enumeration of all display trees
+	double odtcostnaive(RootedTree *genetree, int costfunc);
+
 	// Compute min cost vs. gene trees via DP&BBB alg.	
-	double odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc);
+	double odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc, int runnaiveleqrt);
 
 	// Compute min cost vs. gene trees 
-	double odtcost(vector<RootedTree*> &genetrees, int costfunc, bool usenaive);
+	double odtcost(vector<RootedTree*> &genetrees, int costfunc, bool usenaive, int runnaiveleqrt);
 	
 	// Mark nodes reachable from v (including v)	
 	void getreachablefrom(SPID v, bool *reachable);
@@ -143,7 +151,7 @@ public:
 	COSTT approxmindcusage(RootedTree &genetree, RETUSAGE &retusage);
 
 	// exact DC(G,M) via BB
-	COSTT mindc(RootedTree &genetree);
+	COSTT mindc(RootedTree &genetree, int runnaiveleqrt);
 	// double _mindc(RootedTree &genetree, ContractedNetwork &c, COSTT cost);
 	
 	// nodetype==1 -> count visible leaves 
@@ -158,3 +166,4 @@ public:
 
 
 #endif
+

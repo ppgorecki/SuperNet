@@ -646,14 +646,14 @@ bool Dag::getchild(SPID i, SPID &ichild)
 	if (ichild==MAXSP) 
 	{
 		// first run  		
-		ichild = leftchild[i]; // also retchild[i] 
+		ichild = getleftchild(i); // also retchild[i] 
 		return true;
 	}
 
-	if (i<rtstartid && ichild==leftchild[i] && leftchild[i]!=rightchild[i])
+	if (i<rtstartid && ichild==getleftchild(i) && getleftchild(i)!=getrightchild(i))
 	{
 		// second run; 
-		ichild=rightchild[i];
+		ichild=getrightchild(i);
 		return true;		
 	}
 
@@ -900,7 +900,7 @@ Dag::Dag(const Dag &d, bool shallowcopy)
 {
   if (shallowcopy)
   {
-    shallow = false;
+    shallow = true;
     lab = d.lab;
     parent = d.parent;
     leftchild = d.leftchild;
@@ -916,6 +916,7 @@ Dag::Dag(const Dag &d, bool shallowcopy)
   }
   else
   {
+    shallow = false;
     init(d.lf,d.rt);
     memcpy ( lab, d.lab, sizeof(SPID)*lf );
     memcpy ( parent, d.parent, sizeof(SPID)*nn );

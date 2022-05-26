@@ -14,7 +14,7 @@ void initbitmask()
 
 ostream& Network::printdebstats(ostream&s)
 {
-	return Dag::printdebstats(s) << " displaytreemaxid=" << displaytreemaxid;
+	return Dag::printdebstats(s) << " displaytreemaxid=" << displaytreemaxid();
 }
 
 
@@ -22,26 +22,38 @@ ostream& Network::printdebstats(ostream&s)
 // id encodes reticulation schema -> for long size is 8 -> 64 bits
 RootedTree* Network::gendisplaytree(DISPLAYTREEID id, RootedTree *t)
 {
-	if (id>=displaytreemaxid) return NULL;
+
+	if (id>=displaytreemaxid()) return NULL;
 	if (!t)	
 		t = new RootedTree(lf, lab);				
 	
 	SPID freeint = lf;
-	//cout << "==============" << id << endl; 
-	t->root = _gendisplaytree(id, t, root, MAXSP, freeint); 
+	// cerr << "==============" << id << " " << rtcount() << endl; 
+	t->root = _gendisplaytree(id, t, getroot(), MAXSP, freeint); 
+	t->parent[t->root] = MAXSP;
+	t->depthinitialized = false;
 
 	if (t->root!=t->size()-1)
-	{
-		cerr << "Root Error?" << t->root << endl;
+	{		
+		// t->printdeb(cerr, 0, "") ;
+		cerr << "Root Error? Expected size " << t->size()-1 << ". Found " << t->root << " getroot=" << getroot() << endl;
+		cerr << *this << endl;
+		cerr << "tid=" << id << endl;
+		// cerr << *t << endl;
+		exit(-1);
 		return NULL;
 	}	
 
-	t->parent[t->root] = MAXSP;
-	t->depthinitialized = false;
-	
-	return t; 
+
+	return t;
+
 }
 
+
+bool Network::_skiprtedge(SPID i, SPID iparent, DISPLAYTREEID id)
+{
+	return ((iparent == retparent[i]) == bool(id & bitmask[i-rtstartid]));
+}
 
 SPID Network::_gendisplaytree(DISPLAYTREEID id, RootedTree *t, SPID i, SPID iparent, SPID &freeint) 
 { 
@@ -54,9 +66,12 @@ SPID Network::_gendisplaytree(DISPLAYTREEID id, RootedTree *t, SPID i, SPID ipar
 	// }
 
 	// skip current edge
-	bool skipedge = (i>=rtstartid) && ((iparent == retparent[i]) == bool(id & bitmask[i-rtstartid]));
-
-	if (skipedge) return MAXSP; // ignore
+	if (i>=rtstartid)
+	{		
+		//cout << "RT check!" << i << " " << rtstartid << endl;
+		if (_skiprtedge(i, iparent, id)) return MAXSP;		
+	}
+		
 
 	SPID cleft = MAXSP;
 	getchild(i,cleft);
@@ -77,6 +92,8 @@ SPID Network::_gendisplaytree(DISPLAYTREEID id, RootedTree *t, SPID i, SPID ipar
 	if (crightgen==MAXSP) return cleftgen;  // single node
 
 	// two nodes to be connected
+
+	// cerr << freeint << " " << cleftgen << " " << crightgen << endl;
 	t->parent[cleftgen] = t->parent[crightgen] = freeint;
 	t->leftchild[freeint] = cleftgen;
 	t->rightchild[freeint] = crightgen;
@@ -151,28 +168,36 @@ void Network::_getreachableto(SPID v, bool *reachable, bool *visited)
 		_getreachableto(retparent[v],reachable, visited);		
 }
 
-double Network::odtcost(vector<RootedTree*> &genetrees, int costfunc, bool usenaive)
+double Network::odtcost(vector<RootedTree*> &genetrees, int costfunc, bool usenaive, int runnaiveleqrt)
 {
 	if (usenaive) return odtcostnaive(genetrees, costfunc);
-	return odtcostdpbb(genetrees,costfunc);
+	return odtcostdpbb(genetrees, costfunc, runnaiveleqrt);
 }
 
-double Network::odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc)
+double Network::odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc, int runnaiveleqrt)
 {
 
 	if (costfunc!=COSTDEEPCOAL)
 	{
-		cerr << "DP&BB cost computation only for DC " << costfunc << endl;
+		cerr << "DP&BB cost computation only for DC" << endl;
 		exit(-1);
 	}
 
 	double cost = 0;
 	for (int gt=0; gt<genetrees.size(); gt++)
-		cost+=mindc(*genetrees[gt]);
+		cost+=mindc(*genetrees[gt], runnaiveleqrt);
     
     return cost;        
 }
 
+double Network::odtcostnaive(RootedTree *genetree, int costfunc)
+{
+	vector<RootedTree*> genetrees;
+	genetrees.push_back(genetree);
+	return odtcostnaive(genetrees,costfunc);
+}
+
+extern bool print_repr_inodtnaive;
 
 double Network::odtcostnaive(vector<RootedTree*> &genetrees, int costfunc)
 {
@@ -183,7 +208,8 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, int costfunc)
     double gtcost[genetrees.size()];
         
     while ((t=gendisplaytree(tid,t))!=NULL)       
-    {           	
+    {               	
+
     	t->initlca();
     	t->initdepth();    	 	
 
@@ -197,7 +223,13 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, int costfunc)
 
     		double curcost = genetree->_cost(*t, lcamaps[gt], costfunc);
 
-    		if (!tid || (gtcost[gt] > curcost)) gtcost[gt] = curcost;    		
+    		if (!tid || (gtcost[gt] > curcost)) gtcost[gt] = curcost;  
+
+    		if (print_repr_inodtnaive)
+    		{
+    			cout << "!";
+    			t->printrepr(cout) << " " << curcost << endl;
+    		}
     	}
 
     	tid++;
@@ -350,180 +382,11 @@ ostream& operator<<(ostream& os, const RETUSAGE& r)
 
 
 
-// void Network::contract(RETUSAGE &retcontract)
-// {
-
-// 	uint8_t mark[nn]; 
-// 	// 0 - edge(s) to parent(s) OK
-// 	// 1 - node-parent remove (or leftret) P
-// 	// 2 - node-retparent R
-// 	// 3 - remove both (ret only)
-// 	// 4 - visited (ret only) V
-
-// 	// cout << "rtstartid" << rtstartid << endl;
-
-// 	//sortrtnodes();
-// 	cout << "============== CONTRACT " << retcontract << endl;
-	
-// #define CON_VISITED 4
-// #define CON_DELPARENT 1
-// #define CON_DELRETPARENT 2
-
-
-// 	memset(mark,0,sizeof(uint8_t)*nn);
-// 	SPID queue[nn]; // nodes whose all parent edges must be removed
-// 	int qstart=0, qend=0;
-
-// 	SPID vmapped[nn]; 
-// 	int vmappedlen=0;
-
-
-// #define qadd(v,p) \
-// 	cout << "qadd:" << v << " " << p << ":" << (int)mark[p] << endl; \
-// 	if (p<nn && !(mark[p]&CON_VISITED)) { \
-// 		if (p>=rtstartid) { queue[qend++]=p; } \
-// 		else { if (leftchild[p]==v) { \
-// 				  if (mark[rightchild[p]]) queue[qend++]=p; \
-// 			  	  else { vmapped[vmappedlen++]=p; vmap[p]=vmap[rightchild[p]]; } \
-// 			   } \
-// 			   else if (rightchild[p]==v) { \
-// 			   	  if (mark[leftchild[p]]) queue[qend++]=p; \
-// 			   	  else { vmapped[vmappedlen++]=p; vmap[p]=vmap[leftchild[p]]; } \
-// 			   }}}
-
-// 	SPID rtid = rtstartid;
-
-// 	SPID vmap[nn];
-// 	for (int i=0; i<nn; i++) vmap[i]=i;
-
-
-// #define pq() printf("Q:"); for (int j=qstart; j<qend; j++) printf(" %d[%d] ",queue[j],mark[queue[j]]);	printf("\n");
-
-// 	for (int i=0; i<rt; i++, rtid++)
-// 	{
-		
-// 		if (leftret(retcontract, i))  // (rtstartid+i, parent) -> remove
-// 		{
-// 			mark[rtid] |= CON_DELPARENT; 
-// 			SPID p = parent[rtid];					
-// 			cout << "\nRTL:" << " " << i << " " << rtid << " p=" << p << endl;
-// 			qadd(rtid, p);							
-// 			pq();
-// 		}
-// 		if (rightret(retcontract, i))  // (rtstartid+i, retparent) -> remove
-// 		{
-// 			mark[rtid] |= CON_DELRETPARENT; 			
-// 			SPID p = retparent[rtid];			
-// 			cout << "\nRTR:" << i << " " << rtid << " p=" << p << endl;
-// 			qadd(rtid, p);
-// 			pq();
-// 		}
-
-// 		if (mark[rtid])
-// 		{
-// 			vmap[rtid] = vmap[retchild[rtid]];
-// 			vmapped[vmappedlen++]=rtid; 
-// 		}
-// 	}
-// 	cout << "\n";
-// 	while (qstart!=qend)
-// 	{
-// 		pq();
-// 		SPID v = queue[qstart++]; // pop					
-// 		if (v==root) continue; // skip root - weird?
-// 		SPID p = parent[v];
-		
-// 		mark[v] = CON_DELPARENT|CON_VISITED; // remove edge 
-// 		qadd(v,p);  // search
-
-// 		if (v>=rtstartid)
-// 		{
-// 			mark[v] |= CON_DELRETPARENT|CON_VISITED; // remove edge 
-// 			p = retparent[v];
-// 			qadd(v,p);  
-// 		}
-// 	}	
-
-// 	// rebuild the network from mark info
-// 	for (SPID i=0; i<vmappedlen; i++)		
-// 	{
-// 		SPID vsrc = vmapped[i];
-// 		//SPID dest = vmap[vsrc];
-// 		if (!(mark[vsrc]&CON_VISITED) && vmap[vsrc]!=vsrc) 
-// 		{
-// 			cout << "unmap " << vsrc << endl;
-// 			unmap(vsrc,vmap);			
-// 		}
-// 	}
-
-//  	std::ofstream s;
-//     s.open ("contr.dot", std::ofstream::out );
-//     s << "digraph SN {" << endl;
-//     int dagnum=1;
-//     for (SPID i = 0; i < nn; i++ ) 
-//     {     
-		
-// 		s << "v" << (int)i << "x" << dagnum << " [";
-// 		if (i>=rtstartid)
-//   		{
-//   			s << "shape=box,color=red,";
-//   		}
-
-//   		s << "label=\"" << (int)i;
-//   		if (vmap[i]!=i) s << " !" << vmap[i] << " "; 
-//   		if (mark[i])
-//   			{
-//   				if (mark[i]&CON_VISITED) s << "V";
-//   				if (mark[i]&CON_DELPARENT) s << "P";
-//   				if (mark[i]&CON_DELRETPARENT) s << "R";
-  				
-//   			}
-
-//   		if (i<lf)    
-//   		  	s << " " << species(lab[i]) << " ";
-//   		s << "\"]" << endl;  
-
-//   		SPID iparent = MAXSP;
-//   		while (getparent(i,iparent))          
-//   		{
-//   		  s << "v" << (int)iparent << "x" << dagnum << " -> v" << (int)i << "x" << dagnum;
-//           s << " [ penwidth=1";
-//           if (leftchild[iparent]==i)  // leftchild - thicker edge
-//             s << ",arrowhead=vee"; 
-//           else s << "";
-
-//           if (iparent==parent[i] && mark[i]&CON_DELPARENT) s << ",style=dashed";  // from a leaf #A  		    		
-// 		  if (i>=rtstartid)
-// 		    	{	
-// 		    		s << ",label=\"" << spid2retlabel[i];
-// 		    		if (iparent==retparent[i]) s<<" rp"; 
-// 		    			s << "\"";  
-// 		    		if (iparent==retparent[i] && mark[i]&CON_DELRETPARENT) 
-// 		    			s << ",style=dotted";  // from a leaf #A  		    		
-		    		
-// 		    	}        
-//   		    s << "]" << endl;
-//   		}
-
-// 	}
-
-// 	s << " info [ shape=plaintext, label=\"";
-// 	print(s);
-// 	s << "\"] " << endl;
-// 	s << " info2 [ shape=plaintext, label=\"" << retcontract;
-// 	s << "\"] " << endl;
-
-//     s << "}" << endl;
-//     s.close();
-
-// }
-
 void Network::initdid()
 {
-	if (rt > 8*sizeof(DISPLAYTREEID)) 
+	if (rtcount() > 8*sizeof(DISPLAYTREEID)) 
     {
       cout << "Network has too many reticulation nodes (" << rt << "). The limit is " << 8*sizeof(DISPLAYTREEID) << "." << endl;    
       exit(-1);
-    }
-	displaytreemaxid = 1 << rt;		
+    }	
 }

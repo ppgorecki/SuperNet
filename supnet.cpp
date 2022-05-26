@@ -46,6 +46,8 @@ int gsid = GSFULL;
 char *gsdelim = NULL;
 int gspos = 0;
 
+bool print_repr_inodtnaive = false;
+
 typedef vector<RootedTree*> VecRootedTree;
 typedef vector<Network*> VecNetwork;
 
@@ -168,6 +170,8 @@ Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, in
 
 }
 
+
+
 int main(int argc, char **argv) 
 {
   
@@ -220,12 +224,16 @@ int main(int argc, char **argv)
 
   int reticulationcnt = 0;
   int networktype = 0;
-  int improvementthreshoold = 0;      
+  int improvementthreshoold = 0;  
+
+  int runnaiveleqrt = -1;    
 
   string odtfile = "odt.log";
 
-  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:";
+  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:t:";
   vector<char*> sgtvec, sstvec, snetvec;
+
+
   
   while ((opt = getopt(argc, argv, optstring))   != -1)
   {    
@@ -258,6 +266,8 @@ int main(int argc, char **argv)
         if (strchr(optarg,'N')) OPT_EDITOPERATIONTEST = 1; // nni test
         if (strchr(optarg,'M')) OPT_EDITOPERATIONTEST = 2; // tailmove
 
+        if (strchr(optarg,'R')) print_repr_inodtnaive = 1; 
+
         if (strchr(optarg,'1')) networktype = NT_CLASS1; 
         if (strchr(optarg,'2')) networktype = NT_GENERAL; 
         if (strchr(optarg,'d')) OPT_DP = 1;
@@ -287,6 +297,10 @@ int main(int argc, char **argv)
 
     case 'R':    
       reticulationcnt = atoi(optarg);
+      break;
+
+    case 't':    
+      runnaiveleqrt = atoi(optarg);
       break;
     
     case 's':
@@ -640,6 +654,7 @@ int main(int argc, char **argv)
           // << " " << **ntpos << " " << **gtpos << endl;
   }
 
+  
   // Run hill climbing
   if (odt)
   {
@@ -679,7 +694,7 @@ int main(int argc, char **argv)
         nhcstats.start();        
 
         // climb
-        double cost = hc.climb(*op, n, costfunc, nhcstats, usenaive);        
+        double cost = hc.climb(*op, n, costfunc, nhcstats, usenaive, runnaiveleqrt);        
 
         nhcstats.finalize();
         
@@ -862,6 +877,8 @@ int main(int argc, char **argv)
   {
       // Last two args: leftretusage rightretusage
       // ./supnet -g "(a,(b,c))" -n "((b)#1,(((#2)#3,((#1)#2,(c,#3))),a))" -eXng 2 1
+      // ./dot -Tpdf contr.dot -o c.pdf && evince c.pdf
+
 
       RETUSAGE retusage;
       emptyretusage(retusage);            
@@ -897,7 +914,7 @@ int main(int argc, char **argv)
       }
 
       cout << "R" << retusage << endl;
-      cout << "Conflicted" << conflicted(retusage)  << endl;;
+      cout << "Conflicted " << conflicted(retusage)  << endl;;
 
       for (int i=0; i<netvec.size(); i++)    
       {       
@@ -911,22 +928,31 @@ int main(int argc, char **argv)
 
         c->contract(retusage);        
 
+        cout << "Rtcount " << c->rtcount() << " " << "rt=" << n1->rtcount() << endl;;
+
         for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
           cout << "retmindc:" << (c->approxmindc(**gtpos)) << endl;
 
-        // ofstream s("contr.dot");
-        
-        // std::ofstream sf;
-        // sf.open ("contr.dot", std::ofstream::out );
-        // sf << "digraph SN {" << endl;
-        // sf << " inp [label=\"InRT=" <<  retusage << "\"]" <<endl;
-        // c->gendot(sf);
-        // c->gendotcontracted(sf);
-        // sf << "}" << endl;
-        // sf.close();        
+        ofstream s("contr.dot");
+        std::ofstream sf;
+        sf.open ("contr.dot", std::ofstream::out );
+        sf << "digraph SN {" << endl;
+        sf << " inp [label=\"InRT=" <<  retusage << "\"]" <<endl;
+        c->gendot(sf);
+        c->gendotcontracted(sf);
+        sf << "}" << endl;
+        sf.close();        
         cout << c->newickrepr() << endl;
 
 
+        RootedTree *t = NULL;
+        DISPLAYTREEID tid = 0; // id of display tree
+            
+        while ((t=c->gendisplaytree(tid,t))!=NULL)       
+        {  
+          cout << tid << " " << (*t) << endl;
+          tid++;
+        }
       }
   }
 
@@ -935,7 +961,7 @@ int main(int argc, char **argv)
       for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
         for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
         {          
-          cout << "mindc:" << (*ntpos)->mindc(**gtpos) << endl;     
+          cout << "mindc:" << (*ntpos)->mindc(**gtpos, runnaiveleqrt) << endl;     
         }      
   }
   
