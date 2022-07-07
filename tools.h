@@ -8,6 +8,9 @@
 #ifndef TOOLS_H_
 #define TOOLS_H_
 
+typedef long COSTT;
+#define INFTY 1000000
+
 #define SPMED
 //#define SPSMALL
 

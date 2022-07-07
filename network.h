@@ -15,9 +15,7 @@ class ContractedNetwork;
 	#define MAXRTNODES 64
 #endif 
 
-typedef long COSTT;
-
-#define INFTY 1000000
+class AdaptiveBB;
 
 #if MAXRTNODES < 33
 
@@ -134,7 +132,7 @@ public:
 	// Compute min cost vs. gene tree via enumeration of all display trees
 	double odtcostnaive(RootedTree *genetree, int costfunc);
 
-	// Compute min cost vs. gene trees via DP&BBB alg.	
+	// Compute min cost vs. gene trees via DP&BB alg.	
 	double odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc, int runnaiveleqrt);
 
 	// Compute min cost vs. gene trees 
@@ -151,7 +149,7 @@ public:
 	COSTT approxmindcusage(RootedTree &genetree, RETUSAGE &retusage);
 
 	// exact DC(G,M) via BB
-	COSTT mindc(RootedTree &genetree, int runnaiveleqrt);
+	COSTT mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adaptivebb=NULL);
 	// double _mindc(RootedTree &genetree, ContractedNetwork &c, COSTT cost);
 	
 	// nodetype==1 -> count visible leaves 
@@ -160,7 +158,7 @@ public:
 
 	friend class NNI;
 	friend class TailMove;	
-	friend class DP;
+	friend class DP_DC;
 
 };
 

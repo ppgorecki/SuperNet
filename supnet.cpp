@@ -25,11 +25,13 @@ const char *SUPNET="0.01";
 using namespace std;
 
 #include "tools.h"
+#include "bb.h"
 #include "clusters.h"
 #include "rtree.h"
 #include "network.h"
 #include "contrnet.h"
 #include "hillclimb.h"
+
 
 #include <sstream>
 #include <queue>
@@ -215,7 +217,8 @@ int main(int argc, char **argv)
   int OPT_PRINTNODESTATS = 0;
   int OPT_DP = 0;
   int OPT_CONTRACTTEST = 0;
-  int OPT_BBTEST = 0;
+  int OPT_BB = 0;
+  int OPT_BBSTATS = 0;
 
   int OPT_ODTNAIVE=0;
 
@@ -256,7 +259,6 @@ int main(int argc, char **argv)
         if (strchr(optarg,'l')) OPT_PRINTNODESTATS = 1; // visible leaves stats
         if (strchr(optarg,'L')) OPT_PRINTNODESTATS = 2; // visible nodes stats
 
-        if (strchr(optarg,'B')) OPT_COMPAREDAGS_BFTEST = 1; // hidden
         if (strchr(optarg,'p')) OPT_COMPAREDAGS = 1;  // allvsall
         if (strchr(optarg,'x')) OPT_DAGSHAPES = 1;  
         if (strchr(optarg,'u')) OPT_UNIQUEDAGS = 1;   
@@ -271,20 +273,20 @@ int main(int argc, char **argv)
         if (strchr(optarg,'1')) networktype = NT_CLASS1; 
         if (strchr(optarg,'2')) networktype = NT_GENERAL; 
         if (strchr(optarg,'d')) OPT_DP = 1;
+        if (strchr(optarg,'b')) OPT_BB = 1;
 
+        if (strchr(optarg,'j')) OPT_BBSTATS |= 1;
+        if (strchr(optarg,'J')) OPT_BBSTATS |= 2;
+        if (strchr(optarg,'k')) OPT_BBSTATS |= 4;
       
         // 
         // one net -r1 
         // 3 species -A3
         // 5 reticulations
-        // 
-        // ./supnet -R5 -r1 -A3  -e1X 6 1 && dot -Tpdf contr.dot -o c.pdf && evince c.pdf
-
+        // ./supnet -R5 -r1 -A3 -e1X 6 1 && dot -Tpdf contr.dot -o c.pdf && evince c.pdf
         if (strchr(optarg,'X')) OPT_CONTRACTTEST = 1;
-        if (strchr(optarg,'Y')) OPT_BBTEST = 1;
-
-        //if (strchr(optarg,'i')) OPT_USERSPTREEISSTARTING=0;        
-        //if (strchr(optarg,'S')) OPT_SHOWSTARTINGTREES=1;
+        
+        if (strchr(optarg,'.')) OPT_COMPAREDAGS_BFTEST = 1; // hidden
         break;
     
     // case 'v': 
@@ -631,7 +633,6 @@ int main(int argc, char **argv)
     s << "}" << endl;
   }
 
-
   // Compute ODT cost by naive enumeration of display trees
   if (OPT_ODTNAIVE)
   {
@@ -647,13 +648,38 @@ int main(int argc, char **argv)
 
   // Run DP algorithm to compute approx DC 
   if (OPT_DP)
-  {
+  {    
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
       for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
           cout << ((*ntpos)->approxmindc(**gtpos)) << endl; 
-          // << " " << **ntpos << " " << **gtpos << endl;
+    exit(0);
   }
 
+  // Run BB algorithm to compute DC   
+  if (OPT_BB)
+  {
+      AdaptiveBBTree adaptivebb;
+
+      for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
+        for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)                        
+        {
+          double tm = gettime();
+          cout << (*ntpos)->mindc(**gtpos, runnaiveleqrt, &adaptivebb);               
+          if (OPT_BBSTATS&4) 
+              cout << " " << (gettime() - tm) 
+                   << " " << adaptivebb.minrtnumber 
+                   << " " << adaptivebb.algnaivecnt
+                   << " " << adaptivebb.algnaivetime
+                   << " " << adaptivebb.algdpcnt
+                   << " " << adaptivebb.algdptime;
+
+          cout << endl;
+        }
+
+      if (OPT_BBSTATS&1) adaptivebb.savedot();
+      if (OPT_BBSTATS&2) adaptivebb.savetsv();
+      exit(0);   
+  }
   
   // Run hill climbing
   if (odt)
@@ -730,6 +756,44 @@ int main(int argc, char **argv)
   }
 
 
+  if (OPT_PRINTDISPLAYTREES)
+  {
+    for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)    
+    {
+        DISPLAYTREEID tid = 0;
+        Network *n = *ntpos;
+        RootedTree *t = NULL;
+        // cout << *n << endl;     
+        while ((t=n->gendisplaytree(tid,t))!=NULL)   
+        {
+          if (OPT_PRINTDISPLAYTREES==2)
+            cout << tid << " ";
+          t->printrepr(cout) << endl;       
+          tid++;      
+        }
+    }
+  }
+
+  if (OPT_COMPAREDAGS)
+  {
+      int cnt=0, cntall=0;
+      for (int i=0; i<netvec.size(); i++)    
+      {
+        // cout << *(netvec[i]) << endl;
+        Network *n1 = netvec[i];
+        cout << endl;
+        for (int j=i+1; j<netvec.size(); j++)    
+        { 
+            Network *n2 = netvec[j];            
+            bool e1 = n1->eqdags(n2,!OPT_DAGSHAPES);                        
+            cout << *(n1) << "\t" << *(n2) << "\t" << e1 << endl;                        
+        }
+      }
+      //cout <<  "eqcnt=" << cnt << " all=" << cntall << endl;
+  }
+
+  // ----------------- DEBUGs -----------------------
+
   if (OPT_EDITOPERATIONTEST==1)
   {
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
@@ -802,23 +866,7 @@ int main(int argc, char **argv)
       }
   }
 
-  if (OPT_PRINTDISPLAYTREES)
-  {
-    for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)    
-    {
-        DISPLAYTREEID tid = 0;
-        Network *n = *ntpos;
-        RootedTree *t = NULL;
-        // cout << *n << endl;     
-        while ((t=n->gendisplaytree(tid,t))!=NULL)   
-        {
-          if (OPT_PRINTDISPLAYTREES==2)
-            cout << tid << " ";
-          t->printrepr(cout) << endl;       
-          tid++;      
-        }
-    }
-  }
+ 
 
   // Debug on
  if (OPT_COMPAREDAGS_BFTEST)
@@ -855,23 +903,7 @@ int main(int argc, char **argv)
     exit(0);        
   }
 
-  if (OPT_COMPAREDAGS)
-  {
-      int cnt=0, cntall=0;
-      for (int i=0; i<netvec.size(); i++)    
-      {
-        // cout << *(netvec[i]) << endl;
-        Network *n1 = netvec[i];
-        cout << endl;
-        for (int j=i+1; j<netvec.size(); j++)    
-        { 
-            Network *n2 = netvec[j];            
-            bool e1 = n1->eqdags(n2,!OPT_DAGSHAPES);                        
-            cout << *(n1) << "\t" << *(n2) << "\t" << e1 << endl;                        
-        }
-      }
-      //cout <<  "eqcnt=" << cnt << " all=" << cntall << endl;
-  }
+  
 
   if (OPT_CONTRACTTEST)
   {
@@ -956,16 +988,10 @@ int main(int argc, char **argv)
       }
   }
 
-  if (OPT_BBTEST)
-  {
-      for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
-        for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
-        {          
-          cout << "mindc:" << (*ntpos)->mindc(**gtpos, runnaiveleqrt) << endl;     
-        }      
-  }
+
   
-  // Clean    
+  // Cleaning
+
   for (size_t i = 0; i < sgtvec.size(); i++) 
     free(sgtvec[i]);
 

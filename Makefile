@@ -7,7 +7,7 @@ MAKEFLAGS += -j10 # parallel
 
 all: supnet
 
-SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp network.cpp dp.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp
+SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp
 
 clusters.o: clusters.h clusters.cpp tools.h
 tools.o : tools.cpp tools.h clusters.h 
@@ -17,9 +17,9 @@ dag.o: dag.cpp dag.h tools.cpp tools.h dagset.h
 iso.o: iso.cpp dag.cpp dag.h tools.cpp tools.h
 hillclimb.o: hillclimb.h hillclimb.cpp tools.h dagset.h
 dp.o: dp.cpp network.cpp network.h rtree.h rtree.cpp
+bb.o: bb.cpp dp.cpp network.cpp network.h rtree.h rtree.cpp bbstats.cpp
 contrnet.o: contrnet.cpp contrnet.h network.h
-
-supnet: tools.o clusters.o dag.o rtree.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o
+supnet: tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o bbstats.o
 	$(CC) $(LFLAGS) -o $@ $^
 
 gdb: clean  

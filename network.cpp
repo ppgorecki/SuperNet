@@ -2,6 +2,7 @@
 
 #include "rtree.h"
 #include "network.h"
+#include "dp.h"
 
 DISPLAYTREEID bitmask[8*sizeof(long)]; 
 
@@ -179,7 +180,7 @@ double Network::odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc, int ru
 
 	if (costfunc!=COSTDEEPCOAL)
 	{
-		cerr << "DP&BB cost computation only for DC" << endl;
+		cerr << "DP&BB cost computation only for DC (use -CDC)" << endl;
 		exit(-1);
 	}
 
@@ -380,8 +381,6 @@ ostream& operator<<(ostream& os, const RETUSAGE& r)
 #endif
 
 
-
-
 void Network::initdid()
 {
 	if (rtcount() > 8*sizeof(DISPLAYTREEID)) 
@@ -390,3 +389,29 @@ void Network::initdid()
       exit(-1);
     }	
 }
+
+COSTT Network::approxmindc(RootedTree &genetree)
+{
+	RETUSAGE _;
+	return approxmindcusage(genetree, _);
+}
+
+COSTT Network::approxmindcusage(RootedTree &genetree, RETUSAGE &retusage)
+{
+
+#ifdef _DPDEBUG_	
+	cout << " GENE TREE  -------------------------------------- " << endl;
+	genetree.printdeb(cout,2);
+	cout << " NETWORK ----------------------------------------- " << endl;
+	printdeb(cout,2);
+	cout << " ----------------------------------------- " << endl;
+#endif	
+	        
+    DP_DC dpdc(genetree, *this);
+
+    dpdc.preprocess();    
+    return dpdc.mindeltaroot(retusage);
+}
+
+
+

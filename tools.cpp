@@ -289,6 +289,8 @@ int usage(int argc, char **argv) {
        "     i - list species dictionary\n"       
        "     c - print cost\n"       
        "     C - print cost with trees\n"              
+       "     d - run DP algorithm only (approx DC) per each (G,N)\n"
+       "     b - run BB algorithm only (exact DC); see jJ subopt.\n"
        "     1 - class 1 networks in rand generator (int node has at most one reticulation child); see -R\n"       
        "     2 - general phylogenetic networks (no restrictions); see -R\n"
        "     p - pairwise comparison of all networks\n"
@@ -297,18 +299,20 @@ int usage(int argc, char **argv) {
        "     x - two networks are equal if their shapes are isomorphic in u,U,p (i.e., ignore leaf labels)\n"
        "     L - for each v in V(N), print the number of nodes reachable from v (only from networks)\n"
        "     l - for each v in V(N), print the number of leaves reachable from v (only from networks)\n"       
-       "\n"       
+       "\n"               
        "COST SETTING OPTIONS\n"
        // " TODO: -D dupweight  - set weight of gene duplications (def. 1.0)\n"
        // " TODO: -L lossweight - set weight of gene losses (def. 1.0)\n" 
        "  -C COST - set cost function from {DL,D,L,DC,RF}\n"
        "\n"
        
-       "BB algorithm for DC\n"
-       "  -t THRESHOLD - run naive odt computation, when the number of reticulations is <= THRESHOLD; otherwise run DP;"
+       "BB algorithm for DC (with -eb)\n"      
+       "  -t THRESHOLD - run naive odt computation, when the number of reticulations is < THRESHOLD; otherwise run DP;"
+       "  -ebj - gen bb.tsv with stats\n"
+       "  -ebJ - gen bb.dot with bb tree search\n"
+       "  -ebk - print time per each pair\n"
        "\n"
-
-
+       "\n"
 
        "ODT HEURISTIC SEARCH\n"
 
@@ -330,6 +334,7 @@ int usage(int argc, char **argv) {
        "\n"
        "  -O ODTFILE - change the name of odt.log and odt.dat files\n"
               
+       "\n"
        // "*Starting tree options:\n"
        // "  -q NUM - generate NUM quasi-consensus trees sampled from gene tree clusters;\n"
        // "       (def. is 1 if no user species tree is defined)\n"
