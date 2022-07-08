@@ -382,7 +382,12 @@ SPID Dag::findlab(SPID slab, int stoponerr)
 
     if (stoponerr)
     {
-      cerr << "Species lab " << specnames[slab] << " ($" << (int)slab << ") not found in: " << *this << endl;
+      
+      cerr << "Species lab id:" << slab;
+      if (slab>=0 && slab<specnames.size()) 
+        cerr << " " << specnames[slab] << " ";
+      // cerr << " not found in "
+      //     << *this << endl;  
 
       exit(-1);
     }

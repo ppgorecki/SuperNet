@@ -6,16 +6,11 @@
 #include "dag.h"
 #include "dp.h"
 
-
-
-
-
 DP_DC::DP_DC(RootedTree &g, Network &n) : genetree(g), network(n), sz(genetree.nn * network.nn)
 {
 	alloc();
 	clean();
 }
-
 
 void DP_DC::preprocess()
 {
@@ -28,11 +23,11 @@ void DP_DC::preprocess()
 	for (SPID g = 0; g < genetree.lf; g++)
 	{
 
-		COSTT c = 0;
+		COSTT c = 0;		
 		SPID gmap = network.findlab(genetree.lab[g]);
 		for (SPID s = 0; s < network.nn; s++)
 		{
-			SPID idx = g + naddr(s);
+			size_t idx = g + naddr(s);
 			emptyretusage ( deltaretusage[idx] );
 			if (s == gmap) c = 0;
 			else c = INFTY;
@@ -175,8 +170,8 @@ COSTT DP_DC::_deltaup1(SPID g, SPID n)
 		int s0reticulation = (s0 >= network.rtstartid) ? 1 : 0;
 		int s1reticulation = (s1 >= network.rtstartid) ? 1 : 0;
 
-		SPID idx0 = naddr(s0) + g;
-		SPID idx1 = naddr(s1) + g;
+		size_t idx0 = naddr(s0) + g;
+		size_t idx1 = naddr(s1) + g;
 
 		COSTT du0 = _deltaup0(g, s0);
 		COSTT du1 = _deltaup0(g, s1);
@@ -290,8 +285,8 @@ COSTT DP_DC::_deltaup0(SPID g, SPID n)
 			int s0reticulation  = (s0 >= network.rtstartid) ? 1 : 0;
 			int s1reticulation = (s1 >= network.rtstartid) ? 1 : 0;
 
-			SPID idx0 = naddr(s0) + g;
-			SPID idx1 = naddr(s1) + g;
+			size_t idx0 = naddr(s0) + g;
+			size_t idx1 = naddr(s1) + g;
 
 			COSTT du0 = _deltaup0(g, s0);
 			COSTT du1 = _deltaup0(g, s1);

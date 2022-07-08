@@ -185,7 +185,8 @@ string getstringn(char *s, int len)
 
 int getspecies(char *_s, int len)
 {
-  string s = getstringn(_s,len);  
+  string s = getstringn(_s,len);
+
   if (specnames2id.count(s)) return specnames2id[s];
 
   int num;
