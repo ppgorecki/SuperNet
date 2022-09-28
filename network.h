@@ -4,7 +4,9 @@
 #define _NETWORK_H_
 
 #include "dag.h"
+#include "bb.h"
 #include "rtree.h"
+
 class ContractedNetwork;
 
 #define NT_GENERAL 2   // no limits
@@ -144,12 +146,13 @@ public:
 	// Mark nodes w such that v is reachble from w (including v)	
 	void getreachableto(SPID v, bool *reachable);	
 
-	// approx DC(G,N) via DP
-	COSTT approxmindc(RootedTree &genetree);
-	COSTT approxmindcusage(RootedTree &genetree, RETUSAGE &retusage);
+	// approx DCE(G,N) via DP
+	COSTT approxmindce(RootedTree &genetree);
+	COSTT approxmindceusage(RootedTree &genetree, RETUSAGE &retusage);
 
-	// exact DC(G,M) via BB
-	COSTT mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adaptivebb=NULL);
+	// exact DCE(G,M) via BB
+	COSTT mindce(RootedTree &genetree, int runnaiveleqrt, 
+		BBTreeStats *bbtreestats=NULL, COSTT bbstartscore=0,bool bbstartscoredefined=false);
 	// double _mindc(RootedTree &genetree, ContractedNetwork &c, COSTT cost);
 	
 	// nodetype==1 -> count visible leaves 

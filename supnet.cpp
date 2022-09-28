@@ -10,7 +10,6 @@ const char *SUPNET="0.01";
 
 #include <time.h> 
 #include <sys/time.h>
-
  
 #include <stdlib.h>
 #include <unistd.h>
@@ -233,14 +232,21 @@ int main(int argc, char **argv)
 
   string odtfile = "odt.log";
 
-  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:t:";
+  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:t:b:";
   vector<char*> sgtvec, sstvec, snetvec;
 
+  COSTT bbstartscore = 0;
+  bool bbstartscoredefined = false;
 
   
   while ((opt = getopt(argc, argv, optstring))   != -1)
   {    
     switch (opt) {
+
+      case 'b':    
+        bbstartscore = atoi(optarg);
+        bbstartscoredefined = true;
+        break;
 
       case 'e':        
         if (strchr(optarg,'i')) OPT_PRINTINFO=1;
@@ -646,38 +652,41 @@ int main(int argc, char **argv)
     }
   }
 
-  // Run DP algorithm to compute approx DC 
+  // Run DP algorithm to compute approx DCE 
   if (OPT_DP)
   {    
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
       for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
-          cout << ((*ntpos)->approxmindc(**gtpos)) << endl; 
+          cout << ((*ntpos)->approxmindce(**gtpos)) << endl; 
     exit(0);
   }
 
   // Run BB algorithm to compute DC   
   if (OPT_BB)
   {
-      AdaptiveBBTree adaptivebb;
+      BBTreeStats bbtreestats;
 
       for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
         for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)                        
         {
           double tm = gettime();
-          cout << (*ntpos)->mindc(**gtpos, runnaiveleqrt, &adaptivebb);               
+          COSTT dce = (*ntpos)->mindce(**gtpos, runnaiveleqrt, &bbtreestats, 
+            bbstartscore, bbstartscoredefined);               
+          cout << dce - (**gtpos).sizelf()*2 - 2;
           if (OPT_BBSTATS&4) 
-              cout << " " << (gettime() - tm) 
-                   << " " << adaptivebb.minrtnumber 
-                   << " " << adaptivebb.algnaivecnt
-                   << " " << adaptivebb.algnaivetime
-                   << " " << adaptivebb.algdpcnt
-                   << " " << adaptivebb.algdptime;
+            cout   << " " << dce 
+                   << " " << (gettime() - tm) 
+                   << " " << bbtreestats.minrtnumber 
+                   << " " << bbtreestats.algnaivecnt
+                   << " " << bbtreestats.algnaivetime
+                   << " " << bbtreestats.algdpcnt
+                   << " " << bbtreestats.algdptime;
 
           cout << endl;
         }
 
-      if (OPT_BBSTATS&1) adaptivebb.savedot();
-      if (OPT_BBSTATS&2) adaptivebb.savetsv();
+      if (OPT_BBSTATS&1) bbtreestats.savedot();
+      if (OPT_BBSTATS&2) bbtreestats.savetsv();
       exit(0);   
   }
   
@@ -963,7 +972,7 @@ int main(int argc, char **argv)
         cout << "Rtcount " << c->rtcount() << " " << "rt=" << n1->rtcount() << endl;;
 
         for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
-          cout << "retmindc:" << (c->approxmindc(**gtpos)) << endl;
+          cout << "retmindc:" << (c->approxmindce(**gtpos)) << endl;
 
         ofstream s("contr.dot");
         std::ofstream sf;

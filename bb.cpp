@@ -10,24 +10,44 @@
 #include "dag.h"
 #include "dp.h"
 
+
+// Use minlb - 
+#if !defined USE_PRIORITY_QUEUE_MINRT && !defined USE_PRIORITY_QUEUE_MINLB && !defined USE_QUEUE_BFS
+#define USE_PRIORITY_QUEUE_MINLB
+#endif
+
 // DC via BB
-// #define _DEBUG_DPBB_
-COSTT Network::mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adaptivebb)
+//  #define _DEBUG_DPBB_
+COSTT Network::mindce(RootedTree &genetree, int runnaiveleqrt, 
+    BBTreeStats *bbtreestats,
+    COSTT bbstartscore,
+    bool bbstartscoredefined)
 {      
 	
-	RootedTree *t = gendisplaytree(0,NULL);
-	if (!t)
-	{
-	   cerr << "No display tree generated" << endl;
-	   exit(-2);
-	}
+    COSTT best_cost = 0;
 
-	COSTT best_cost = genetree.cost(*t,COSTDEEPCOAL)+genetree.lf*2-2; // convert to non-classic 
+    if (bbstartscoredefined)
+        best_cost = bbstartscore;
+    else 
+    {
+
+    	RootedTree *t = gendisplaytree(0,NULL);
+    	if (!t)
+    	{
+    	   cerr << "No display tree generated" << endl;
+    	   exit(-2);
+    	}
+
+    	best_cost = genetree.cost(*t,COSTDEEPCOAL)+genetree.lf*2-2; 
+        // convert to     non-classic 
+        delete t;
+    }
 
 #ifdef _DEBUG_DPBB_
 	cout << " displaytree-startcost:" << best_cost << endl;
 #endif	
-	delete t;
+
+	
 
     long branching_count = 0;
     int max_depth = 0;
@@ -35,31 +55,95 @@ COSTT Network::mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adapti
     long dp_called = 0;
     long naive_called = 0;
 
-    if (!adaptivebb) adaptivebb = new AdaptiveBB();
+    if (!bbtreestats) bbtreestats = new BBTreeStats();
 
-    long bbnodeid = adaptivebb->init(rtcount(), best_cost);
+    long bbnodeid = bbtreestats->init(rtcount(), best_cost);
 
     typedef struct {
+        long nodeid;
 		ContractedNetwork *src;
 		SPID rtid;
 		bool left;
 		long bbparnodeid;
         COSTT parcost;
+        int rtnumber;        
     } QData;
 
+#ifdef USE_PRIORITY_QUEUE_MINRT    
+
+    // Min RT network - first
+    struct CompQData 
+    {
+        bool operator()(QData const& p1, QData const& p2)
+        {        
+            if ((p1.bbparnodeid == p2.bbparnodeid) && !p2.left) 
+                return true;    
+            return p1.rtnumber > p2.rtnumber;
+        };
+    };
+
+    priority_queue<QData, vector<QData>, CompQData> q;
+
+
+#elif defined USE_PRIORITY_QUEUE_MINLB
+
+    // Min lower bound RT network - first
+    struct CompQData 
+    {
+        bool operator()(QData const& p1, QData const& p2)
+        {        
+            if ((p1.bbparnodeid == p2.bbparnodeid) && !p2.left) 
+                return true;    
+            return p1.parcost > p2.parcost;
+        };
+    };
+
+    priority_queue<QData, vector<QData>, CompQData> q;
+
+#elif defined USE_QUEUE_BFS
+    // Classic BFS 
     queue<QData> q;
-   
-    q.push({ .src=NULL, .rtid=this->rt, .left=false, .bbparnodeid = bbnodeid, .parcost=0}); // init
+#else
+    // Yes, error
+#endif
+
+    q.push({ .nodeid=bbnodeid, .src=NULL, .rtid=this->rt, .left=false, 
+        .bbparnodeid = bbnodeid, .parcost=0, 
+        .rtnumber=rtcount()}); // init
 
     while (!q.empty())
     {
-    	QData qdata = q.front();    	
-   		q.pop();        
 
+#if defined USE_PRIORITY_QUEUE_MINRT || defined USE_PRIORITY_QUEUE_MINLB
+
+        QData qdata = q.top();                
+
+#if DEBUG_BB_QUEUES
+        // print priority queue data
+        priority_queue<QData, vector<QData>, CompQData> _q = q;    
+        cout << "#[ ";
+        for(int i = 0; i < q.size(); ++i) {
+            cout << _q.top().parcost  << " ";
+            _q.pop();
+        }
+        cout << "] " << endl;
+
+#endif 
+
+#else    
+    	QData qdata = q.front();    	
+#endif
+
+   		q.pop();  
+
+        // printf("#bestscore=%ld startscore=%ld %d\n",best_cost, bbstartscore,bbstartscoredefined);
+    
    		ContractedNetwork *srcc = qdata.src;
    		SPID rtid = qdata.rtid;
    		bool left = qdata.left;
    		long bbparnodeid = qdata.bbparnodeid;
+
+        // cout << qdata.nodeid << " lft=" << left << " par=" << bbparnodeid << " rt=" << qdata.rtnumber << endl;      
 
         // New optimization
         if (qdata.parcost>=best_cost)
@@ -67,7 +151,7 @@ COSTT Network::mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adapti
           // parent lower bound is worst than the current best cost 
           // this branch cannot improve the cost
           if (bbparnodeid>=0)
-            adaptivebb->parentcut(bbparnodeid,best_cost);
+            bbtreestats->parentcut(bbparnodeid,best_cost);
 #ifdef _DEBUG_DPBB_
         cout << "Parent-Cut=" << qdata.parcost << " vs " << best_cost << endl;
 #endif      
@@ -106,11 +190,11 @@ COSTT Network::mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adapti
    		{
    			      
         
-   			bbnodeid = adaptivebb->start(rtnum, ALG_NAIVE, bbparnodeid);
+   			bbnodeid = bbtreestats->start(rtnum, ALG_NAIVE, bbparnodeid);
 
    			// compute naive (exact)
    			cost =  c->odtcostnaive(&genetree, COSTDEEPCOAL) + genetree.lf*2 - 2;  
-   			adaptivebb->stop(bbnodeid, cost);		
+   			bbtreestats->stop(bbnodeid, cost);		
    			naive_called++;
    			naivecomputed = true;
 
@@ -120,11 +204,11 @@ COSTT Network::mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adapti
    		}
    		else 
    		{ 
-   			bbnodeid = adaptivebb->start(rtnum, ALG_DP, bbparnodeid);
+   			bbnodeid = bbtreestats->start(rtnum, ALG_DP, bbparnodeid);
 
    			// compute via DP (lower bound)
-   			cost = c->approxmindcusage(genetree, retusage);
-   			adaptivebb->stop(bbnodeid, cost);
+   			cost = c->approxmindceusage(genetree, retusage);
+   			bbtreestats->stop(bbnodeid, cost);
    			dp_called++;
 #ifdef _DEBUG_DPBB_
         cout << "DP-cost=" << cost << endl;
@@ -139,9 +223,9 @@ COSTT Network::mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adapti
         	cout << " Cut branch" << endl;
 #endif
 
-        	adaptivebb->costcut(bbnodeid, best_cost);
+        	bbtreestats->costcut(bbnodeid, best_cost);
 
-        	if (left) delete srcc;
+        	if (bbtreestats->visitedchild(bbparnodeid)) delete srcc;            
         	delete c;
        		continue;
        	}
@@ -165,12 +249,11 @@ COSTT Network::mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adapti
             cout << " Best-cost update" << endl;
 #endif          
                 best_cost = cost;            
-                adaptivebb->bestupdated(bbnodeid, best_cost); 
+                bbtreestats->bestupdated(bbnodeid, best_cost); 
             }
-            adaptivebb->exactsolution(bbnodeid); 
-
-            if (left)  
-            	delete srcc;    
+            bbtreestats->exactsolution(bbnodeid); 
+            
+            if (bbtreestats->visitedchild(bbparnodeid)) delete srcc;            
 
 
             delete c;   
@@ -183,22 +266,19 @@ COSTT Network::mindc(RootedTree &genetree, int runnaiveleqrt, AdaptiveBB *adapti
         // Find conflicted reticulation
         rtid = c->getconflictedreticulation(retusage);
 
-        // Branching
-        adaptivebb->branch(bbnodeid, rtid); 
-
-
+        
 #ifdef _DEBUG_DPBB_ 
         cout << "CR:" << rtid << " " << spid2retlabel[rtid+rtstartid] << endl;
 #endif        
  		
  		// Insert contracted networks 
- 		q.push({.src=c, .rtid=rtid, .left=false, .bbparnodeid = bbnodeid, .parcost=cost}); 
- 		q.push({.src=c, .rtid=rtid, .left=true, .bbparnodeid = bbnodeid, .parcost=cost}); 
+ 		q.push({.nodeid=bbnodeid, .src=c, .rtid=rtid, .left=false, .bbparnodeid = bbnodeid, .parcost=cost, .rtnumber=rtnum-1 }); 
+ 		q.push({.nodeid=bbnodeid, .src=c, .rtid=rtid, .left=true, .bbparnodeid = bbnodeid, .parcost=cost, .rtnumber=rtnum-1}); 
 
-        if (left) delete srcc;
-
+        // if (left) delete srcc;
+        if (bbtreestats->visitedchild(bbparnodeid)) delete srcc;            
     }
 	
-    return best_cost - genetree.lf*2 + 2; 
+    return best_cost; 
 
 }

@@ -173,6 +173,9 @@ public:
   // The number of nodes
   SPID size() { return nn; }  
 
+  // The number of nodes
+  SPID sizelf() { return lf; }  
+
   // Sibling of u; where parent(u) is a tree node u
   // MAXSP otherwise
   SPID sibling(SPID u) { 

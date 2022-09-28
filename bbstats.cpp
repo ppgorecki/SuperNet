@@ -14,7 +14,7 @@
 #include "dp.h"
 
 
-long AdaptiveBBTree::init(int rtnumber, COSTT start_cost)
+long BBTreeStats::init(int rtnumber, COSTT start_cost)
 {
 	algnaivecnt = 0;
 	algdpcnt = 0;
@@ -26,16 +26,16 @@ long AdaptiveBBTree::init(int rtnumber, COSTT start_cost)
 	return id;	
 }
 
-long AdaptiveBBTree::start(int rtnumber, int algtype, long parent)
+long BBTreeStats::start(int rtnumber, int algtype, long parent)
 {
 	long id = v.size();
-	v.push_back({rtnumber,algtype,parent,-1,-1,gettime()});	
+	v.push_back({rtnumber,algtype,parent,-1,-1,gettime(),false});	
 	if (minrtnumber>rtnumber)
 		minrtnumber=rtnumber;
 	return id;
 }
 		
-void AdaptiveBBTree::stop(long id, COSTT cost)
+void BBTreeStats::stop(long id, COSTT cost)
 {	
 	v[id].cost = cost;	
 	v[id].stime = gettime() - v[id].stime;
@@ -51,31 +51,38 @@ void AdaptiveBBTree::stop(long id, COSTT cost)
 	}
 }
 
-void AdaptiveBBTree::costcut(long id, COSTT wrt_cost)
+void BBTreeStats::costcut(long id, COSTT wrt_cost)
 {
 	v[id].wrt_cost = wrt_cost;
 	v[id].type |= BB_CUT;	
 }
 
-void AdaptiveBBTree::bestupdated(long id, COSTT wrt_cost)
+void BBTreeStats::bestupdated(long id, COSTT wrt_cost)
 {
 	v[id].wrt_cost = wrt_cost;
 	v[id].type |= BB_BEST;	
 }
 
-void AdaptiveBBTree::exactsolution(long id)
+void BBTreeStats::exactsolution(long id)
 {
 	v[id].type |= BB_EXACT;
 }
 
-void AdaptiveBBTree::parentcut(long parent, COSTT costcut)
+void BBTreeStats::parentcut(long parent, COSTT costcut)
 {
 	long id = v.size();
 	v.push_back({v[parent].rtnumber-1,BB_PARENTCUT,parent,costcut,-1});		
 }
 
+bool BBTreeStats::visitedchild(long parent)
+{
+	if (v[parent].visitedchild) return true;
+	v[parent].visitedchild = true;
+	return false;
+}
 
-void AdaptiveBBTree::savedot()
+
+void BBTreeStats::savedot()
 {
 	std::ofstream dotf;
 	dotf.open ("bb.dot", std::ofstream::out );   
@@ -129,7 +136,7 @@ void AdaptiveBBTree::savedot()
 
 }
 
-void AdaptiveBBTree::savetsv()
+void BBTreeStats::savetsv()
 {
 	// for (long i = 0; i < v.size(); i++ ) 
 	// {

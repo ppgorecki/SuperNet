@@ -21,32 +21,14 @@ struct bbnode {
     COSTT cost;
     COSTT wrt_cost;
     double stime;
+    bool visitedchild;
 };
 
-class AdaptiveBB
+class BBTreeStats
 {
-
-	public: 
-		AdaptiveBB() {}
-		virtual long init(int rtnumber, COSTT start_cost) { return -1; }
-		virtual void branch(long id, SPID rtid) {}
-
-		virtual long start(int rtnumber, int algtype, long parent) { return 0; }
-		virtual void stop(long id, COSTT cost) {}
-		virtual void costcut(long id, COSTT wrt_cost) {}
-		virtual void bestupdated(long id, COSTT wrt_cost) {}		
-		virtual void exactsolution(long id) {}	
-		virtual void parentcut(long parent, COSTT costcut) {}
-		virtual ~AdaptiveBB() {} 
-};
-
- 
-
-class AdaptiveBBTree : public AdaptiveBB
-{
-
 	protected:		
 		vector<bbnode> v;				
+
 	public: 			
 		
 		double algnaivetime;
@@ -62,6 +44,7 @@ class AdaptiveBBTree : public AdaptiveBB
 		void bestupdated(long id, COSTT wrt_cost);
 		void exactsolution(long id);		
 		void parentcut(long parent, COSTT costcut);
+		bool visitedchild(long parent);
 		void savedot();
 		void savetsv();
 

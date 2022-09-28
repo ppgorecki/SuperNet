@@ -2,6 +2,7 @@
 
 #include "rtree.h"
 #include "network.h"
+#include "bb.h"
 #include "dp.h"
 
 DISPLAYTREEID bitmask[8*sizeof(long)]; 
@@ -186,7 +187,7 @@ double Network::odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc, int ru
 
 	double cost = 0;
 	for (int gt=0; gt<genetrees.size(); gt++)
-		cost+=mindc(*genetrees[gt], runnaiveleqrt);
+		cost+=mindce(*genetrees[gt], runnaiveleqrt);
     
     return cost;        
 }
@@ -390,13 +391,13 @@ void Network::initdid()
     }	
 }
 
-COSTT Network::approxmindc(RootedTree &genetree)
+COSTT Network::approxmindce(RootedTree &genetree)
 {
 	RETUSAGE _;
-	return approxmindcusage(genetree, _);
+	return approxmindceusage(genetree, _);
 }
 
-COSTT Network::approxmindcusage(RootedTree &genetree, RETUSAGE &retusage)
+COSTT Network::approxmindceusage(RootedTree &genetree, RETUSAGE &retusage)
 {
 
 #ifdef _DPDEBUG_	
