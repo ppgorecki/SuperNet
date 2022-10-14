@@ -178,7 +178,7 @@ def runtp(tp):
 
 			f=open(tmpfl,"w")
 			
-			print(f"#{cnt} pair={index}\tn={n}\tr={r}")
+			# print(f"#{cnt} pair={index}\tn={n}\tr={r}")
 			
 			# compute init score 			
 			if initscoretest:
@@ -200,7 +200,7 @@ def runtp(tp):
 				if printcommand: print(comm)
 
 				cost,costdce,time,minrt,naivecnt,naivetime,dpcnt,dptime=res
-				print(f"#{index}.{tp}\tt={t}\tcost={cost}\tcostdce={costdce}\ttime={time}\tminrt={minrt}\tnaivecnt={naivecnt}\tnaivetime={naivetime}\tdpcnt={dpcnt}\tdptime={dptime}")
+				# print(f"#{index}.{tp}\tt={t}\tcost={cost}\tcostdce={costdce}\ttime={time}\tminrt={minrt}\tnaivecnt={naivecnt}\tnaivetime={naivetime}\tdpcnt={dpcnt}\tdptime={dptime}")
 				f.write(f"{index},{n},{r},{network_nr},{t},{cost},{time},{minrt},{naivecnt},{naivetime},{dpcnt},{dptime}\n")
 								
 				if dotopt:
