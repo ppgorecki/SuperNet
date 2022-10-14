@@ -94,6 +94,7 @@ hostname=socket.gethostname()
 
 Dest=f"multitests_{hostname}"
 Src=args.pop(0).rsplit(".")[0]
+pdatadir=f"{Dest}/{Src}/pdata"
 
 tps=[]
 while args and args[0] in ('minrt','minlb','bfs'):
@@ -102,15 +103,15 @@ while args and args[0] in ('minrt','minlb','bfs'):
 if args: nlim=args.pop(0)
 
 cubedata = pd.read_csv(Src+".csv", sep=",")
-
+	
 def runtp(tp):
 
 	if tp=="minrt":
-		outputfile=f"{Src}_minrt"		
+		outputfile=f"minrt"		
 	elif tp=="minlb":
-		outputfile=f"{Src}_minlb"
+		outputfile=f"minlb"
 	elif tp=="bfs":	
-		outputfile=f"{Src}_bfs"
+		outputfile=f"bfs"
 	else:
 		print("Expected arg: bfs, minrt or minlb")
 		exit(-1)
@@ -124,9 +125,9 @@ def runtp(tp):
 	if not Path(supnet).is_file():
 			print(bashu(f"make {supnet}"))
 
-	print(bashu(f"mkdir -p {Dest}/{Src}_pdata"))
+	print(bashu(f"mkdir -p {pdatadir}"))
 		
-	fmain=open(f"{Dest}/{outputfile}.csv","w")
+	fmain=open(f"{Dest}/{Src}/{outputfile}.csv","w")
 	fmain.write("pair,n,r,network_nr,t,cost,time,minrt,naivecnt,naivetime,dpcnt,dptime\n")
 
 	errfiles = []
@@ -158,16 +159,12 @@ def runtp(tp):
 
 		cnt+=1
 
-		csvf = f"{Dest}/{Src}_pdata/{index}.{outputfile}.csv"
+		csvf = f"{pdatadir}/{index}.{outputfile}.csv"
 		
-		tmpfl = f"/tmp/{index}.{outputfile}.tmp"
-
-		
-
+		tmpfl = f"/tmp/{index}.{Src}.{outputfile}.tmp"
+	
 		if not force and Path(csvf).is_file():
-
 			print(f"#{cnt} FILE {csvf} exists")
-
 
 		elif not force and Path(tmpfl).is_file():		
 
@@ -183,13 +180,15 @@ def runtp(tp):
 			
 			print(f"#{cnt} pair={index}\tn={n}\tr={r}")
 			
-			# file exists
-
+			# compute init score 			
 			if initscoretest:
 				comm=f"{supnet} -g '{gtr}' -n '{net}' -ebk -CDC"			
-				bestscore = int(bashuclean(comm).split(" ")[1])
-				initscoredce = int(bestscore) + int(bestscore*initscoretestprc/100)+1
-				print(f"initscoretest {initscoretestprc}% with {bestscore} -> {initscoredce}")
+				res = bashuclean(comm)
+				bestscore = int(res.split(" ")[1])
+				#print(res)
+				initscoredce = int(bestscore*initscoretestprc/100)
+				print(f"initscoretest {initscoretestprc}% with cost={bestscore} -> initcost={initscoredce}")
+				
 
 			# tests for various -t thresholds
 			for t in tvals:

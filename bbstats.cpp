@@ -90,37 +90,43 @@ void BBTreeStats::savedot()
 	for (long i = 0; i < v.size(); i++ ) 
 	{
 		dotf << "v" << (int)i << " ";
-		dotf << " [label=\"" << "[" << i << "]\nr=" << v[i].rtnumber; 
+		// dotf << " [label=\"" << "[" << i << "]\nr=" << v[i].rtnumber; 
+		// dotf << " [label=\"" << v[i].rtnumber << "R"; 
+		dotf << " [label=\""; 
 
 		if (v[i].type == BB_INIT)
 		{
-			dotf << "\ninitcost=" << v[i].cost;	
+			dotf << "initcost=" << v[i].cost;
+			dotf << "\n" << v[i].rtnumber << "R";	
 			dotf << "\"]" << endl; 
 		}
 		else if (v[i].type & BB_PARENTCUT)
 		{
-			dotf << "\nparent-cut=" << v[i].cost;	
-			dotf << "\", style=filled,fillcolor=\"#ffe0ff\"";
+			dotf << "p" << v[i].cost;	
+			dotf << "\", shape=circle, style=filled, fillcolor=\"#ffe0ff\"";
 			dotf << "]" << endl; 
 		}
 		else			
 		{
 			if (v[i].type & ALG_NAIVE) dotf << "\nnv=" << v[i].cost;
-			if (v[i].type & ALG_DP) dotf << "\ndp="  << v[i].cost;
-			if (v[i].type & BB_EXACT) dotf << "\nexact";
-			dotf << "\ntime="  << v[i].stime;
+			if (v[i].type & ALG_DP) dotf << "" << v[i].cost;
+			if (v[i].type & BB_EXACT) 
+				dotf << "\nexact " << v[i].rtnumber << "R";
+			// dotf << "\ntime="  << v[i].stime;
 
-			if (v[i].type & BB_CUT) dotf << "\ncut=" << v[i].wrt_cost;
+			if (v[i].type & BB_CUT) dotf << "\nc" << v[i].wrt_cost;
 			if (v[i].type & BB_BEST) dotf << "\nnewbest!";
 
 			dotf << "\"" << endl; 
 
 			if (v[i].type & BB_BEST)
-  				dotf << ", style=filled,fillcolor=\"#00ff00\"";  			
+  				dotf << ", style=filled, fillcolor=\"#10ff10\"";  			
   			if (v[i].type & BB_CUT)
-  				dotf << ", style=filled,fillcolor=\"#ff0000\"";
-  			if (!(v[i].type & BB_EXACT))
-  				dotf << ", shape=box";  			
+  				dotf << ", style=filled,fillcolor=\"#ffa0a0\"";
+  			//if (v[i].type & BB_EXACT)
+  			//	dotf << ", shape=box";
+  			//else 
+  			dotf << ", shape=box";   			
 			dotf << "]" << endl; 
 
 		}
@@ -128,6 +134,7 @@ void BBTreeStats::savedot()
 		if (v[i].parent>=0)
 		{
 			dotf << "v" << (int)v[i].parent << " -> v" << i << endl;
+			dotf << " [label=\"" << i << "\"]\n";
 		}
 	}
  	dotf << "}" << endl;

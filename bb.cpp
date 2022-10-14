@@ -1,5 +1,3 @@
-
-
 #include <queue>
 
 #include "bb.h"
@@ -10,15 +8,16 @@
 #include "dag.h"
 #include "dp.h"
 
-
 // Use minlb - 
 #if !defined USE_PRIORITY_QUEUE_MINRT && !defined USE_PRIORITY_QUEUE_MINLB && !defined USE_QUEUE_BFS
 #define USE_PRIORITY_QUEUE_MINLB
 #endif
 
 // DC via BB
-//  #define _DEBUG_DPBB_
-COSTT Network::mindce(RootedTree &genetree, int runnaiveleqrt, 
+// #define _DEBUG_DPBB_
+COSTT Network::mindce(
+    RootedTree &genetree, 
+    int runnaiveleqrt, 
     BBTreeStats *bbtreestats,
     COSTT bbstartscore,
     bool bbstartscoredefined)
@@ -27,7 +26,12 @@ COSTT Network::mindce(RootedTree &genetree, int runnaiveleqrt,
     COSTT best_cost = 0;
 
     if (bbstartscoredefined)
+    {
+#ifdef _DEBUG_DPBB_
+        cout <<"#INITSCORE " << bbstartscore << endl;
+#endif        
         best_cost = bbstartscore;
+    }
     else 
     {
 
@@ -113,7 +117,7 @@ COSTT Network::mindce(RootedTree &genetree, int runnaiveleqrt,
 
     while (!q.empty())
     {
-
+        //cout <<"#score " << best_cost << endl;
 #if defined USE_PRIORITY_QUEUE_MINRT || defined USE_PRIORITY_QUEUE_MINLB
 
         QData qdata = q.top();                
@@ -156,10 +160,7 @@ COSTT Network::mindce(RootedTree &genetree, int runnaiveleqrt,
         cout << "Parent-Cut=" << qdata.parcost << " vs " << best_cost << endl;
 #endif      
           continue;
-
         }
-
-   		//cout << "SRC:" << srcc << " " << left << endl;
 
    		RETUSAGE retusage;
    		ContractedNetwork *c;
@@ -254,7 +255,6 @@ COSTT Network::mindce(RootedTree &genetree, int runnaiveleqrt,
             bbtreestats->exactsolution(bbnodeid); 
             
             if (bbtreestats->visitedchild(bbparnodeid)) delete srcc;            
-
 
             delete c;   
             continue;

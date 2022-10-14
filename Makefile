@@ -25,17 +25,17 @@ supnet: tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o su
 gdb: clean  
 	g++ -g -o supnet ${SRC}
 
-supnet_bfs: clean  
+supnet_bfs:   
 	g++ -D USE_QUEUE_BFS -O3 -o supnet_bfs ${SRC}
 
-supnet_minrt: clean  
+supnet_minrt:  
 	g++ -D USE_PRIORITY_QUEUE_MINRT -O3 -o supnet_minrt ${SRC}
 
-supnet_minlb: clean  
+supnet_minlb:  
 	g++ -D USE_PRIORITY_QUEUE_MINLB -O3 -o supnet_minlb ${SRC}
 
 clean:
-	rm -f *.o $(TARGET) *.old *~ x *.log *.gcov *.gcda *.gcno
+	rm -f supnet_bfs supnet_minlb supnet_minrt *.o $(TARGET) *.old *~ x *.log *.gcov *.gcda *.gcno
 
 o1g: clean 
 	g++ -g -O1 -o supnet ${SRC}

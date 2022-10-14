@@ -308,11 +308,12 @@ int usage(int argc, char **argv) {
        "\n"
        
        "BB algorithm for DC (with -eb)\n"      
-       "  -t THRESHOLD - run naive odt computation, when the number of reticulations is < THRESHOLD; otherwise run DP;"
-       "  -ebj - gen bb.tsv with stats\n"
-       "  -ebJ - gen bb.dot with bb tree search\n"
+       "  -t THRESHOLD - run naive odt computation, when the number of reticulations is < THRESHOLD; otherwise run DP;\n"
+       "  -ebJ - gen bb.tsv with stats\n"
+       "  -ebj - gen bb.dot with bb tree search\n"
        "  -ebk - print time per each pair\n"
        "\n"
+
        "\n"
 
        "ODT HEURISTIC SEARCH\n"
@@ -431,6 +432,9 @@ int usage(int argc, char **argv) {
 
        " Print unique random shapes of networks with counts\n"
        "  supnet -r100000 -R1 -A3 -eUx\n"
+
+       " Gen BB-tree search\n" 
+       "  supnet -r1 -A15 -en  | supnet -G- -r1 -A15 -R12 -ebj; dot bb.dot -Tpdf > bb.pdf\n"
 
        ;
 
