@@ -46,10 +46,9 @@ Examples:
 {sys.argv[0]} initscore 100 sim.csv minlb 
 
 {sys.argv[0]} sim.csv minlb minrt bfs
-for i in 100 120 140 160 180 200 220 240 260 280 300; {sys.argv[0]} initscore $i sim.csv minlb minrt bfs; end
+for i in 100 120 140 160 180 200; {sys.argv[0]} initscore $i rnd.csv minlb minrt bfs "(t>3) and (t%2==0)"; end
 {sys.argv[0]} rnd.csv minlb minrt bfs
 {sys.argv[0]} initscore 100 rnd.csv minlb minrt bfs
-
 		""")
 	exit(0)
 
@@ -182,7 +181,8 @@ def runtp(tp):
 			
 			# compute init score 			
 			if initscoretest:
-				comm=f"{supnet} -g '{gtr}' -n '{net}' -ebk -CDC"			
+				# here
+				comm=f"supnet -g '{gtr}' -n '{net}' -ebk -CDC"			
 				res = bashuclean(comm)
 				bestscore = int(res.split(" ")[1])
 				#print(res)
