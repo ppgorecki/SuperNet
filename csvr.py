@@ -5,6 +5,7 @@ from subprocess import check_output, CalledProcessError, STDOUT
 import os
 import sys
 from pathlib import Path
+import math
 
 force=False
 dotopt=""
@@ -30,13 +31,13 @@ printcommand = False
 if len(sys.argv)<3:
 	print(f"""
 Usage:
-{sys.argv[0]} [pdf|png] [printcommand] [force] [initscore PRC% ] input_file.csv [minrt|minlb|bfs]+ [limitexpr]
+{sys.argv[0]} [pdf|png] [printcommand] [force] [initscore PRC%] input_file.csv [minrt|minlb|bfs]+ [limitexpr]
 
 pdf|png - make pdf or png files with BB tree
 limitexpr - any python expr with n, r, t and index variables
 printcommand - print supnet command
 force - force computation
-initscore PRC% - test BB with init best score: best_score*(PRC/100)+1; PRC=100 - optimal_scoretest (optcut)
+initscore PRC% - test BB with init best score: math.ceil(best_score*(PRC/100)); PRC=100 - best score is given
 
 Examples:
 {sys.argv[0]} sim.csv bfs 
@@ -46,9 +47,10 @@ Examples:
 {sys.argv[0]} initscore 100 sim.csv minlb 
 
 {sys.argv[0]} sim.csv minlb minrt bfs
-for i in 100 120 140 160 180 200; {sys.argv[0]} initscore $i rnd.csv minlb minrt bfs "(t>3) and (t%2==0)"; end
-{sys.argv[0]} rnd.csv minlb minrt bfs
-{sys.argv[0]} initscore 100 rnd.csv minlb minrt bfs
+for i in 100 120 140 160 180 200; {sys.argv[0]} initscore $i rnd.csv minlb minrt bfs "(t>3) and (t%2==0)" ; end
+
+{sys.argv[0]} sim.csv minlb minrt bfs "(t>3) and (t%2==0)"
+for i in 100 100.001 140 180 220 260; {sys.argv[0]} initscore $i sim.csv minlb minrt bfs "(t>3) and (t%2==0)" ; end
 		""")
 	exit(0)
 
@@ -83,7 +85,7 @@ while args and args[0] in ('pdf','png','printcommand','force','initscore'):
 
 	if com == "initscore":
 		initscoretest = True		
-		initscoretestprc=int(args.pop(0))
+		initscoretestprc=float(args.pop(0))
 		continue
 
 	break
@@ -163,19 +165,18 @@ def runtp(tp):
 		tmpfl = f"/tmp/{index}.{Src}.{outputfile}.tmp"
 	
 		if not force and Path(csvf).is_file():
-			print(f"#{cnt} FILE {csvf} exists")
-
+			print(f"#{cnt} {csvf} exists")
+			
 		elif not force and Path(tmpfl).is_file():		
 
-			print(f"#{cnt} FILE {tmpfl} exists")
-
+			print(f"#{cnt} {tmpfl} exists")
 			tmpfiles.append(csvf)
-
 			continue
 
 		else:
 
 			f=open(tmpfl,"w")
+			f.close()
 			
 			# print(f"#{cnt} pair={index}\tn={n}\tr={r}")
 			
@@ -186,11 +187,12 @@ def runtp(tp):
 				res = bashuclean(comm)
 				bestscore = int(res.split(" ")[1])
 				#print(res)
-				initscoredce = int(bestscore*initscoretestprc/100)
-				print(f"initscoretest {initscoretestprc}% with cost={bestscore} -> initcost={initscoredce}")
+				initscoredce = math.ceil(bestscore*initscoretestprc/100)
+				print(f"#{cnt} {outputfile} with cost={bestscore} -> initcost={initscoredce}")
 				
 
 			# tests for various -t thresholds
+			result = ""
 			for t in tvals:
 
 				comm=f"{supnet} -g '{gtr}' -n '{net}' -t{t} -ebk{dotopt} -CDC"
@@ -201,17 +203,18 @@ def runtp(tp):
 
 				cost,costdce,time,minrt,naivecnt,naivetime,dpcnt,dptime=res
 				# print(f"#{index}.{tp}\tt={t}\tcost={cost}\tcostdce={costdce}\ttime={time}\tminrt={minrt}\tnaivecnt={naivecnt}\tnaivetime={naivetime}\tdpcnt={dpcnt}\tdptime={dptime}")
-				f.write(f"{index},{n},{r},{network_nr},{t},{cost},{time},{minrt},{naivecnt},{naivetime},{dpcnt},{dptime}\n")
+				result+=f"{index},{n},{r},{network_nr},{t},{cost},{time},{minrt},{naivecnt},{naivetime},{dpcnt},{dptime}\n"
 								
 				if dotopt:
 					bashu(f"dot -T{pic} bb.dot -o {picouputdir}/{index}.t{t}.{pic}")			
-					print(f"{picouputdir}/{index}.t{t}.{pic} created")
+					print(f"#{cnt} {picouputdir}/{index}.t{t}.{pic} created")
 
+			f=open(tmpfl,"w")
+			f.write(result)
 			f.close()
 
-			print(bashu(f"mv {tmpfl} {csvf}"))
-
-			print(f"{csvf} created")
+			bashu(f"mv {tmpfl} {csvf}")
+			print(f"#{cnt} {csvf} created")
 		
 		# check correctness
 		f = open(csvf,"r")

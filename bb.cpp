@@ -8,10 +8,6 @@
 #include "dag.h"
 #include "dp.h"
 
-// Use minlb - 
-#if !defined USE_PRIORITY_QUEUE_MINRT && !defined USE_PRIORITY_QUEUE_MINLB && !defined USE_QUEUE_BFS
-#define USE_PRIORITY_QUEUE_MINLB
-#endif
 
 // DC via BB
 // #define _DEBUG_DPBB_

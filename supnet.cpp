@@ -228,7 +228,7 @@ int main(int argc, char **argv)
   int networktype = 0;
   int improvementthreshoold = 0;  
 
-  int runnaiveleqrt = -1;    
+  int runnaiveleqrt = 13;  // default for DC, based on experiments
 
   string odtfile = "odt.log";
 
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
     switch (opt) {
 
       case 'b':    
-        bbstartscore = atoi(optarg);
+        bbstartscore = atof(optarg);
         bbstartscoredefined = true;
         break;
 

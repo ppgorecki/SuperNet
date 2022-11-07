@@ -35,7 +35,7 @@ supnet_minlb:
 	g++ -D USE_PRIORITY_QUEUE_MINLB -O3 -o supnet_minlb ${SRC}
 
 clean:
-	rm -f supnet_bfs supnet_minlb supnet_minrt *.o $(TARGET) *.old *~ x *.log *.gcov *.gcda *.gcno
+	rm -f supnet supnet_bfs supnet_minlb supnet_minrt *.o  *.old *~ x *.log *.gcov *.gcda *.gcno
 
 o1g: clean 
 	g++ -g -O1 -o supnet ${SRC}

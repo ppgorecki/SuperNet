@@ -14,6 +14,7 @@
 using namespace std;
 
 #include "tools.h"
+#include "bb.h"
 
 vector<string> specnames;
 vector<int> specorder;
@@ -249,9 +250,20 @@ extern const char *SUPNET;
 int usage(int argc, char **argv) {
 
   cout <<
-       "SuperNetwork " << SUPNET << "\n"
+       "SuperNetwork " << SUPNET << " with "
+#if defined USE_PRIORITY_QUEUE_MINRT
+       "MinRT-strategy\n"
+#endif
+#if defined USE_PRIORITY_QUEUE_MINLB
+      "MinLB-strategy\n"
+#endif 
+#if defined USE_QUEUE_BFS
+      "BFS-strategy\n"
+#endif      
+
        "Software homepage: http:...\n"
        "Usage: " << argv[0] << " [options]\n\n"
+
        "INPUT OPTIONS:\n"
        "  -g STR: gene trees from a string (separator is semicolon)\n"
        "  -s species tree\n"
