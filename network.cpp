@@ -4,6 +4,7 @@
 #include "network.h"
 #include "bb.h"
 #include "dp.h"
+#include "costs.h"
 
 DISPLAYTREEID bitmask[8*sizeof(long)]; 
 
@@ -170,40 +171,43 @@ void Network::_getreachableto(SPID v, bool *reachable, bool *visited)
 		_getreachableto(retparent[v],reachable, visited);		
 }
 
-double Network::odtcost(vector<RootedTree*> &genetrees, int costfunc, bool usenaive, int runnaiveleqrt)
+double Network::odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive, int runnaiveleqrt)
 {
-	if (usenaive) return odtcostnaive(genetrees, costfunc);
-	return odtcostdpbb(genetrees, costfunc, runnaiveleqrt);
+	if (usenaive) 
+		return odtcostnaive(genetrees, costfun);
+	return odtcostdpbb(genetrees, costfun, runnaiveleqrt);
 }
 
-double Network::odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc, int runnaiveleqrt)
+double Network::odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, int runnaiveleqrt)
 {
 
-	if (costfunc!=COSTDEEPCOAL)
+	if (costfun.costtype()!=COSTDEEPCOAL)
 	{
 		cerr << "DP&BB cost computation only for DC (use -CDC)" << endl;
 		exit(-1);
 	}
 
 	double cost = 0;
+	BBTreeStats bbstats;
 	for (int gt=0; gt<genetrees.size(); gt++)
-		cost+=mindce(*genetrees[gt], runnaiveleqrt);
+		cost+=mindce(*genetrees[gt], runnaiveleqrt, costfun, &bbstats);
     
     return cost;        
 }
 
-double Network::odtcostnaive(RootedTree *genetree, int costfunc)
+double Network::odtcostnaive(RootedTree *genetree, CostFun &costfun)
 {
 	vector<RootedTree*> genetrees;
 	genetrees.push_back(genetree);
-	return odtcostnaive(genetrees,costfunc);
+	return odtcostnaive(genetrees,costfun);
 }
 
 extern bool print_repr_inodtnaive;
 
-double Network::odtcostnaive(vector<RootedTree*> &genetrees, int costfunc)
+double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun)
 {
-    RootedTree *t = NULL;
+    RootedTree tr(lf, lab);	
+    RootedTree *t = &tr;
     DISPLAYTREEID tid = 0; // id of display tree
     double mincost;
     SPID *lcamaps[genetrees.size()];
@@ -223,13 +227,12 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, int costfunc)
     		if (tid) genetree->getlcamapping(*t,lcamaps[gt]);    // overwrite previous    			    		
     		else lcamaps[gt] = genetrees[gt]->getlcamapping(*t); // init lcamap
 
-    		double curcost = genetree->_cost(*t, lcamaps[gt], costfunc);
+    		double curcost = costfun.compute(*genetree, *t, lcamaps[gt]);
 
     		if (!tid || (gtcost[gt] > curcost)) gtcost[gt] = curcost;  
 
     		if (print_repr_inodtnaive)
-    		{
-    			cout << "!";
+    		{    			
     			t->printrepr(cout) << " " << curcost << endl;
     		}
     	}
@@ -241,6 +244,10 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, int costfunc)
     mincost = 0;
 	for (int gt=0; gt<genetrees.size(); gt++)
 		mincost += gtcost[gt];
+
+	// free lcamaps
+	for (int gt=0; gt<genetrees.size(); gt++)
+		delete[] lcamaps[gt];
 
     return mincost;        
 }
@@ -391,13 +398,13 @@ void Network::initdid()
     }	
 }
 
-COSTT Network::approxmindce(RootedTree &genetree)
+COSTT Network::approxmindce(RootedTree &genetree, CostFun &costfun)
 {
 	RETUSAGE _;
-	return approxmindceusage(genetree, _);
+	return approxmindceusage(genetree, _, costfun);
 }
 
-COSTT Network::approxmindceusage(RootedTree &genetree, RETUSAGE &retusage)
+COSTT Network::approxmindceusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun)
 {
 
 #ifdef _DPDEBUG_	

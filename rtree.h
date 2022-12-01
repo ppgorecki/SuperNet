@@ -16,13 +16,8 @@
 #include "dag.h"
 #include "network.h"
 
-#define COSTDUPLICATIONLOSS 0   // dl
-#define COSTDUPLICATION 1    // duplication
-#define COSTDEEPCOAL 2   // deep coalescence
-#define COSTROBINSONFOULDS 3   // robinson-foulds
-#define COSTLOSS 4    // loss
-
 class Network;
+class CostFun;
 
 class RootedTree: public Dag
 {
@@ -46,7 +41,7 @@ protected:
 	void inittreestr();
 
 	// Variant of _cost without precomputing needed structures
-	double _cost(RootedTree &speciestree, SPID* lcamap, int costfunc);
+	double _cost(RootedTree &speciestree, SPID* lcamap, CostFun &costfun);
 
 	bool depthinitialized;
 
@@ -88,27 +83,27 @@ public:
 	SPID** getspclusterrepr();
 
 	// Compute cost using species tree
-	double cost(RootedTree &speciestree, int costfunc);
+	double cost(RootedTree &speciestree, CostFun &cost);
 
 	// Computes ODT via naive approach
 	// Returns the cost and id of an optimal display tree via optid
-	double odtnaivecost(Network &network, int costfunc, DISPLAYTREEID &optid);
+	// double odtnaivecost(Network &network, CostFun &costfun, DISPLAYTREEID &optid);
 	
 
-  // Compute duplication cost 
- 	long costduplication(RootedTree &speciestree, SPID *lcamap);
+ //  // Compute duplication cost 
+ // 	long costduplication(RootedTree &speciestree, SPID *lcamap);
 
-	// Compute deep-coalescence cost 
- 	long costdeepcoal(RootedTree &speciestree, SPID *lcamap);
+	// // Compute deep-coalescence cost 
+ // 	long costdeepcoalx(RootedTree &speciestree, SPID *lcamap);
 
- 	// Compute duplication-loss cost 
- 	long costduplicationloss(RootedTree &speciestree, SPID *lcamap);
+ // 	// Compute duplication-loss cost 
+ // 	long costduplicationloss(RootedTree &speciestree, SPID *lcamap);
 
- 	// Compute Robinson-Foulds cost 
- 	long costrobinsonfoulds(RootedTree &speciestree, SPID *lcamap);
+ // 	// Compute Robinson-Foulds cost 
+ // 	long costrobinsonfoulds(RootedTree &speciestree, SPID *lcamap);
 
- 	// Compute loss cost 
- 	long costloss(RootedTree &speciestree, SPID *lcamap);
+ // 	// Compute loss cost 
+ // 	long costloss(RootedTree &speciestree, SPID *lcamap);
   
  	// Insert clusters into Tree Clusters
  	void setspclusters(TreeClusters *gtc);
@@ -132,7 +127,11 @@ public:
 
   virtual ostream& printdeb(ostream&s, int gse, string tn="");
 
-  
+  friend class CFDuplication;
+  friend class CFDeepCoalescence;
+  friend class CFLoss;
+  friend class CFDuplicationLoss;
+
 };
 
 

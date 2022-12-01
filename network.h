@@ -8,6 +8,7 @@
 #include "rtree.h"
 
 class ContractedNetwork;
+class CostFun;
 
 #define NT_GENERAL 2   // no limits
 #define NT_CLASS1 1    // int node has >=1 tree node/leaf child
@@ -129,16 +130,16 @@ public:
 	virtual ~Network() {}
 
 	// Compute min cost vs. gene trees via enumeration of all display trees
-	double odtcostnaive(vector<RootedTree*> &genetrees, int costfunc);
+	double odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun);
 
 	// Compute min cost vs. gene tree via enumeration of all display trees
-	double odtcostnaive(RootedTree *genetree, int costfunc);
+	double odtcostnaive(RootedTree *genetree, CostFun &costfun);
 
 	// Compute min cost vs. gene trees via DP&BB alg.	
-	double odtcostdpbb(vector<RootedTree*> &genetrees, int costfunc, int runnaiveleqrt);
+	double odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, int runnaiveleqrt);
 
 	// Compute min cost vs. gene trees 
-	double odtcost(vector<RootedTree*> &genetrees, int costfunc, bool usenaive, int runnaiveleqrt);
+	double odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive, int runnaiveleqrt);
 	
 	// Mark nodes reachable from v (including v)	
 	void getreachablefrom(SPID v, bool *reachable);
@@ -147,13 +148,16 @@ public:
 	void getreachableto(SPID v, bool *reachable);	
 
 	// approx DCE(G,N) via DP
-	COSTT approxmindce(RootedTree &genetree);
-	COSTT approxmindceusage(RootedTree &genetree, RETUSAGE &retusage);
+	COSTT approxmindce(RootedTree &genetree, CostFun &costfun);
+	COSTT approxmindceusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun);
 
 	// exact DCE(G,M) via BB
-	COSTT mindce(RootedTree &genetree, int runnaiveleqrt, 
-		BBTreeStats *bbtreestats=NULL, COSTT bbstartscore=0,bool bbstartscoredefined=false);
-	// double _mindc(RootedTree &genetree, ContractedNetwork &c, COSTT cost);
+	COSTT mindce(RootedTree &genetree, 
+		int runnaiveleqrt, 
+		CostFun &costfun,
+		BBTreeStats *bbtreestats=NULL, 
+		COSTT bbstartscore=0,
+		bool bbstartscoredefined=false);
 	
 	// nodetype==1 -> count visible leaves 
 	// nodetype==2 -> count all visible nodes

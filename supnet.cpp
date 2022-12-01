@@ -30,6 +30,7 @@ using namespace std;
 #include "network.h"
 #include "contrnet.h"
 #include "hillclimb.h"
+#include "costs.h"
 
 
 #include <sstream>
@@ -190,7 +191,7 @@ int main(int argc, char **argv)
 
   initbitmask(); // network
   
-  int costfunc = COSTDUPLICATIONLOSS;
+  CostFun *costfun = NULL;
   
   int OPT_QUASICONSTREES = 0;
   int OPT_RANDNETWORKS = 0;
@@ -232,7 +233,7 @@ int main(int argc, char **argv)
 
   string odtfile = "odt.log";
 
-  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:t:b:";
+  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:t:b:z:";
   vector<char*> sgtvec, sstvec, snetvec;
 
   COSTT bbstartscore = 0;
@@ -246,6 +247,10 @@ int main(int argc, char **argv)
       case 'b':    
         bbstartscore = atof(optarg);
         bbstartscoredefined = true;
+        break;
+
+      case 'z':
+        srand((unsigned int)atoi(optarg));
         break;
 
       case 'e':        
@@ -445,14 +450,13 @@ int main(int argc, char **argv)
     case 'C':
     {      
       
-      costfunc = -1;
-      if (!strcmp(optarg, "D")) costfunc = COSTDUPLICATION;
-      if (!strcmp(optarg, "L")) costfunc = COSTLOSS;
-      if (!strcmp(optarg, "DC")) costfunc = COSTDEEPCOAL;
-      if (!strcmp(optarg, "DL")) costfunc = COSTDUPLICATIONLOSS;      
-      if (!strcmp(optarg, "RF")) costfunc = COSTROBINSONFOULDS;
+      if (!strcmp(optarg, "D")) costfun = new CFDuplication();
+      if (!strcmp(optarg, "L")) costfun = new CFLoss();
+      if (!strcmp(optarg, "DC")) costfun = new CFDeepCoalescence();
+      if (!strcmp(optarg, "DL")) costfun = new CFDuplicationLoss();      
+      if (!strcmp(optarg, "RF")) costfun = new CFRobinsonFoulds();
       
-      if (costfunc < 0)
+      if (!costfun)
       {
         cerr << "Unknown cost function" << endl;
         exit(-1);
@@ -577,7 +581,7 @@ int main(int argc, char **argv)
       {
         if (OPT_PRINTCOST==2)        
           cout << **stpos << " " << **gtpos << " ";
-        cout << (*gtpos)->cost(*(*stpos),costfunc)  << endl;
+        cout << costfun->computegt(**gtpos, **stpos)  << endl;
       }
   }   
 
@@ -617,8 +621,6 @@ int main(int argc, char **argv)
       (*ntpos)->visibilenodestats(OPT_PRINTNODESTATS,cout) << endl;     
   }
 
-
-
   // Generate dot file with networks and trees
   if (OPT_DOT)
   {
@@ -639,6 +641,11 @@ int main(int argc, char **argv)
     s << "}" << endl;
   }
 
+
+  // Cost prepration 
+  if (!costfun)
+      costfun = new CFDeepCoalescence(); // default
+
   // Compute ODT cost by naive enumeration of display trees
   if (OPT_ODTNAIVE)
   {
@@ -646,8 +653,8 @@ int main(int argc, char **argv)
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
       {
         if (OPT_ODTNAIVE==2)        
-          cout << **ntpos << " ";
-        cout << (*ntpos)->odtcostnaive(gtvec,costfunc) << endl;
+          cout << **ntpos << " ";        
+        cout << (*ntpos)->odtcostnaive(gtvec, *costfun) << endl;
         
     }
   }
@@ -657,7 +664,7 @@ int main(int argc, char **argv)
   {    
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
       for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
-          cout << ((*ntpos)->approxmindce(**gtpos)) << endl; 
+          cout << ((*ntpos)->approxmindce(**gtpos, *costfun)) << endl; 
     exit(0);
   }
 
@@ -670,7 +677,7 @@ int main(int argc, char **argv)
         for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)                        
         {
           double tm = gettime();
-          COSTT dce = (*ntpos)->mindce(**gtpos, runnaiveleqrt, &bbtreestats, 
+          COSTT dce = (*ntpos)->mindce(**gtpos, runnaiveleqrt, *costfun, &bbtreestats, 
             bbstartscore, bbstartscoredefined);               
           cout << dce - (**gtpos).sizelf()*2 - 2;
           if (OPT_BBSTATS&4) 
@@ -729,7 +736,7 @@ int main(int argc, char **argv)
         nhcstats.start();        
 
         // climb
-        double cost = hc.climb(*op, n, costfunc, nhcstats, usenaive, runnaiveleqrt);        
+        double cost = hc.climb(*op, n, *costfun, nhcstats, usenaive, runnaiveleqrt);        
 
         nhcstats.finalize();
         
@@ -972,7 +979,7 @@ int main(int argc, char **argv)
         cout << "Rtcount " << c->rtcount() << " " << "rt=" << n1->rtcount() << endl;;
 
         for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
-          cout << "retmindc:" << (c->approxmindce(**gtpos)) << endl;
+          cout << "retmindc:" << (c->approxmindce(**gtpos, *costfun)) << endl;
 
         ofstream s("contr.dot");
         std::ofstream sf;

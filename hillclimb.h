@@ -5,6 +5,7 @@
 #include "network.h"
 #include "tools.h"
 #include "dagset.h"
+#include "costs.h"
 
 
 // Network neighbourhood iterator using edit operation; in situ
@@ -156,7 +157,7 @@ public:
 	// Starts from net, net is modified
 	// Returns optimal cost 
 	// TODO: additional info (stats, more optimal solutions, etc.) 
-	double climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &nhcstats, bool usenaive, int runnaiveleqrt);
+	double climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive, int runnaiveleqrt);
 
 };
 

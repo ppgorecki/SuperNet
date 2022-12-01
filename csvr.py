@@ -214,7 +214,7 @@ def runtp(tp):
 			f.close()
 
 			bashu(f"mv {tmpfl} {csvf}")
-			print(f"#{cnt} {csvf} created")
+			print(f"#{cnt}{csvf} created")
 		
 		# check correctness
 		f = open(csvf,"r")

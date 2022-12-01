@@ -3,6 +3,7 @@
 #include "bb.h"
 #include "rtree.h"
 #include "tools.h"
+#include "costs.h"
 #include "network.h"
 #include "contrnet.h"
 #include "dag.h"
@@ -14,6 +15,7 @@
 COSTT Network::mindce(
     RootedTree &genetree, 
     int runnaiveleqrt, 
+    CostFun &costfun,
     BBTreeStats *bbtreestats,
     COSTT bbstartscore,
     bool bbstartscoredefined)
@@ -31,6 +33,7 @@ COSTT Network::mindce(
     else 
     {
 
+        // initialize cost value
     	RootedTree *t = gendisplaytree(0,NULL);
     	if (!t)
     	{
@@ -38,7 +41,7 @@ COSTT Network::mindce(
     	   exit(-2);
     	}
 
-    	best_cost = genetree.cost(*t,COSTDEEPCOAL)+genetree.lf*2-2; 
+    	best_cost = costfun.computegt(genetree, *t)+genetree.lf*2-2; 
         // convert to     non-classic 
         delete t;
     }
@@ -55,7 +58,11 @@ COSTT Network::mindce(
     long dp_called = 0;
     long naive_called = 0;
 
-    if (!bbtreestats) bbtreestats = new BBTreeStats();
+    bool bbstatsallocated = false;
+    if (!bbtreestats) { 
+        bbtreestats = new BBTreeStats(); // MEMLEAK 1
+        bbstatsallocated = true;
+    }
 
     long bbnodeid = bbtreestats->init(rtcount(), best_cost);
 
@@ -168,7 +175,7 @@ COSTT Network::mindce(
    		else
    		{
    			// build a new contracted network
-   			c = new ContractedNetwork(*srcc, true);
+   			c = new ContractedNetwork(*srcc, true); // MEMLEAK 2
         	RETUSAGE retusage;
         	emptyretusage(retusage);
         	if (left)
@@ -190,7 +197,7 @@ COSTT Network::mindce(
    			bbnodeid = bbtreestats->start(rtnum, ALG_NAIVE, bbparnodeid);
 
    			// compute naive (exact)
-   			cost =  c->odtcostnaive(&genetree, COSTDEEPCOAL) + genetree.lf*2 - 2;  
+   			cost =  c->odtcostnaive(&genetree, costfun) + genetree.lf*2 - 2;  
    			bbtreestats->stop(bbnodeid, cost);		
    			naive_called++;
    			naivecomputed = true;
@@ -204,7 +211,7 @@ COSTT Network::mindce(
    			bbnodeid = bbtreestats->start(rtnum, ALG_DP, bbparnodeid);
 
    			// compute via DP (lower bound)
-   			cost = c->approxmindceusage(genetree, retusage);
+   			cost = c->approxmindceusage(genetree, retusage, costfun);
    			bbtreestats->stop(bbnodeid, cost);
    			dp_called++;
 #ifdef _DEBUG_DPBB_
@@ -274,6 +281,9 @@ COSTT Network::mindce(
         // if (left) delete srcc;
         if (bbtreestats->visitedchild(bbparnodeid)) delete srcc;            
     }
+
+    if (bbstatsallocated)
+        delete bbtreestats;
 	
     return best_cost; 
 

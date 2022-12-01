@@ -29,7 +29,7 @@ long BBTreeStats::init(int rtnumber, COSTT start_cost)
 long BBTreeStats::start(int rtnumber, int algtype, long parent)
 {
 	long id = v.size();
-	v.push_back({rtnumber,algtype,parent,-1,-1,gettime(),false});	
+	v.push_back({rtnumber,algtype,parent,-1,-1,gettime(),false});	 // MEMLEAK 3
 	if (minrtnumber>rtnumber)
 		minrtnumber=rtnumber;
 	return id;
@@ -71,7 +71,7 @@ void BBTreeStats::exactsolution(long id)
 void BBTreeStats::parentcut(long parent, COSTT costcut)
 {
 	long id = v.size();
-	v.push_back({v[parent].rtnumber-1,BB_PARENTCUT,parent,costcut,-1});		
+	v.push_back({v[parent].rtnumber-1,BB_PARENTCUT,parent,costcut,-1});	 // MEMLEAK 4	
 }
 
 bool BBTreeStats::visitedchild(long parent)

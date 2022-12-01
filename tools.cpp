@@ -290,6 +290,7 @@ int usage(int argc, char **argv) {
        "ADDITIONAL OPTIONS\n"
        "  -v NUM - verbose level 1 (print the name of outputfile only),\n"
        "       2 (simple output), 3 (detailed output)\n"       
+       "  -z SEED - set seed for random generator (srand)\n"       
        "  -e [gsrD...]+ - multiple options:\n"
        "     g - print a gene tree\n"
        "     s - print a species tree\n"
@@ -300,8 +301,8 @@ int usage(int argc, char **argv) {
        "     r - preserve root when searching the species tree space and in quasi-consensus\n"              
        "     D - detailed tree info\n"       
        "     i - list species dictionary\n"       
-       "     c - print cost\n"       
-       "     C - print cost with trees\n"              
+       "     c - print cost between two trees (G,S)\n"       
+       "     C - print cost between two trees with trees (G,S)\n"              
        "     d - run DP algorithm only (approx DC) per each (G,N)\n"
        "     b - run BB algorithm only (exact DC); see jJ subopt.\n"
        "     1 - class 1 networks in rand generator (int node has at most one reticulation child); see -R\n"       
@@ -330,7 +331,7 @@ int usage(int argc, char **argv) {
 
        "ODT HEURISTIC SEARCH\n"
 
-       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file; summary stats are save to odt.dat (opt cost, total time in sec., time of hill climbing, time of merge step, number of networks, improvements, steps and the number of starting networks)\n"
+       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file; summary stats are saved to odt.dat (opt cost, total time in sec., time of hill climbing, time of merge step, number of networks, improvements, steps and the number of starting networks)\n"
        "   By default each HC step starts from the set of predefined networks (if -n or -N are provided); otherwise by using quasi-random networks\n"
        "       T - use TailMoves (default)\n"
        "       N - use NNI instead of TailMoves\n"      
@@ -375,7 +376,7 @@ int usage(int argc, char **argv) {
 
        "Print display trees (based on reticulation switching; trees maybe non-unique)\n"
        "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -et\n"
-
+       
        "Print display trees with ids\n"
        "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -eT\n"
 

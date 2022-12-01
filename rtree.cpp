@@ -2,6 +2,7 @@
 #include "tools.h"
 #include "clusters.h"
 #include "rtree.h"
+#include "costs.h"
 
 void RootedTree::setspclusters(TreeClusters *gtc)
 {
@@ -60,83 +61,87 @@ RootedTree *randspeciestree()
 }
 
 
-
-double RootedTree::cost(RootedTree &speciestree, int costfunc)
+double RootedTree::cost(RootedTree &speciestree, CostFun &cost)
 {
     speciestree.initlca();
     speciestree.initdepth();    
 
     SPID *lcamap = getlcamapping(speciestree);
 
-    return _cost(speciestree,lcamap,costfunc);
+    double v = cost.compute(*this, speciestree, lcamap);
+
+    if (lcamap)
+        delete[] lcamap;
+
+    return v;
 
 }
 
-double RootedTree::_cost(RootedTree &speciestree, SPID* lcamap, int costfunc)
-{
-    double ccost = 0;
+// double RootedTree::_cost(RootedTree &speciestree, SPID* lcamap, CostFun* costfunc)
+// {
+//     double ccost = 0;
 
-    switch (costfunc)
-    {
-        case COSTDUPLICATION: 
-            ccost = costduplication(speciestree,lcamap);  
-            break;
-        case COSTLOSS: 
-            ccost = costloss(speciestree,lcamap); 
-            break;
-        case COSTDUPLICATIONLOSS: 
-            ccost = costduplicationloss(speciestree,lcamap); 
-            break;
-        case COSTDEEPCOAL: 
-            ccost = costdeepcoal(speciestree,lcamap); 
-            break;
-        case COSTROBINSONFOULDS: 
-            ccost = costrobinsonfoulds(speciestree,lcamap); 
-            break;
-        default: 
-            cerr << "Unknown costfunc type?" << endl;
-            exit(-1);
-    }
+//     switch (costfunc)
+//     {
+//         case COSTDUPLICATION: 
+//             ccost = costduplication(speciestree,lcamap);  
+//             break;
+//         case COSTLOSS: 
+//             ccost = costloss(speciestree,lcamap); 
+//             break;
+//         case COSTDUPLICATIONLOSS: 
+//             ccost = costduplicationloss(speciestree,lcamap); 
+//             break;
+//         case COSTDEEPCOAL: 
+//             ccost = costdeepcoalx(speciestree,lcamap); 
+//             break;
+//         case COSTROBINSONFOULDS: 
+//             ccost = costrobinsonfoulds(speciestree,lcamap); 
+//             break;
+//         default: 
+//             cerr << "Unknown costfunc type?" << endl;
+//             exit(-1);
+//     }
 
-    return ccost;    
-}
-
-
-long RootedTree::costloss(RootedTree &speciestree, SPID *lcamap)
-{
-    return costdeepcoal(speciestree,lcamap)+2*costduplication(speciestree,lcamap);
-}
-
-long RootedTree::costrobinsonfoulds(RootedTree &speciestree, SPID *lcamap)
-{
-    //TODO
-    cerr << "RF is not implemented yet" << endl;
-    exit(-1);    
-}
-
-long RootedTree::costduplicationloss(RootedTree &speciestree, SPID *lcamap)
-{
-  return costdeepcoal(speciestree,lcamap)+3*costduplication(speciestree,lcamap);
-}
+//     return ccost;    
+// }
 
 
-long RootedTree::costduplication(RootedTree &speciestree, SPID *lcamap)
-{      
-  long s = 0;
-  for (SPID i=lf; i<nn; i++)        
-    if (lcamap[leftchild[i]]==lcamap[i] || lcamap[rightchild[i]]==lcamap[i]) 
-            s++; 
-  return s;
-}
+// long RootedTree::costloss(RootedTree &speciestree, SPID *lcamap)
+// {
+//     return costdeepcoalx(speciestree,lcamap)+2*costduplication(speciestree,lcamap);
+// }
 
-long RootedTree::costdeepcoal(RootedTree &speciestree, SPID *lcamap)
-{      
-  long s = 0;            
-  for (SPID i=0; i<nn; i++) 
-        if (i!=root) 
-            s+=speciestree.depth[lcamap[i]]-speciestree.depth[lcamap[parent[i]]]-1; 
-  return s;
-}
+// long RootedTree::costrobinsonfoulds(RootedTree &speciestree, SPID *lcamap)
+// {
+//     //TODO
+//     cerr << "RF is not implemented yet" << endl;
+//     exit(-1);    
+// }
+
+// long RootedTree::costduplicationloss(RootedTree &speciestree, SPID *lcamap)
+// {
+//   return costdeepcoalx(speciestree,lcamap)+3*costduplication(speciestree,lcamap);
+// }
+
+
+// long RootedTree::costduplication(RootedTree &speciestree, SPID *lcamap)
+// {      
+//   long s = 0;
+//   for (SPID i=lf; i<nn; i++)        
+//     if (lcamap[leftchild[i]]==lcamap[i] || lcamap[rightchild[i]]==lcamap[i]) 
+//             s++; 
+//   return s;
+// }
+
+// long RootedTree::costdeepcoalx(RootedTree &speciestree, SPID *lcamap)
+// {      
+//   long s = 0;            
+//   for (SPID i=0; i<nn; i++) 
+//         if (i!=root) 
+//             s+=speciestree.depth[lcamap[i]]-speciestree.depth[lcamap[parent[i]]]-1; 
+//   return s;
+// }
 
 void RootedTree::inittreestr()
 {
@@ -331,23 +336,23 @@ ostream& RootedTree::printrepr(ostream&s)
     return s;
 }
 
-double RootedTree::odtnaivecost(Network &network, int costfunc, DISPLAYTREEID &optid)
-{
-    RootedTree *t = NULL;
-    DISPLAYTREEID tid = 0;
-    double mincost;
-    while ((t=network.gendisplaytree(tid,t))!=NULL)       
-    {           
-        double ccost = cost(*t,costfunc);
-        if (!tid || mincost>ccost) 
-        { 
-            mincost = ccost;
-            optid = tid;
-        }
-        tid++;
-    }
-    return mincost;        
-}
+// double RootedTree::odtnaivecostx(Network &network, CostFun &costfun, DISPLAYTREEID &optid)
+// {
+//     RootedTree *t = NULL;
+//     DISPLAYTREEID tid = 0;
+//     double mincost;
+//     while ((t=network.gendisplaytree(tid,t))!=NULL)       
+//     {           
+//         double ccost = cost(*t, costfunc);
+//         if (!tid || mincost>ccost) 
+//         { 
+//             mincost = ccost;
+//             optid = tid;
+//         }
+//         tid++;
+//     }
+//     return mincost;        
+// }
 
 ostream& RootedTree::printdeb(ostream&s, int gse, string tn)
 {

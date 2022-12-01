@@ -505,19 +505,16 @@ RootedTree* ContractedNetwork::gendisplaytree(DISPLAYTREEID id, RootedTree *t)
 		{
 			if (!(leftret(retdeleted,i) || rightret(retdeleted,i)))
 			{
-				localbitmask[i]=bitmask[bit];							
-				//cout << "bit=" << bit << " rt=" << i << " " << localbitmask[i] << endl;
+				localbitmask[i]=bitmask[bit];											
 				bit++;
 			}
 		}
 	}
 
-	// cout << "=====" << id  << endl;
-	return Network::gendisplaytree(id,t);
+	return Network::gendisplaytree(id, t);
 }
 
 bool ContractedNetwork::_skiprtedge(SPID i, SPID iparent, DISPLAYTREEID id)
 {
-	// cout << "i=" << i << " ipar=" << iparent << " par[i]=" << getparent(i) << " id=" << id << " lbm=" << localbitmask[i-rtstartid] << endl;;
 	return ((iparent != getparent(i)) == bool(id & localbitmask[i-rtstartid]));
 }

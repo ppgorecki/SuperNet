@@ -1,5 +1,6 @@
 #include "hillclimb.h"
 #include "network.h"
+#include "costs.h"
 
 #define HC_DEBUG
 
@@ -371,7 +372,7 @@ bool NNI::next()
 	return true;
 }
 
-double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &nhcstats, bool usenaive, int runnaiveleqrt)
+double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive, int runnaiveleqrt)
 {
 
 	double starttime = gettime();
@@ -381,7 +382,7 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &
 
 	// compute the first odt cost
 	// cout << " INITNET: "	 << *net << endl;
-	double optcost = net->odtcost(genetrees, costfunc, usenaive, runnaiveleqrt);
+	double optcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt);
 	
 	double curcost = optcost; 	
 	std::ofstream odtf;
@@ -395,7 +396,7 @@ double HillClimb::climb(EditOp &op, Network *net, int costfunc, NetworkHCStats &
 	while (op.next())
 	{	
 		// cout << " CURNET: "	 << *net << endl;
-		double curcost = net->odtcost(genetrees, costfunc, usenaive, runnaiveleqrt);
+		double curcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt);
 		
 		 
 		nhcstats.step();
