@@ -9,8 +9,7 @@
 #include "dag.h"
 #include "dp.h"
 
-
-// DC via BB
+// DCE via BB with naive switching
 // #define _DEBUG_DPBB_
 COSTT Network::mindce(
     RootedTree &genetree, 
@@ -22,6 +21,10 @@ COSTT Network::mindce(
 {      
 	
     COSTT best_cost = 0;
+
+    COSTT dc2dce = 0;
+
+    if (costfun.costtype()==COSTDEEPCOAL) dc2dce = 2*genetree.lf-2; // adjust DC to DCE
 
     if (bbstartscoredefined)
     {
@@ -41,7 +44,7 @@ COSTT Network::mindce(
     	   exit(-2);
     	}
 
-    	best_cost = costfun.computegt(genetree, *t)+genetree.lf*2-2; 
+    	best_cost = costfun.computegt(genetree, *t)+dc2dce; 
         // convert to     non-classic 
         delete t;
     }
@@ -192,12 +195,11 @@ COSTT Network::mindce(
 
    		if (runnaiveleqrt>rtnum)   		
    		{
-   			      
-        
+   			                  
    			bbnodeid = bbtreestats->start(rtnum, ALG_NAIVE, bbparnodeid);
 
    			// compute naive (exact)
-   			cost =  c->odtcostnaive(&genetree, costfun) + genetree.lf*2 - 2;  
+   			cost =  c->odtcostnaive(&genetree, costfun) + dc2dce;  
    			bbtreestats->stop(bbnodeid, cost);		
    			naive_called++;
    			naivecomputed = true;
@@ -208,6 +210,7 @@ COSTT Network::mindce(
    		}
    		else 
    		{ 
+            
    			bbnodeid = bbtreestats->start(rtnum, ALG_DP, bbparnodeid);
 
    			// compute via DP (lower bound)

@@ -395,11 +395,12 @@ SPID Dag::findlab(SPID slab, int stoponerr)
 }
 
 // Returns true if the leaf labelling is bijective
+// TODO: optimize to attribute
 bool Dag::bijectiveleaflabelling()
 {            
   SPID occ[specnames.size()];
   for (size_t i=0; i<specnames.size(); i++) occ[i]=0;
-  for (SPID i=0; i<lf; i++) 
+  for (SPID i=0; i<lf; i++)    
     if (occ[lab[i]]++ == 1) return false;
   return true;
 }

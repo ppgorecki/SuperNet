@@ -68,7 +68,6 @@ class AdaptiveBB;
 // Current limit is rt<=64
 typedef unsigned long DISPLAYTREEID;
 
-
 void initbitmask();
 
 class Network: public Dag
@@ -136,9 +135,10 @@ public:
 	double odtcostnaive(RootedTree *genetree, CostFun &costfun);
 
 	// Compute min cost vs. gene trees via DP&BB alg.	
+	// Only for DC
 	double odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, int runnaiveleqrt);
 
-	// Compute min cost vs. gene trees 
+	// Compute min cost vs. gene trees 	
 	double odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive, int runnaiveleqrt);
 	
 	// Mark nodes reachable from v (including v)	

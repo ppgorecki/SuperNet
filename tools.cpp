@@ -317,7 +317,7 @@ int usage(int argc, char **argv) {
        "COST SETTING OPTIONS\n"
        // " TODO: -D dupweight  - set weight of gene duplications (def. 1.0)\n"
        // " TODO: -L lossweight - set weight of gene losses (def. 1.0)\n" 
-       "  -C COST - set cost function from {DL,D,L,DC,RF}\n"
+       "  -C COST - set cost function from {DL,D,L,DC,RF,DCE}; default is DC\n"
        "\n"
        
        "BB algorithm for DC (with -eb)\n"      

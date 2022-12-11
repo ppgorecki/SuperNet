@@ -221,7 +221,7 @@ public:
   bool eqdagsbypermutations(Dag *d); // brute force by permutations
 
   friend class DagSet;
-  friend class DP_DC;
+  friend class DP_DCE;
 
   long int getcount() { return count; }
 

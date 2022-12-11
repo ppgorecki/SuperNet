@@ -3,11 +3,14 @@
 
 #include "tools.h"
 
-#define COSTDEEPCOAL 1   // deep coalescence
-#define COSTDUPLICATION 2    // duplication
-#define COSTLOSS 3    // loss
-#define COSTDUPLICATIONLOSS 4   // dl
-#define COSTROBINSONFOULDS 5   // robinson-foulds
+#define COSTDEEPCOAL 1   // deep coalescence (classic)
+#define COSTDEEPCOALEDGE 2   // deep coalescence (edge based)
+#define COSTDUPLICATION 3    // duplication
+#define COSTLOSS 4    // loss
+#define COSTDUPLICATIONLOSS 5   // dl
+#define COSTROBINSONFOULDS 6   // robinson-foulds
+
+
 
 class CostFun
 {
@@ -29,6 +32,8 @@ class CostFun
 
 		virtual long compute(RootedTree &genetree, RootedTree &speciestree,  SPID *lcamap)=0;
 		virtual COSTT lowerbound(RootedTree &genetree, RootedTree &speciestree) { return 0; }
+		virtual COSTT lowerboundnet(RootedTree &genetree, Network &speciestree) { return 0; }
+
 		virtual int costtype() { return 0; }
 }; 
 
@@ -64,11 +69,47 @@ public:
 
 	virtual COSTT lowerbound(RootedTree &genetree, RootedTree &speciestree) 
 	{ 
+		if (genetree.bijectiveleaflabelling()) return 0;
+		return -genetree.nn+1; // if the gene tree contains the same labels; TODO: better estimate
+	}
+
+	virtual COSTT lowerboundnet(RootedTree &genetree, Network &net) 
+	{ 
 
 		if (genetree.bijectiveleaflabelling()) return 0;
 		return -genetree.nn+1; // if the gene tree contains the same labels; TODO: better estimate
 	}
 	virtual int costtype() { return COSTDEEPCOAL; }
+};
+
+
+class CFDeepCoalescenceEdge: public CostFun
+{
+
+public: 
+
+	long compute(RootedTree &genetree, RootedTree &speciestree, SPID *lcamap)
+	{      
+	  long s = 0;            
+	  for (SPID i=0; i<genetree.nn; i++) 	  
+	        if (i!=genetree.root) 
+	            s+=speciestree.depth[lcamap[i]]-speciestree.depth[lcamap[genetree.parent[i]]]; 
+	  return s;
+	}
+
+	virtual COSTT lowerbound(RootedTree &genetree, RootedTree &speciestree) 
+	{ 
+		if (genetree.bijectiveleaflabelling()) return genetree.nn-1;
+		return 0; // if the gene tree contains the same labels; TODO: better estimate
+	}
+
+	virtual COSTT lowerboundnet(RootedTree &genetree, Network &net) 
+	{ 
+
+		if (genetree.bijectiveleaflabelling()) return genetree.nn-1;
+		return 0; // if the gene tree contains the same labels; TODO: better estimate
+	}
+	virtual int costtype() { return COSTDEEPCOALEDGE; }
 };
 
 class CFDuplicationLoss: public CostFun

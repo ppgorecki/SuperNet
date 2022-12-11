@@ -453,6 +453,7 @@ int main(int argc, char **argv)
       if (!strcmp(optarg, "D")) costfun = new CFDuplication();
       if (!strcmp(optarg, "L")) costfun = new CFLoss();
       if (!strcmp(optarg, "DC")) costfun = new CFDeepCoalescence();
+      if (!strcmp(optarg, "DCE")) costfun = new CFDeepCoalescenceEdge();
       if (!strcmp(optarg, "DL")) costfun = new CFDuplicationLoss();      
       if (!strcmp(optarg, "RF")) costfun = new CFRobinsonFoulds();
       
@@ -668,7 +669,7 @@ int main(int argc, char **argv)
     exit(0);
   }
 
-  // Run BB algorithm to compute DC   
+  // Run BB algorithm to compute DCE
   if (OPT_BB)
   {
       BBTreeStats bbtreestats;

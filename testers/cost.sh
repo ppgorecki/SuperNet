@@ -12,9 +12,9 @@ do
 	GT=$( gsevol.py -g"randbin(a-$LASTSP,a-$LASTSP,a-$LASTSP)" -egP )
 	#GT=$( gsevol.py -g"randbin(a-$LASTSP)" -egP )
 	GT=$( gsevol.py -g"randbin(a-$LASTSP,a-$LASTSP,a-j)" -egP )
-	# echo ST=\"$ST\"
-	# echo GT=\"$GT\"
-	# echo "supnet -s \$ST -g \$GT -C$C -ec"  
+	echo ST=\"$ST\"
+	echo GT=\"$GT\"
+	echo "supnet -s \$ST -g \$GT -C$C -ec"  
 	S=$( supnet -s $ST -g $GT -C$C -ec )
 
 	if [[ $C = D ]]

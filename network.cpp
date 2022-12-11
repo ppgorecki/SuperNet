@@ -1,4 +1,5 @@
 
+#include <random>
 
 #include "rtree.h"
 #include "network.h"
@@ -172,26 +173,39 @@ void Network::_getreachableto(SPID v, bool *reachable, bool *visited)
 }
 
 double Network::odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive, int runnaiveleqrt)
-{
+{	
 	if (usenaive) 
 		return odtcostnaive(genetrees, costfun);
 	return odtcostdpbb(genetrees, costfun, runnaiveleqrt);
 }
 
+
+// only for DC and DCE
 double Network::odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, int runnaiveleqrt)
 {
 
-	if (costfun.costtype()!=COSTDEEPCOAL)
+	int ct = costfun.costtype();
+	if (ct!=COSTDEEPCOAL && ct!=COSTDEEPCOALEDGE)
 	{
-		cerr << "DP&BB cost computation only for DC (use -CDC)" << endl;
+		cerr << "DP&BB cost computation only for DC or DCE (use -CDC or -CDCE)" << endl;
 		exit(-1);
 	}
 
-	double cost = 0;
 	BBTreeStats bbstats;
-	for (int gt=0; gt<genetrees.size(); gt++)
-		cost+=mindce(*genetrees[gt], runnaiveleqrt, costfun, &bbstats);
-    
+
+	double cost = 0;
+	if (ct==COSTDEEPCOAL)
+	{
+		cost = 2*genetrees.size(); // adjust DCE to DC
+		for (int gt=0; gt<genetrees.size(); gt++)
+			cost+=mindce(*genetrees[gt], runnaiveleqrt, costfun, &bbstats)-2*genetrees[gt]->lf; // adjust DCE to DC
+	}
+	else
+	{
+		for (int gt=0; gt<genetrees.size(); gt++)
+			cost+=mindce(*genetrees[gt], runnaiveleqrt, costfun, &bbstats); 
+	}
+
     return cost;        
 }
 
@@ -212,20 +226,45 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun)
     double mincost;
     SPID *lcamaps[genetrees.size()];
     double gtcost[genetrees.size()];
+    double lb[genetrees.size()];
+
+    float sampling=0.25;
+
+    // https://en.cppreference.com/w/cpp/numeric/random/exponential_distribution
+
+    for (int gt=0; gt<genetrees.size(); gt++)
+    {    		
+    		RootedTree *genetree = genetrees[gt];
+    		lb[gt]=costfun.lowerboundnet(*genetree,*this);    			
+    }
+    
         
-    while ((t=gendisplaytree(tid,t))!=NULL)       
+    while ((t = gendisplaytree(tid,t))!=NULL)       
     {               	
 
     	t->initlca();
     	t->initdepth();    	 	
 
     	// Compute cost of the current tree vs all gene trees
+    	int lbcnt = 0;
     	for (int gt=0; gt<genetrees.size(); gt++)
     	{    		
-    		RootedTree *genetree = genetrees[gt];
-    		SPID *lcamap = lcamaps[gt];
-    		if (tid) genetree->getlcamapping(*t,lcamaps[gt]);    // overwrite previous    			    		
-    		else lcamaps[gt] = genetrees[gt]->getlcamapping(*t); // init lcamap
+    		RootedTree *genetree = genetrees[gt];    
+			SPID *lcamap = lcamaps[gt];
+
+    		if (tid) 
+    		{ 
+    			if (gtcost[gt]==lb[gt])    	
+    			{
+    				lbcnt++;
+    				continue; // skip, lower bound is reached
+    			}
+    		
+    			genetree->getlcamapping(*t,lcamaps[gt]);    // overwrite previous    			    		
+    		}
+    		else  
+    			lcamaps[gt] = genetrees[gt]->getlcamapping(*t); // init lcamap
+   		
 
     		double curcost = costfun.compute(*genetree, *t, lcamaps[gt]);
 
@@ -236,7 +275,11 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun)
     			t->printrepr(cout) << " " << curcost << endl;
     		}
     	}
+    	if (lbcnt == genetrees.size())
+    		// all is lb
+    		break;
 
+    	
     	tid++;
 
     }
@@ -256,7 +299,6 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun)
 
 /*
 	Add random reticulation	
-
 */
 Network* Network::addrandreticulation(string retid, int networktype, bool uniform)
 {
@@ -398,12 +440,16 @@ void Network::initdid()
     }	
 }
 
+// Only for DCE
+// costfun ignored
 COSTT Network::approxmindce(RootedTree &genetree, CostFun &costfun)
 {
 	RETUSAGE _;
 	return approxmindceusage(genetree, _, costfun);
 }
 
+// Only for DCE
+// costfun ignored
 COSTT Network::approxmindceusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun)
 {
 
@@ -415,10 +461,10 @@ COSTT Network::approxmindceusage(RootedTree &genetree, RETUSAGE &retusage, CostF
 	cout << " ----------------------------------------- " << endl;
 #endif	
 	        
-    DP_DC dpdc(genetree, *this);
+    DP_DCE dpdce(genetree, *this);
 
-    dpdc.preprocess();    
-    return dpdc.mindeltaroot(retusage);
+    dpdce.preprocess();    
+    return dpdce.mindeltaroot(retusage);
 }
 
 

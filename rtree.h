@@ -129,9 +129,9 @@ public:
 
   friend class CFDuplication;
   friend class CFDeepCoalescence;
+  friend class CFDeepCoalescenceEdge;
   friend class CFLoss;
   friend class CFDuplicationLoss;
-
 };
 
 

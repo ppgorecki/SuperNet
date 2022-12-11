@@ -10,7 +10,7 @@
 #define min3(x,y,z) x < y ? (x < z ? x : z) : (y < z ? y : z)
 #define naddr(n) ((n)*(genetree).nn)
 
-class DP_DC
+class DP_DCE
 {
 	RETUSAGE *deltaretusage;
 	RETUSAGE *deltaup0retusage;
@@ -25,7 +25,7 @@ class DP_DC
 
 
 public:
-	DP_DC(RootedTree &g, Network &n);
+	DP_DCE(RootedTree &g, Network &n);
 
 	void preprocess();
 	void clean();
@@ -34,7 +34,7 @@ public:
 
 	void alloc();
 
-	~DP_DC();
+	~DP_DCE();
 
 	inline RETUSAGE _deltaretusage(SPID g, SPID n);
 

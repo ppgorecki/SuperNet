@@ -6,13 +6,13 @@
 #include "dag.h"
 #include "dp.h"
 
-DP_DC::DP_DC(RootedTree &g, Network &n) : genetree(g), network(n), sz(genetree.nn * network.nn)
+DP_DCE::DP_DCE(RootedTree &g, Network &n) : genetree(g), network(n), sz(genetree.nn * network.nn)
 {
 	alloc();
 	clean();
 }
 
-void DP_DC::preprocess()
+void DP_DCE::preprocess()
 {
 	memset(deltaretusage, 0, sizeof(RETUSAGE)*sz);
 	memset(deltaup0retusage, 0, sizeof(RETUSAGE)*sz);
@@ -37,12 +37,12 @@ void DP_DC::preprocess()
 	}
 }
 
-void DP_DC::clean()
+void DP_DCE::clean()
 {
 	memset(computed, 0, sizeof(int8_t)*sz);
 }
 
-void DP_DC::print(ostream &c)
+void DP_DCE::print(ostream &c)
 {
 	for (SPID g = 0; g < genetree.nn; g++)
 		for (SPID n = 0; n < network.nn; n++)
@@ -59,7 +59,7 @@ void DP_DC::print(ostream &c)
 		}
 }
 
-void DP_DC::alloc()
+void DP_DCE::alloc()
 {
 	sz = genetree.nn * network.nn;
 	deltaretusage = (RETUSAGE*)malloc(sizeof(RETUSAGE) * sz);
@@ -72,7 +72,7 @@ void DP_DC::alloc()
 }
 
 
-DP_DC::~DP_DC()
+DP_DCE::~DP_DCE()
 {
 	free(deltaretusage);
 	free(deltaup1retusage);
@@ -83,14 +83,14 @@ DP_DC::~DP_DC()
 	free(computed);
 }
 
-RETUSAGE DP_DC::_deltaretusage(SPID g, SPID n)
+RETUSAGE DP_DCE::_deltaretusage(SPID g, SPID n)
 {
 	size_t nidx = naddr(n);
 	size_t idx = g + nidx;
 	return deltaretusage[idx];
 }
 
-COSTT DP_DC::mindeltaroot(RETUSAGE &retusage)
+COSTT DP_DCE::mindeltaroot(RETUSAGE &retusage)
 {
 	COSTT res = INFTY;
 	SPID s = MAXSP;
@@ -107,7 +107,7 @@ COSTT DP_DC::mindeltaroot(RETUSAGE &retusage)
 }
 
 
-COSTT DP_DC::_delta(SPID g, SPID n) {
+COSTT DP_DCE::_delta(SPID g, SPID n) {
 	size_t nidx = naddr(n);
 	size_t idx = g + nidx;
 
@@ -137,7 +137,7 @@ COSTT DP_DC::_delta(SPID g, SPID n) {
 }
 
 
-COSTT DP_DC::_deltaup1(SPID g, SPID n) 
+COSTT DP_DCE::_deltaup1(SPID g, SPID n) 
 {
 
 	size_t nidx = naddr(n);
@@ -233,7 +233,7 @@ COSTT DP_DC::_deltaup1(SPID g, SPID n)
 
 }
 
-COSTT DP_DC::_deltaup0(SPID g, SPID n)
+COSTT DP_DCE::_deltaup0(SPID g, SPID n)
 {
 	size_t nidx = naddr(n);
 	size_t idx = g + nidx;
