@@ -20,7 +20,7 @@ class CostFun
 			speciestree.initlca();
     		speciestree.initdepth();    
 
-    		SPID *lcamap = genetree.getlcamapping(speciestree);
+    		NODEID *lcamap = genetree.getlcamapping(speciestree);
 
     		double v = compute(genetree, speciestree, lcamap);
 
@@ -30,7 +30,7 @@ class CostFun
 		    return v;
 		}
 
-		virtual long compute(RootedTree &genetree, RootedTree &speciestree,  SPID *lcamap)=0;
+		virtual long compute(RootedTree &genetree, RootedTree &speciestree,  NODEID *lcamap)=0;
 		virtual COSTT lowerbound(RootedTree &genetree, RootedTree &speciestree) { return 0; }
 		virtual COSTT lowerboundnet(RootedTree &genetree, Network &speciestree) { return 0; }
 
@@ -41,10 +41,10 @@ class CFDuplication: public CostFun
 {
 public:
 
-	virtual long compute(RootedTree &genetree, RootedTree &speciestree, SPID *lcamap)
+	virtual long compute(RootedTree &genetree, RootedTree &speciestree, NODEID *lcamap)
 	{      
   		long s = 0;
-  		for (SPID i=genetree.lf; i<genetree.nn; i++)        
+  		for (NODEID i=genetree.lf; i<genetree.nn; i++)        
     		if (lcamap[genetree.leftchild[i]]==lcamap[i] || lcamap[genetree.rightchild[i]]==lcamap[i]) 
             	s++; 
   		return s;
@@ -58,10 +58,10 @@ class CFDeepCoalescence: public CostFun
 
 public: 
 
-	long compute(RootedTree &genetree, RootedTree &speciestree, SPID *lcamap)
+	long compute(RootedTree &genetree, RootedTree &speciestree, NODEID *lcamap)
 	{      
 	  long s = 0;            
-	  for (SPID i=0; i<genetree.nn; i++) 	  
+	  for (NODEID i=0; i<genetree.nn; i++) 	  
 	        if (i!=genetree.root) 
 	            s+=speciestree.depth[lcamap[i]]-speciestree.depth[lcamap[genetree.parent[i]]]-1; 
 	  return s;
@@ -88,10 +88,10 @@ class CFDeepCoalescenceEdge: public CostFun
 
 public: 
 
-	long compute(RootedTree &genetree, RootedTree &speciestree, SPID *lcamap)
+	long compute(RootedTree &genetree, RootedTree &speciestree, NODEID *lcamap)
 	{      
 	  long s = 0;            
-	  for (SPID i=0; i<genetree.nn; i++) 	  
+	  for (NODEID i=0; i<genetree.nn; i++) 	  
 	        if (i!=genetree.root) 
 	            s+=speciestree.depth[lcamap[i]]-speciestree.depth[lcamap[genetree.parent[i]]]; 
 	  return s;
@@ -117,10 +117,10 @@ class CFDuplicationLoss: public CostFun
 
 	public: 
 
-	long compute(RootedTree &genetree, RootedTree &speciestree, SPID *lcamap) // code repeated for efficiency
+	long compute(RootedTree &genetree, RootedTree &speciestree, NODEID *lcamap) // code repeated for efficiency
 	{      
 	  long s = 0;            
-	  for (SPID i=0; i<genetree.nn; i++) 	  
+	  for (NODEID i=0; i<genetree.nn; i++) 	  
 	  {
 	        if (i!=genetree.root) 
 	            s+=speciestree.depth[lcamap[i]]-speciestree.depth[lcamap[genetree.parent[i]]]-1;  // dc comp
@@ -139,10 +139,10 @@ class CFLoss: public CostFun
 
 	public: 
 
-	long compute(RootedTree &genetree, RootedTree &speciestree, SPID *lcamap) // code repeated for efficiency
+	long compute(RootedTree &genetree, RootedTree &speciestree, NODEID *lcamap) // code repeated for efficiency
 	{      
 	  long s = 0;            
-	  for (SPID i=0; i<genetree.nn; i++) 	  
+	  for (NODEID i=0; i<genetree.nn; i++) 	  
 	  {
 	        if (i!=genetree.root) 
 	            s+=speciestree.depth[lcamap[i]]-speciestree.depth[lcamap[genetree.parent[i]]]-1;  // dc comp
@@ -162,7 +162,7 @@ class CFRobinsonFoulds: public CostFun
 
 	public: 
 
-	long compute(RootedTree &genetree, RootedTree &speciestree, SPID *lcamap) // code repeated for efficiency
+	long compute(RootedTree &genetree, RootedTree &speciestree, NODEID *lcamap) // code repeated for efficiency
 	{      
 		cerr << "RF is not implemented yet" << endl;
 		exit(-1);	  	
@@ -171,9 +171,7 @@ class CFRobinsonFoulds: public CostFun
 };
 
 
-
-
-// long RootedTree::costrobinsonfoulds(RootedTree &speciestree, SPID *lcamap)
+// long RootedTree::costrobinsonfoulds(RootedTree &speciestree, NODEID *lcamap)
 // {
 //     //TODO
 //     cerr << "RF is not implemented yet" << endl;

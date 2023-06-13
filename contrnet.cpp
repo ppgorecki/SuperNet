@@ -7,13 +7,13 @@
 #define CON_DELPARENT 1
 #define CON_DELRETPARENT 2
 
-void ContractedNetwork::contractabove(SPID v)
+void ContractedNetwork::contractabove(NODEID v)
 {
 #ifdef _CONTRDEBUG_
 	cout << "contractabove:" << v << endl;
 #endif	
 	if (v==root) return;
-	SPID p = mapup[parent[v]];
+	NODEID p = mapup[parent[v]];
 		
 	contractedge(v,p);  // search
 
@@ -26,36 +26,13 @@ void ContractedNetwork::contractabove(SPID v)
 	}
 }
 
-// void ContractedNetwork::propagate_maps(SPID v)
-// {
-// 	SPID par = mapup[v]; // tr/rt
-//   	SPID bot = mapdn[v]; 
-
-// #ifdef _CONTRDEBUG_
-//   	cout << " propagate_maps " << v << " " << par << " " << bot << endl;
-// #endif  	
-
-//   	if (bot<rtstartid)
-// 	{
-// 		//bot is a tree node; one parent
-// 		if (mapup[parent[bot]]==v) 
-// 			mapup[parent[bot]]=par;		
-// 	}
-// 	else
-// 	{
-// 		//bot is reticulation
-// 		if (mapup[parent[bot]]==v) 
-// 			mapup[parent[bot]]=par;		
-// 		else if (mapup[retparent[bot]]==v) 
-// 			mapup[retparent[bot]]=par;		
-// 	}
-// }
 
 
-void ContractedNetwork::propagate_maps(SPID v)
+
+void ContractedNetwork::propagate_maps(NODEID v)
 {
-  	SPID par = mapup[v]; // tr/rt
-  	SPID bot = mapdn[v]; 
+  	NODEID par = mapup[v]; // tr/rt
+  	NODEID bot = mapdn[v]; 
 
 #ifdef _CONTRDEBUG_
   	cout << " propagate_maps " << v << " " << par << " " << bot << endl;
@@ -99,7 +76,7 @@ void ContractedNetwork::propagate_maps(SPID v)
 }
 
 
-void ContractedNetwork::contractedge(SPID v, SPID p)
+void ContractedNetwork::contractedge(NODEID v, NODEID p)
 {
 
 #ifdef _CONTRDEBUG_
@@ -115,8 +92,8 @@ void ContractedNetwork::contractedge(SPID v, SPID p)
 		return;
 	}
 
-	SPID lc = mapdn[leftchild[p]];
-	SPID rc = mapdn[rightchild[p]];
+	NODEID lc = mapdn[leftchild[p]];
+	NODEID rc = mapdn[rightchild[p]];
 
 #ifdef _CONTRDEBUG_
 	cout << "           " << p << ":" << lc << " " << rc << endl;
@@ -133,7 +110,7 @@ void ContractedNetwork::contractedge(SPID v, SPID p)
 	  		mapdn[p]=rc;	   
 	  		if (parent[p]<nn)
 	  			mapup[p]=mapup[parent[p]];	   
-	  		else mapup[p]=MAXSP;
+	  		else mapup[p]=MAXNODEID;
 	  		propagate_maps(p);	  		
 
 	  	}
@@ -152,7 +129,7 @@ void ContractedNetwork::contractedge(SPID v, SPID p)
    	  	mapdn[p]=lc;	   
    	  	if (parent[p]<nn)
    	  		mapup[p]=mapup[parent[p]];	   
-   	  	else mapup[p]=MAXSP;
+   	  	else mapup[p]=MAXNODEID;
 
    	  	propagate_maps(p);   	  	
    	  }
@@ -162,13 +139,13 @@ void ContractedNetwork::contractedge(SPID v, SPID p)
 
 void ContractedNetwork::contract(RETUSAGE &retcontract)
 {	
-	SPID rtid = rtstartid;
+	NODEID rtid = rtstartid;
 	for (int i=0; i<rt; i++, rtid++)
 	{	
 		if (leftret(retcontract, i) && !leftret(retdeleted, i))  // (rtstartid+i, parent) -> remove
 		{
 			addleftretusage(retdeleted, i);
-			SPID p = mapup[parent[rtid]];		
+			NODEID p = mapup[parent[rtid]];		
 #ifdef _CONTRDEBUG_						
 			cout << "\nRTL:" << " " << i << " r=" << rtid << " p=" << p << endl;
 #endif			
@@ -187,7 +164,7 @@ void ContractedNetwork::contract(RETUSAGE &retcontract)
 		if (rightret(retcontract, i) && !rightret(retdeleted, i))  
 		{
 			addrightretusage(retdeleted, i);			
-			SPID p = mapup[retparent[rtid]];	
+			NODEID p = mapup[retparent[rtid]];	
 #ifdef _CONTRDEBUG_										
 			cout << "\nRTR:" << i << " r=" << rtid << " p=" << p << endl;
 #endif			
@@ -211,10 +188,10 @@ void ContractedNetwork::contract(RETUSAGE &retcontract)
 }
 
 
-void ContractedNetwork::_checkmaps(SPID v, SPID p)
+void ContractedNetwork::_checkmaps(NODEID v, NODEID p)
 {
-	SPID par = mapup[v]; 
-  	SPID bot = mapdn[v]; 
+	NODEID par = mapup[v]; 
+  	NODEID bot = mapdn[v]; 
 
   	if (mapup[v]!=v || mapdn[v]!=v)
   	{
@@ -224,9 +201,9 @@ void ContractedNetwork::_checkmaps(SPID v, SPID p)
 
   	if (v>=rtstartid)
   	{	
-  		SPID cretchild = mapdn[retchild[v]];
-  		SPID cparent = mapdn[parent[v]];
-  		SPID cretparent = mapdn[retparent[v]];
+  		NODEID cretchild = mapdn[retchild[v]];
+  		NODEID cparent = mapdn[parent[v]];
+  		NODEID cretparent = mapdn[retparent[v]];
 
   		if (v==cparent) _checkmaps(cretchild,v);
   		else
@@ -241,10 +218,10 @@ void ContractedNetwork::_checkmaps(SPID v, SPID p)
   		return;
   	}
 
-  	SPID bp = parent[v];
-  	if (bp==MAXSP)
+  	NODEID bp = parent[v];
+  	if (bp==MAXNODEID)
   	{
-  		if (p!=MAXSP)
+  		if (p!=MAXNODEID)
   		{ 
   			cerr << "Incorrect root-map (1) in " << v << endl;
 			exit(-1);			
@@ -252,10 +229,10 @@ void ContractedNetwork::_checkmaps(SPID v, SPID p)
 		// v is root		
   	}
 
-  	if (p==MAXSP && bp!=MAXSP)
+  	if (p==MAXNODEID && bp!=MAXNODEID)
   	{
   		// v is root of contr. network, but not the root of the network
-  		if (mapup[bp]!=MAXSP)
+  		if (mapup[bp]!=MAXNODEID)
   		{
   			cerr << "Incorrect root-map (2) in " << v << endl;
 			exit(-1);			
@@ -263,7 +240,7 @@ void ContractedNetwork::_checkmaps(SPID v, SPID p)
   	}
 
   	
-	if (bp!=MAXSP && v!=mapup[bp])
+	if (bp!=MAXNODEID && v!=mapup[bp])
 	{
 		cerr << "Incorrect leaf-parent map in " << v << endl;
 		exit(-1);			
@@ -284,10 +261,10 @@ void ContractedNetwork::gendotcontracted(ostream &s)
 {
  	int dagnum=2;
 
- 	SPID cnodes[nn];
- 	SPID cnodescnt=0;
+ 	NODEID cnodes[nn];
+ 	NODEID cnodescnt=0;
 
-    for (SPID i = 0; i < nn; i++ ) 
+    for (NODEID i = 0; i < nn; i++ ) 
     {
 	    	if (mapdn[i]==i && mapup[i]==i)
 	    	{
@@ -308,18 +285,18 @@ void ContractedNetwork::gendotcontracted(ostream &s)
   			}
   	}
 
-  	for (SPID i = 0; i < nn; i++ ) 
+  	for (NODEID i = 0; i < nn; i++ ) 
     {
 	    if (mapdn[i]==i && mapup[i]==i)
 	    {
 	    	
 
-  			SPID _iparent = MAXSP;
+  			NODEID _iparent = MAXNODEID;
   			while (getparentiter(i,_iparent))     
   			{
-  				SPID iparent = _iparent;
-  				while (iparent!=MAXSP && mapup[iparent]!=iparent) iparent = mapup[iparent];
-  				if (iparent==MAXSP) continue;
+  				NODEID iparent = _iparent;
+  				while (iparent!=MAXNODEID && mapup[iparent]!=iparent) iparent = mapup[iparent];
+  				if (iparent==MAXNODEID) continue;
 
 		  		s << "v" << (int)iparent << "x" << dagnum << " -> v" << (int)i << "x" << dagnum;
 		        s << " [ penwidth=1";
@@ -341,7 +318,7 @@ void ContractedNetwork::gendotcontracted(ostream &s)
 void ContractedNetwork::gendot(ostream &s)
 {    
     int dagnum=1;
-    for (SPID i = 0; i < nn; i++ ) 
+    for (NODEID i = 0; i < nn; i++ ) 
     {     	
 		s << "v" << (int)i << "x" << dagnum << " [";
 		if (i>=rtstartid)
@@ -362,7 +339,7 @@ void ContractedNetwork::gendot(ostream &s)
   		  	s << " " << species(lab[i]) << " ";
   		s << "\"]" << endl;  
 
-  		SPID iparent = MAXSP;
+  		NODEID iparent = MAXNODEID;
   		while (getparentiter(i,iparent))     
   		{
   		  s << "v" << (int)iparent << "x" << dagnum << " -> v" << (int)i << "x" << dagnum;
@@ -402,16 +379,16 @@ void ContractedNetwork::gendot(ostream &s)
 }
 
 
-SPID ContractedNetwork::rtcount()
+NODEID ContractedNetwork::rtcount()
 {
-	SPID cnt=rt;
-	for (SPID i=0; i<rt; i++)		
+	NODEID cnt=rt;
+	for (NODEID i=0; i<rt; i++)		
 		 if (leftret(retdeleted,i) || rightret(retdeleted,i)) cnt--;
 	return cnt;
 }
 
 
-string ContractedNetwork::_newickrepr(SPID v, SPID p)
+string ContractedNetwork::_newickrepr(NODEID v, NODEID p)
 {
 	while (mapdn[v]!=v) v = mapdn[v];
 	if (v<lf) return specnames[lab[v]];
@@ -419,7 +396,7 @@ string ContractedNetwork::_newickrepr(SPID v, SPID p)
 		return "("+_newickrepr(leftchild[v],v)+","+_newickrepr(rightchild[v],v) +")";
 
 	// retid
-	SPID rp = retparent[v];
+	NODEID rp = retparent[v];
 	while (mapup[rp]!=rp) rp = mapup[rp];
 	if (rp==p)
 		return "("+_newickrepr(retchild[v],v)+")"+spid2retlabel[v];
@@ -430,14 +407,14 @@ string ContractedNetwork::_newickrepr(SPID v, SPID p)
 
 string ContractedNetwork::newickrepr()
 {	
-	return _newickrepr(root,MAXSP);
+	return _newickrepr(root,MAXNODEID);
 }
 
 void ContractedNetwork::_init()
 {	
 	emptyretusage(retdeleted);
-	mapdn = new SPID[nn];  
-	mapup = new SPID[nn];  	
+	mapdn = new NODEID[nn];  
+	mapup = new NODEID[nn];  	
 	for (int i = 0; i<nn; i++)
 	{
 		mapdn[i]=i;
@@ -450,10 +427,10 @@ void ContractedNetwork::_init()
 
 ContractedNetwork::ContractedNetwork(ContractedNetwork &net, int shallowcopy) : Network(net, shallowcopy) 
 { 
-	mapdn = new SPID[nn];  
-	mapup = new SPID[nn];  	
-	memcpy ( mapdn, net.mapdn, sizeof(SPID)*nn );
-	memcpy ( mapup, net.mapup, sizeof(SPID)*nn );
+	mapdn = new NODEID[nn];  
+	mapup = new NODEID[nn];  	
+	memcpy ( mapdn, net.mapdn, sizeof(NODEID)*nn );
+	memcpy ( mapup, net.mapup, sizeof(NODEID)*nn );
 	retdeleted = net.retdeleted;
 	localbitmask=NULL;
 }	
@@ -467,9 +444,9 @@ ContractedNetwork::~ContractedNetwork()
 }
 
 
-bool ContractedNetwork::getnodeiter(SPID &i)
+bool ContractedNetwork::getnodeiter(NODEID &i)
 {
-  if (i==MAXSP) 
+  if (i==MAXNODEID) 
   { 
     i=0; 
     return true;  // leaf
@@ -479,29 +456,31 @@ bool ContractedNetwork::getnodeiter(SPID &i)
   return i<nn;  
 }
 
-SPID ContractedNetwork::getconflictedreticulation(RETUSAGE &retusage)
+NODEID ContractedNetwork::getconflictedreticulation(RETUSAGE &retusage)
 {
-	SPID r = rtstartid;
-	for (SPID i=0; i<rt; i++,r++)
+	NODEID r = rtstartid;
+	for (NODEID i=0; i<rt; i++,r++)
 	{
 		if (leftret(retusage,i) && rightret(retusage,i))
 			if (mapdn[r]==r) return i;
 	}
 	cerr << "No conflicted reticulations located." << endl;
-	return MAXSP;
+	return MAXNODEID;
 }
 
 extern DISPLAYTREEID bitmask[]; 
 
-RootedTree* ContractedNetwork::gendisplaytree(DISPLAYTREEID id, RootedTree *t)
+
+void ContractedNetwork::initlocalbitmask(DISPLAYTREEID id)
 {
 	// prepare local bitmask
 	if (!id)
 	{			
+	
 		if (!localbitmask) 
 			localbitmask = new DISPLAYTREEID[rt];
 		int bit = 0;
-		for (SPID i=0; i<rt; i++)
+		for (NODEID i=0; i<rt; i++)
 		{
 			if (!(leftret(retdeleted,i) || rightret(retdeleted,i)))
 			{
@@ -510,11 +489,35 @@ RootedTree* ContractedNetwork::gendisplaytree(DISPLAYTREEID id, RootedTree *t)
 			}
 		}
 	}
+}
 
+RootedTree* ContractedNetwork::gendisplaytree(DISPLAYTREEID id, RootedTree *t)
+{
+	initlocalbitmask(id);
 	return Network::gendisplaytree(id, t);
 }
 
-bool ContractedNetwork::_skiprtedge(SPID i, SPID iparent, DISPLAYTREEID id)
+SNode* ContractedNetwork::gendisplaytree2(DISPLAYTREEID id, SNode *t, TreeSpace *tsp)
+{
+	initlocalbitmask(id);
+	return Network::gendisplaytree2(id, t, tsp);
+}
+
+bool ContractedNetwork::_skiprtedge(NODEID i, NODEID iparent, DISPLAYTREEID id)
 {
 	return ((iparent != getparent(i)) == bool(id & localbitmask[i-rtstartid]));
+}
+
+ostream& ContractedNetwork::printdebstats(ostream&s) 
+{
+	s << " Contracted Network with " << retdeleted << endl;;	
+	Dag::printdebstats(s);
+	s << endl;
+	s << " mapup= ";
+	for (NODEID i=0; i<nn; i++) s << " " << (int)i << ":" << mapup[i];
+	s << endl;
+	s << " mapdn= "; 	
+	for (NODEID i=0; i<nn; i++) s << " " << (int)i << ":" << mapdn[i];
+	return s; 
+
 }

@@ -20,12 +20,12 @@ void DP_DCE::preprocess()
 
 	// assign leaves compute delta, deltaup0, deltaup1 for leaves
 	// todo: optimize leaf arrays
-	for (SPID g = 0; g < genetree.lf; g++)
+	for (NODEID g = 0; g < genetree.lf; g++)
 	{
 
 		COSTT c = 0;		
-		SPID gmap = network.findlab(genetree.lab[g]);
-		for (SPID s = 0; s < network.nn; s++)
+		NODEID gmap = network.findlab(genetree.lab[g]);
+		for (NODEID s = 0; s < network.nn; s++)
 		{
 			size_t idx = g + naddr(s);
 			emptyretusage ( deltaretusage[idx] );
@@ -44,8 +44,8 @@ void DP_DCE::clean()
 
 void DP_DCE::print(ostream &c)
 {
-	for (SPID g = 0; g < genetree.nn; g++)
-		for (SPID n = 0; n < network.nn; n++)
+	for (NODEID g = 0; g < genetree.nn; g++)
+		for (NODEID n = 0; n < network.nn; n++)
 		{
 			size_t idx = g + naddr(n);
 			if (computed[idx]&DELTA && delta[idx] < INFTY)
@@ -83,7 +83,7 @@ DP_DCE::~DP_DCE()
 	free(computed);
 }
 
-RETUSAGE DP_DCE::_deltaretusage(SPID g, SPID n)
+RETUSAGE DP_DCE::_deltaretusage(NODEID g, NODEID n)
 {
 	size_t nidx = naddr(n);
 	size_t idx = g + nidx;
@@ -93,7 +93,7 @@ RETUSAGE DP_DCE::_deltaretusage(SPID g, SPID n)
 COSTT DP_DCE::mindeltaroot(RETUSAGE &retusage)
 {
 	COSTT res = INFTY;
-	SPID s = MAXSP;
+	NODEID s = MAXNODEID;
 	while (network.getnodeiter(s))
 	{
 		COSTT r = _delta(genetree.root, s);
@@ -107,7 +107,7 @@ COSTT DP_DCE::mindeltaroot(RETUSAGE &retusage)
 }
 
 
-COSTT DP_DCE::_delta(SPID g, SPID n) {
+COSTT DP_DCE::_delta(NODEID g, NODEID n) {
 	size_t nidx = naddr(n);
 	size_t idx = g + nidx;
 
@@ -118,8 +118,8 @@ COSTT DP_DCE::_delta(SPID g, SPID n) {
 	if (computed[idx]&DELTA) return delta[idx];
 
 
-	SPID lft = genetree.leftchild[g];
-	SPID rgh = genetree.rightchild[g];
+	NODEID lft = genetree.leftchild[g];
+	NODEID rgh = genetree.rightchild[g];
 	COSTT resL = _deltaup1(lft, n);
 	COSTT resR = _deltaup1(rgh, n);;
 
@@ -133,11 +133,10 @@ COSTT DP_DCE::_delta(SPID g, SPID n) {
 		delta[idx] = resL + resR;
 	}
 	return delta[idx];
-
 }
 
 
-COSTT DP_DCE::_deltaup1(SPID g, SPID n) 
+COSTT DP_DCE::_deltaup1(NODEID g, NODEID n) 
 {
 
 	size_t nidx = naddr(n);
@@ -164,8 +163,8 @@ COSTT DP_DCE::_deltaup1(SPID g, SPID n)
 	{
 		// n is a tree node with two children
 
-		SPID s0 = network.getleftchild(n);
-		SPID s1 = network.getrightchild(n);
+		NODEID s0 = network.getleftchild(n);
+		NODEID s1 = network.getrightchild(n);
 
 		int s0reticulation = (s0 >= network.rtstartid) ? 1 : 0;
 		int s1reticulation = (s1 >= network.rtstartid) ? 1 : 0;
@@ -182,7 +181,7 @@ COSTT DP_DCE::_deltaup1(SPID g, SPID n)
 		COSTT res1 = 1 - s1reticulation + du1;
 		res = min3(res, res0, res1);
 
-		SPID sc = 0;
+		NODEID sc = 0;
 		COSTT optval = 0;
 		bool has = false;
 		RETUSAGE retusagec;
@@ -212,7 +211,7 @@ COSTT DP_DCE::_deltaup1(SPID g, SPID n)
 			if (sc >= network.rtstartid)
 			{
 				// kid is a reticulation node
-				SPID rtid = sc - network.rtstartid;
+				NODEID rtid = sc - network.rtstartid;
 				// cout << ">>1 " << rtid << endl;
 				retusage = retusagec;
 				if (n == network.getparent(sc))
@@ -233,7 +232,7 @@ COSTT DP_DCE::_deltaup1(SPID g, SPID n)
 
 }
 
-COSTT DP_DCE::_deltaup0(SPID g, SPID n)
+COSTT DP_DCE::_deltaup0(NODEID g, NODEID n)
 {
 	size_t nidx = naddr(n);
 	size_t idx = g + nidx;
@@ -250,14 +249,14 @@ COSTT DP_DCE::_deltaup0(SPID g, SPID n)
 
 	if (n >= network.rtstartid) // reticulation
 	{
-		SPID sc = network.getretchild(n);
+		NODEID sc = network.getretchild(n);
 		size_t scidx = g + naddr(sc);
 		res = _deltaup0(g, sc);
 		retusage = deltaup0retusage[scidx];
 
 		if (sc >= network.rtstartid) // special new case nonTC1
 		{
-			SPID rtid = sc - network.rtstartid;
+			NODEID rtid = sc - network.rtstartid;
 			// cout << ">>2" << rtid << endl;
 			if (network.getparent(sc) == n)
 				addleftretusage( retusage, rtid );
@@ -279,8 +278,8 @@ COSTT DP_DCE::_deltaup0(SPID g, SPID n)
 
 			// s has 2 children s0 and s1
 
-			SPID s0 = network.getleftchild(n);
-			SPID s1 = network.getrightchild(n);
+			NODEID s0 = network.getleftchild(n);
+			NODEID s1 = network.getrightchild(n);
 
 			int s0reticulation  = (s0 >= network.rtstartid) ? 1 : 0;
 			int s1reticulation = (s1 >= network.rtstartid) ? 1 : 0;
@@ -312,7 +311,7 @@ COSTT DP_DCE::_deltaup0(SPID g, SPID n)
 			if (res > res01)
 			{
 
-				SPID used = 0, notused = 0;
+				NODEID used = 0, notused = 0;
 				res = res01;
 
 				if (res == res0)
@@ -330,7 +329,7 @@ COSTT DP_DCE::_deltaup0(SPID g, SPID n)
 
 				if (used)
 				{
-					SPID rtid = used - network.rtstartid;
+					NODEID rtid = used - network.rtstartid;
 					// cout << ">>3 " << rtid << " " << used << endl;
 					if (network.getparent(used) == n)
 						addleftretusage( retusage, rtid);
@@ -341,7 +340,7 @@ COSTT DP_DCE::_deltaup0(SPID g, SPID n)
 
 				if (notused)
 				{
-					SPID rtid = notused - network.rtstartid;
+					NODEID rtid = notused - network.rtstartid;
 					// cout << ">>4" << rtid << endl;
 					if (network.getparent(notused) == n)
 						addrightretusage( retusage, rtid);

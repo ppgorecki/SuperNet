@@ -8,28 +8,44 @@ void RootedTree::setspclusters(TreeClusters *gtc)
 {
     if (nn<1) return;
     gtcclusters = new GTClusterArr[nn];
-    for (SPID i=0; i<lf; i++) gtcclusters[i] = gtc->leafcluster(lab[i]);
-    for (SPID i=lf; i<nn; i++) gtcclusters[i] = NULL;
-    for (SPID i=lf; i<nn; i++) _getgtccluster(i, gtc);    
+    for (NODEID i=0; i<lf; i++) gtcclusters[i] = gtc->leafcluster(lab[i]);
+    for (NODEID i=lf; i<nn; i++) gtcclusters[i] = NULL;
+    for (NODEID i=lf; i<nn; i++) _getgtccluster(i, gtc);    
 }
 
-SPID** RootedTree::getspclusterrepr()
+NODEID** RootedTree::getspclusterrepr()
 {
 
-    SPID **res=new SPID*[nn];
+    NODEID **res=new NODEID*[nn];
 
-    for (SPID i=0; i<lf; i++) 
+    for (NODEID i=0; i<lf; i++) 
     	res[i]=spec2spcluster[lab[i]];
 
-    for (SPID i=lf; i<nn; i++) 
+    for (NODEID i=lf; i<nn; i++) 
     	res[i]=joinspclusters(res[leftchild[i]],res[rightchild[i]]);
 
     return res;
   	
 }
 
+bitcluster* RootedTree::getbitclusterrepr()
+{
+
+    bitcluster *res=new bitcluster[nn];
+
+    for (NODEID i=0; i<lf; i++) 
+        res[i]=bcsingleton[lab[i]];
+
+    for (NODEID i=lf; i<nn; i++) 
+        res[i]=UNION(res[leftchild[i]],res[rightchild[i]]);
+
+    return res;
+    
+}
+
+
 // // Set levels of nodes, i.e., the height of the subtree rooted at i
-// void RootedTree::setlevel(SPID i)
+// void RootedTree::setlevel(NODEID i)
 // {
 // 	if (i<lf) level[i] = 0;
 // 	else
@@ -49,7 +65,7 @@ string randspeciestreestr()
         cerr << "No species is defined (e.g., use -A NUM opt.)" << endl;
         exit(-1);
   }
-  SPID tr[specnames.size()];
+  NODEID tr[specnames.size()];
   for (int i = 0; i < (int)specnames.size(); i++) tr[i] = i;
   return genrandomtree(tr, specnames.size());
 }
@@ -66,7 +82,7 @@ double RootedTree::cost(RootedTree &speciestree, CostFun &cost)
     speciestree.initlca();
     speciestree.initdepth();    
 
-    SPID *lcamap = getlcamapping(speciestree);
+    NODEID *lcamap = getlcamapping(speciestree);
 
     double v = cost.compute(*this, speciestree, lcamap);
 
@@ -77,7 +93,7 @@ double RootedTree::cost(RootedTree &speciestree, CostFun &cost)
 
 }
 
-// double RootedTree::_cost(RootedTree &speciestree, SPID* lcamap, CostFun* costfunc)
+// double RootedTree::_cost(RootedTree &speciestree, NODEID* lcamap, CostFun* costfunc)
 // {
 //     double ccost = 0;
 
@@ -107,37 +123,37 @@ double RootedTree::cost(RootedTree &speciestree, CostFun &cost)
 // }
 
 
-// long RootedTree::costloss(RootedTree &speciestree, SPID *lcamap)
+// long RootedTree::costloss(RootedTree &speciestree, NODEID *lcamap)
 // {
 //     return costdeepcoalx(speciestree,lcamap)+2*costduplication(speciestree,lcamap);
 // }
 
-// long RootedTree::costrobinsonfoulds(RootedTree &speciestree, SPID *lcamap)
+// long RootedTree::costrobinsonfoulds(RootedTree &speciestree, NODEID *lcamap)
 // {
 //     //TODO
 //     cerr << "RF is not implemented yet" << endl;
 //     exit(-1);    
 // }
 
-// long RootedTree::costduplicationloss(RootedTree &speciestree, SPID *lcamap)
+// long RootedTree::costduplicationloss(RootedTree &speciestree, NODEID *lcamap)
 // {
 //   return costdeepcoalx(speciestree,lcamap)+3*costduplication(speciestree,lcamap);
 // }
 
 
-// long RootedTree::costduplication(RootedTree &speciestree, SPID *lcamap)
+// long RootedTree::costduplication(RootedTree &speciestree, NODEID *lcamap)
 // {      
 //   long s = 0;
-//   for (SPID i=lf; i<nn; i++)        
+//   for (NODEID i=lf; i<nn; i++)        
 //     if (lcamap[leftchild[i]]==lcamap[i] || lcamap[rightchild[i]]==lcamap[i]) 
 //             s++; 
 //   return s;
 // }
 
-// long RootedTree::costdeepcoalx(RootedTree &speciestree, SPID *lcamap)
+// long RootedTree::costdeepcoalx(RootedTree &speciestree, NODEID *lcamap)
 // {      
 //   long s = 0;            
-//   for (SPID i=0; i<nn; i++) 
+//   for (NODEID i=0; i<nn; i++) 
 //         if (i!=root) 
 //             s+=speciestree.depth[lcamap[i]]-speciestree.depth[lcamap[parent[i]]]-1; 
 //   return s;
@@ -145,14 +161,14 @@ double RootedTree::cost(RootedTree &speciestree, CostFun &cost)
 
 void RootedTree::inittreestr()
 {
-    depth = new SPID[nn];
+    depth = new NODEID[nn];
 #ifdef LCATAB
     lcatab = NULL;
 #endif
 }
 
 // Build caterpillar tree
-RootedTree::RootedTree(int _lf, SPID* labels, double weight): Dag(_lf,labels,weight), depthinitialized(false)
+RootedTree::RootedTree(int _lf, NODEID* labels, double weight): Dag(_lf,labels,weight), depthinitialized(false)
 {   
     inittreestr();
 }
@@ -169,7 +185,7 @@ RootedTree::RootedTree(char *s, double weight): Dag(s,weight), depthinitialized(
 
 
 // Set depth of nodes in a subtree 
-void RootedTree::_setdepth(SPID i, int dpt)
+void RootedTree::_setdepth(NODEID i, int dpt)
 {
     depth[i] = dpt;
     if (i<lf) return;
@@ -178,7 +194,7 @@ void RootedTree::_setdepth(SPID i, int dpt)
 }
 
 
-GTCluster* RootedTree::_getgtccluster(SPID n, TreeClusters *gtc)
+GTCluster* RootedTree::_getgtccluster(NODEID n, TreeClusters *gtc)
   {
     if (gtcclusters[n]) return gtcclusters[n];    
     GTCluster *r1 = _getgtccluster(leftchild[n], gtc);
@@ -195,13 +211,13 @@ void RootedTree::initdepth()
     }
 }
 
-SPID* RootedTree::getlcamapping(RootedTree &speciestree, SPID* lcamap)
+NODEID* RootedTree::getlcamapping(RootedTree &speciestree, NODEID* lcamap)
 {
     if (nn<1) return NULL;
-    if (!lcamap) lcamap = new SPID[nn];
-    for (SPID i=0; i<lf; i++) 
+    if (!lcamap) lcamap = new NODEID[nn];
+    for (NODEID i=0; i<lf; i++) 
         lcamap[i] = speciestree.findlab(lab[i]);    
-    for (SPID i=lf; i<nn; i++)
+    for (NODEID i=lf; i<nn; i++)
         lcamap[i] = speciestree.lca(lcamap[leftchild[i]], lcamap[rightchild[i]]);
     return lcamap;
 }
@@ -216,11 +232,11 @@ void RootedTree::initlca()
     {
         if (!lcatab) 
         {
-            lcatab = new SPID*[nn];
-            for (SPID i = 1; i < nn; i++) lcatab[i] = new SPID[i];
+            lcatab = new NODEID*[nn];
+            for (NODEID i = 1; i < nn; i++) lcatab[i] = new NODEID[i];
         }
-        for (SPID i = 1; i < nn; i++)
-            for (SPID j = 0; j < i; j++)
+        for (NODEID i = 1; i < nn; i++)
+            for (NODEID j = 0; j < i; j++)
                 lcatab[i][j] = _lca(i, j);
 
         lcatabinitialized = true;
@@ -231,7 +247,7 @@ void RootedTree::initlca()
 
 #ifdef LCATAB
 
-SPID RootedTree::lca(SPID a, SPID b)
+NODEID RootedTree::lca(NODEID a, NODEID b)
 {
     //cout << a << " " << b <<  " " << depth[a] << " " << depth[b] << endl;
     if (a == b) return a;
@@ -244,9 +260,9 @@ SPID RootedTree::lca(SPID a, SPID b)
 
 
 #ifdef LCATAB
-SPID RootedTree::_lca(SPID a, SPID b) 
+NODEID RootedTree::_lca(NODEID a, NODEID b) 
 #else
-SPID RootedTree::lca(SPID a, SPID b) 
+NODEID RootedTree::lca(NODEID a, NODEID b) 
 #endif
 {
     //cout << a << " " << b <<  " " << depth[a] << " " << depth[b] << endl;
@@ -263,96 +279,71 @@ SPID RootedTree::lca(SPID a, SPID b)
 }
 
 
-// Unique representation 
 
+// NODEID* RootedTree::repr2(NODEID *t)
+// {
+//     if (!t) t = new NODEID[lf*3-2];
+//     NODEID mm[nn];
+//     _setmm_repr(root, mm);
+//     int cpos = 0;
+//     _repr(t, root, cpos, mm);
+//     return t;
+// }
+
+// Unique representation 
 // Generate unique representation of a tree as a vector
 // (sorted representation)
 // If t==NULL new array will be allocated
 SPID* RootedTree::repr(SPID *t)
 {
-    if (!t) t = new SPID[lf*3-2];
+    if (!t) t = new SPID[lf*3];
     SPID mm[nn];
-    _setmm_repr(root, mm);
+    t[0]=lf*3-1;
+    t[1]=_setmm_repr(root, mm);
     int cpos = 0;
-    _repr(t, root, cpos, mm);
+    _repr(t+2, root, cpos, mm);
     return t;
 }
 
 // (sorted representation)
-
 // Used in sorted representation of tree to compute 
 // a node in a subtree with min spid
-SPID RootedTree::_setmm_repr(SPID i, SPID* mm)
+SPID RootedTree::_setmm_repr(NODEID i, SPID* mm)
 {
     if (i<lf) mm[i] = lab[i];
     else
     {
-      SPID lm = _setmm_repr(leftchild[i], mm);
-      SPID rm = _setmm_repr(rightchild[i], mm);
+      NODEID lm = _setmm_repr(leftchild[i], mm);
+      NODEID rm = _setmm_repr(rightchild[i], mm);
       mm[i] = min(lm, rm);
     }
     return mm[i];
 }
 
 // Used in sorted representation of tree
-void RootedTree::_repr(SPID *t, SPID i, int &pos, SPID* mm)
+void RootedTree::_repr(SPID *t, NODEID i, int &pos, SPID* mm)
 {
     if (i<lf)
     {
       t[pos++] = lab[i];
       return;
     }
-    t[pos++] = MAXSP; // (
+    t[pos++] = REPROPEN; // (
 
     if (mm[leftchild[i]] == mm[i])
     {
       _repr(t, leftchild[i], pos, mm);
-      t[pos - 1] = -t[pos - 1]; //,
+      // t[pos - 1] = -t[pos - 1]; //,
       _repr(t, rightchild[i], pos, mm);
     }
     else
     {
       _repr(t, rightchild[i], pos, mm);
-      t[pos - 1] = -t[pos - 1]; //,
+      // t[pos - 1] = -t[pos - 1]; //,
       _repr(t, leftchild[i], pos, mm);
     }
-    t[pos++] = MAXSP + 1; // )
+    t[pos++] = REPRCLOSE; // )
   }
-
-ostream& RootedTree::printrepr(ostream&s) 
-{
-    SPID *t = repr();
-    for (SPID i=0; i<lf*3-2; i++)
-    {
-
-        SPID c = t[i];
-        if (c<0) c=-c;        
-        if (c==MAXSP) s << "("; 
-        else if (c==MAXSP+1) s << ")";        
-        else s << specnames[c];            
-        if (t[i]<=0) s << ",";
-    }    
-    delete[] t;
-    return s;
-}
-
-// double RootedTree::odtnaivecostx(Network &network, CostFun &costfun, DISPLAYTREEID &optid)
-// {
-//     RootedTree *t = NULL;
-//     DISPLAYTREEID tid = 0;
-//     double mincost;
-//     while ((t=network.gendisplaytree(tid,t))!=NULL)       
-//     {           
-//         double ccost = cost(*t, costfunc);
-//         if (!tid || mincost>ccost) 
-//         { 
-//             mincost = ccost;
-//             optid = tid;
-//         }
-//         tid++;
-//     }
-//     return mincost;        
-// }
 
 ostream& RootedTree::printdeb(ostream&s, int gse, string tn)
 {
@@ -360,7 +351,7 @@ ostream& RootedTree::printdeb(ostream&s, int gse, string tn)
     if (depthinitialized)
     {
         s << "depth=[";
-        for (SPID i=0; i<nn; i++)
+        for (NODEID i=0; i<nn; i++)
             s << (int)depth[i] << " ";
         return s << "]";
     }

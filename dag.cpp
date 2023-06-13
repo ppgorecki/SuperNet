@@ -9,9 +9,9 @@ using namespace std;
 
 void Dag::init(int _lf, int _rt)
 {
-    if (2*_lf+2*_rt-1 >= MAXSP) 
+    if (2*_lf+2*_rt-1 >= MAXNODEID) 
     {
-      cout << "Too many nodes in a dag (lf=" << _lf << " rt=" << _rt <<"). Compile with SPLARGE or SPMED macro." << endl;
+      cout << "Too many nodes in a dag (lf=" << _lf << " rt=" << _rt <<"). Compile with SPMED macro." << endl;
       exit(-1);
     }    
 
@@ -21,20 +21,20 @@ void Dag::init(int _lf, int _rt)
 
 #define GUARD 1  
 
-    leftchild = new SPID[nn-lf+GUARD];  
+    leftchild = new NODEID[nn-lf+GUARD];  
     leftchild -= lf;
     retchild = leftchild;
 
-    rightchild = new SPID[nn - lf - rt + GUARD]; 
+    rightchild = new NODEID[nn - lf - rt + GUARD]; 
     rightchild -= lf;
     rtstartid = nn - rt;
 
-    parent = new SPID[nn+GUARD];
-    lab = new SPID[nn+GUARD];
+    parent = new NODEID[nn+GUARD];
+    lab = new NODEID[nn+GUARD];
 
     if (rt)
     {
-      retparent = new SPID[rt+GUARD];    
+      retparent = new NODEID[rt+GUARD];    
       spid2retlabel  = new string[rt+GUARD];
       retparent -= rtstartid; // shift to obtain easy adressing   
       spid2retlabel -= rtstartid;
@@ -55,28 +55,28 @@ void Dag::parse(char *s)
     Dag::init(_lf, _rt);
     int p = 0;    
 
-    SPID freeleaf = 0;
-    SPID freeint = lf;
-    SPID freeret = rtstartid; // last rt nodes are reticulations
-    SPID *_p = parent; 
+    NODEID freeleaf = 0;
+    NODEID freeint = lf;
+    NODEID freeret = rtstartid; // last rt nodes are reticulations
+    NODEID *_p = parent; 
     
-    map<string, SPID> retlabel2spid;
+    map<string, NODEID> retlabel2spid;
     root = _parse(s, p, 0, freeleaf, freeint, freeret, _p, retlabel2spid);   
-    parent[root] = MAXSP;     
+    parent[root] = MAXNODEID;     
     checkparsing(s+p); 
 }
 
 
-SPID Dag::_parse(char *s, int &p, int num, 
-    SPID &freeleaf, SPID &freeint, SPID &freeret,         
-    SPID* &parentset, map<string, SPID> &retlabel2spid)
+NODEID Dag::_parse(char *s, int &p, int num, 
+    NODEID &freeleaf, NODEID &freeint, NODEID &freeret,         
+    NODEID* &parentset, map<string, NODEID> &retlabel2spid)
 {
   char *cur = getTok(s, p, num);
  
   if (cur[0] == '(')
   {
-    SPID *parenta = parent;
-    SPID *parentb = parent;
+    NODEID *parenta = parent;
+    NODEID *parentb = parent;
 
     int a = _parse(s, p, num, freeleaf, freeint, freeret, parenta,retlabel2spid);
     char *token = getTok(s, p, num);
@@ -92,7 +92,7 @@ SPID Dag::_parse(char *s, int &p, int num,
       }
       
       string t = getstringn(cur, s + p - cur);      
-      SPID retnode; 
+      NODEID retnode; 
       if (retlabel2spid.count(t)) retnode = retlabel2spid[t];
       else retlabel2spid[t] = retnode = freeret++;             
       spid2retlabel[retnode] = t;
@@ -155,19 +155,19 @@ Dag::Dag(const char *s, double dagweight): weight(dagweight)
 }
 
 
-inline bool hrcompare(const std::pair<SPID, SPID> &p1, const std::pair<SPID, SPID> &p2)
+inline bool hrcompare(const std::pair<NODEID, NODEID> &p1, const std::pair<NODEID, NODEID> &p2)
 {
     return p1.first < p2.first;
 }
 
 
-void Dag::_dagrtreplace(SPID s, SPID d)
+void Dag::_dagrtreplace(NODEID s, NODEID d)
 {
   cout << "REPL: " << s << "->" << d << endl; 
 
-  SPID p = parent[s];
-  SPID q = retparent[s];
-  SPID c = retchild[s];
+  NODEID p = parent[s];
+  NODEID q = retparent[s];
+  NODEID c = retchild[s];
 
   if (p>=rtstartid) retchild[p]=d;
   else if (leftchild[p]==s) leftchild[p]=d;
@@ -197,10 +197,10 @@ void Dag::sortrtnodes()
   int height[nn];
   memset(height,0,sizeof(int)*nn);
   for (int i=0;i<lf;i++) height[i]=1;
-  for (SPID i=rtstartid;i<nn;i++) _height(i, height);
-  vector<pair<SPID, SPID>> ren;
+  for (NODEID i=rtstartid;i<nn;i++) _height(i, height);
+  vector<pair<NODEID, NODEID>> ren;
   int j=0;
-  for (SPID i=rtstartid; i<nn; i++)
+  for (NODEID i=rtstartid; i<nn; i++)
     ren.push_back(make_pair(height[i],i));
 
   std::sort( std::begin( ren ), std::end( ren ), hrcompare );
@@ -218,23 +218,23 @@ void Dag::sortrtnodes()
   cout << "====" << endl;
   for (int i=0; i<ren.size(); i++)
   {
-      SPID newid = ren[i].first; 
+      NODEID newid = ren[i].first; 
       cout << i+rtstartid << " " <<  ren[i].first  << " "  << "newid=" << newid << " " 
              << ren[i].second << endl;        
   }
 
   // gen rtid permutation cycles
-  SPID rtcycles[rt*2];
+  NODEID rtcycles[rt*2];
   rtcycles[0]=0; // guard
-  SPID rtc = 1;
+  NODEID rtc = 1;
   for (int i=0; i<ren.size(); i++)
   {
        if (ren[i].second==0) continue;
-       SPID start = i+rtstartid;
-       SPID next = ren[i].first;
+       NODEID start = i+rtstartid;
+       NODEID next = ren[i].first;
        if (start==next) continue; // singleton cycle
        rtcycles[rtc++] = start;       
-       SPID prev = start;
+       NODEID prev = start;
        while (start!=next)
        {
           rtcycles[rtc++]=next;
@@ -246,9 +246,9 @@ void Dag::sortrtnodes()
   }
 
 
-  // SPID *parent;  // Parent array
-  // SPID *leftchild, *rightchild; // Left and right child arrays
-  // SPID *retchild, *retparent;   
+  // NODEID *parent;  // Parent array
+  // NODEID *leftchild, *rightchild; // Left and right child arrays
+  // NODEID *retchild, *retparent;   
 
   cout << "Cycles: ";
   for (int i=0; i<rtc; i++)
@@ -260,13 +260,13 @@ void Dag::sortrtnodes()
   
 
 
-  SPID i = rtc-1;
+  NODEID i = rtc-1;
   while (i>0)
   {
     if (rtcycles[i]==0)
     { 
       i--;
-      SPID last = rtcycles[i];      
+      NODEID last = rtcycles[i];      
       _dagrtreplace(last,nn);
       i--;
       while (rtcycles[i])
@@ -278,9 +278,9 @@ void Dag::sortrtnodes()
     }
   }
     
-  //     SPID p = parent[prev];
-  //     SPID q = retparent[prev];
-  //         SPID c = retchild[prev];
+  //     NODEID p = parent[prev];
+  //     NODEID q = retparent[prev];
+  //         NODEID c = retchild[prev];
 
   //         if (rp>=rtstartid) retchild[p]=next;
   //         else if (leftchild[p]==prev) leftchild[p]=next;
@@ -294,13 +294,13 @@ void Dag::sortrtnodes()
 
 
   string _spid2retlabel[rt];
-  for (SPID oldid=rtstartid; oldid<nn; oldid++)
+  for (NODEID oldid=rtstartid; oldid<nn; oldid++)
   {
-    SPID newid = ren[oldid-rtstartid].first; 
+    NODEID newid = ren[oldid-rtstartid].first; 
     _spid2retlabel[newid-rtstartid] = spid2retlabel[oldid];
     // replace oldid by newid
   }
-  for (SPID rtid=rtstartid; rtid<nn; rtid++)
+  for (NODEID rtid=rtstartid; rtid<nn; rtid++)
   {
     spid2retlabel[rtid] = _spid2retlabel[rtid-rtstartid];    
   }
@@ -310,9 +310,9 @@ void Dag::sortrtnodes()
 
 
 
-  // SPID *parent;  // Parent array
-  // SPID *leftchild, *rightchild; // Left and right child arrays
-  // SPID *retchild, *retparent;   
+  // NODEID *parent;  // Parent array
+  // NODEID *leftchild, *rightchild; // Left and right child arrays
+  // NODEID *retchild, *retparent;   
   // // In implementation retchild == leftchild 
   // // Reticulation child and parent (only for ret. nodes)
 
@@ -325,7 +325,7 @@ void Dag::sortrtnodes()
 
 }
 
-inline int Dag::_height(SPID v, int heightarr[])
+inline int Dag::_height(NODEID v, int heightarr[])
 {
   if (v<lf) return 1;
   if (!heightarr[v]) 
@@ -343,19 +343,19 @@ inline int Dag::_height(SPID v, int heightarr[])
     
 }
 
-Dag::Dag(int _lf, SPID *labels, double dagweight) : weight(dagweight)
+Dag::Dag(int _lf, NODEID *labels, double dagweight) : weight(dagweight)
 {
   init(_lf,0);
 
   // set labels
-  for (SPID i=0; i<lf; i++) lab[i] = labels[i]; 
+  for (NODEID i=0; i<lf; i++) lab[i] = labels[i]; 
   
   if (lf>1)
     {
 
-        SPID left = 0; //left child
-        SPID in = lf;  //parent
-        for (SPID right=1; right<lf; right++) // iterate over right children
+        NODEID left = 0; //left child
+        NODEID in = lf;  //parent
+        for (NODEID right=1; right<lf; right++) // iterate over right children
         {
             leftchild[in] = left;
             rightchild[in] = right;
@@ -364,7 +364,7 @@ Dag::Dag(int _lf, SPID *labels, double dagweight) : weight(dagweight)
         }         
     }
     root = nn-1;
-    parent[root] = MAXSP;
+    parent[root] = MAXNODEID;
 
   setexactspecies();
 
@@ -372,11 +372,11 @@ Dag::Dag(int _lf, SPID *labels, double dagweight) : weight(dagweight)
 }
 
 // Find a leaf by a label
-SPID Dag::findlab(SPID slab, int stoponerr)
+NODEID Dag::findlab(NODEID slab, int stoponerr)
 {
     if (exactspecies && (slab < lf)) return slab;
       
-    for (SPID i=0; i<lf; i++)
+    for (NODEID i=0; i<lf; i++)
     	if (slab == lab[i]) 
     		return i;
 
@@ -391,16 +391,16 @@ SPID Dag::findlab(SPID slab, int stoponerr)
 
       exit(-1);
     }
-    return MAXSP;
+    return MAXNODEID;
 }
 
 // Returns true if the leaf labelling is bijective
 // TODO: optimize to attribute
 bool Dag::bijectiveleaflabelling()
 {            
-  SPID occ[specnames.size()];
+  NODEID occ[specnames.size()];
   for (size_t i=0; i<specnames.size(); i++) occ[i]=0;
-  for (SPID i=0; i<lf; i++)    
+  for (NODEID i=0; i<lf; i++)    
     if (occ[lab[i]]++ == 1) return false;
   return true;
 }
@@ -408,7 +408,7 @@ bool Dag::bijectiveleaflabelling()
 int Dag::verifychildparent()
 {
 
-   if (parent[root]!=MAXSP) { 
+   if (parent[root]!=MAXNODEID) { 
       cerr << (int)root << ": wrong parent (" << (int)parent[root] << ")of the root ";
       return 1; // wrong parent of the root
    }
@@ -416,16 +416,16 @@ int Dag::verifychildparent()
 
    if (lf==1 && nn==1) return 0; // single noded tree; OK
 
-   for (SPID i = 0; i < nn; i++ ) 
+   for (NODEID i = 0; i < nn; i++ ) 
    {
-      SPID p = parent[i];
+      NODEID p = parent[i];
 
-      if (p==MAXSP && i!=root) { 
-        cerr << (int)i << ": non-root parent is MAXSP";
+      if (p==MAXNODEID && i!=root) { 
+        cerr << (int)i << ": non-root parent is MAXNODEID";
         return 2; // incorect parent 
       }
-      if (p==MAXSP && i>=rtstartid) { 
-        cerr << (int)i << ": reticulation parent is MAXSP";
+      if (p==MAXNODEID && i>=rtstartid) { 
+        cerr << (int)i << ": reticulation parent is MAXNODEID";
         return 3; 
       }
 
@@ -452,10 +452,10 @@ int Dag::verifychildparent()
       }       
    }
 
-   for (SPID i = 0; i < nn; i++ ) 
+   for (NODEID i = 0; i < nn; i++ ) 
    {
-      SPID p = parent[i];
-      if (p==MAXSP) continue;      
+      NODEID p = parent[i];
+      if (p==MAXNODEID) continue;      
       if (p<lf) { 
         cerr << (int)i << ": parent " << (int)p << " is a leaf?";
         return 23; // Parent is a leaf?
@@ -482,11 +482,11 @@ int Dag::verifychildparent()
    }
 
    // check ret. node (ugly repetition)
-   for (SPID i = rtstartid; i < nn; i++) 
+   for (NODEID i = rtstartid; i < nn; i++) 
    {
-      SPID rp = retparent[i];
-      if (rp == MAXSP) { 
-        cerr << (int)i << ": retparent[i] is MAXSP";
+      NODEID rp = retparent[i];
+      if (rp == MAXNODEID) { 
+        cerr << (int)i << ": retparent[i] is MAXNODEID";
         return 4; // retparent is undefined
       }
       if (rp == parent[i]) { 
@@ -522,7 +522,7 @@ int Dag::verifychildparent()
 
 ostream& Dag::printdot(ostream&s, int dagnum)
 {
-    for (SPID i = 0; i < size(); i++ ) 
+    for (NODEID i = 0; i < size(); i++ ) 
     {     
 		
       s << "v" << (int)i << "x" << dagnum;
@@ -536,7 +536,7 @@ ostream& Dag::printdot(ostream&s, int dagnum)
   			s << " [label=\"" << (int)i << "\"]" << endl;  	
 		  s << endl;
 
-  		SPID iparent = MAXSP;
+  		NODEID iparent = MAXNODEID;
   		while (getparentiter(i,iparent))          
   		{
   		    s << "v" << (int)iparent << "x" << dagnum << " -> v" << (int)i << "x" << dagnum;
@@ -561,7 +561,7 @@ ostream& Dag::printdot(ostream&s, int dagnum)
 
 
 
-ostream& Dag::printsubtree(ostream&s, SPID i, SPID iparent, int level) 
+ostream& Dag::printsubtree(ostream&s, NODEID i, NODEID iparent, int level) 
 { 
 	// leaf
   if (level>nn)
@@ -583,7 +583,7 @@ ostream& Dag::printsubtree(ostream&s, SPID i, SPID iparent, int level)
 
 	s << "(";
 	bool first = true;
-	SPID ichild = MAXSP;
+	NODEID ichild = MAXNODEID;
   int childcnt=0;
 	while (getchild(i,ichild))          
 	{        
@@ -605,9 +605,9 @@ ostream& Dag::printsubtree(ostream&s, SPID i, SPID iparent, int level)
 	return s; 
 }
 
-bool Dag::getnodeiter(SPID &i)
+bool Dag::getnodeiter(NODEID &i)
 {
-  if (i==MAXSP) { 
+  if (i==MAXNODEID) { 
     i=0; 
     return true; 
   }
@@ -615,15 +615,15 @@ bool Dag::getnodeiter(SPID &i)
 }
 
 // Returns the parents; to get all parents use:
-// SPID p=MAXSP;
+// NODEID p=MAXNODEID;
 // while (getparent(i,p)) { .. p is a parent ... }
-bool Dag::getparentiter(SPID i, SPID &rparent)
+bool Dag::getparentiter(NODEID i, NODEID &rparent)
 {
-	if (rparent==MAXSP) 
+	if (rparent==MAXNODEID) 
 	{
 		// first run  		
 		rparent = parent[i];
-		return rparent!=MAXSP;  	
+		return rparent!=MAXNODEID;  	
 	}
 
 	if (rparent==parent[i])
@@ -642,14 +642,14 @@ bool Dag::getparentiter(SPID i, SPID &rparent)
 }
 
 // Returns the parents; to get all parents use:
-// SPID ichild=MAXSP;
+// NODEID ichild=MAXNODEID;
 // while (getchild(i,ichild)) { .. ichild is a child of i ... }
 
-bool Dag::getchild(SPID i, SPID &ichild)
+bool Dag::getchild(NODEID i, NODEID &ichild)
 {
 	if (i<lf) return false;
 
-	if (ichild==MAXSP) 
+	if (ichild==MAXNODEID) 
 	{
 		// first run  		
 		ichild = getleftchild(i); // also retchild[i] 
@@ -670,7 +670,7 @@ bool Dag::getchild(SPID i, SPID &ichild)
 void Dag::setexactspecies()
 {
     exactspecies = 1;
-    for (SPID i=0; i<lf; i++) 
+    for (NODEID i=0; i<lf; i++) 
     	if (lab[i] != i) 
     		{ 
     			exactspecies = 0; 
@@ -679,11 +679,11 @@ void Dag::setexactspecies()
 }
 
 ostream& Dag::printdebstats(ostream&s) 
-{
+{    
     s << " Nodes(nn)=" << (int)size() 
-      << " Leaves(lf)=" << (int)lf ;
+      << " Leaves(lf)=" << (int)lf;
     if (rt)      
-        s << " Reticulations(rt)=" << (int)rt;
+        s << " Reticulations(rt)=" << (int)rt << " rtcount()=" << rtcount(); 
     
     s << endl;
 
@@ -694,7 +694,7 @@ ostream& Dag::printdebstats(ostream&s)
     s << endl;
 
     if (rt) s << " rtstartid=" << (int)rtstartid;
-    s << " root=" << (int)root;           
+    s << " root=" << (int)getroot();           
     s << " exactspecies=" << exactspecies;
     return s;
 }
@@ -702,33 +702,33 @@ ostream& Dag::printdebstats(ostream&s)
 ostream& Dag::printdebarrays(ostream&s) 
 {
     s << " parent= "; 
-    for (SPID i=0; i<nn; i++) s << " " << (int)i << ":" << parent[i]; 
+    for (NODEID i=0; i<nn; i++) s << " " << (int)i << ":" << parent[i]; 
     s << endl;
 
     s << " leftchild= "; 
-    for (SPID i=lf; i<rtstartid; i++) s << " " << (int)i << ":" << leftchild[i]; 
+    for (NODEID i=lf; i<rtstartid; i++) s << " " << (int)i << ":" << leftchild[i]; 
     s << endl;
-
+ 
     s << " rightchild= "; 
-    for (SPID i=lf; i<rtstartid; i++) s << " " << (int)i << ":" << rightchild[i]; 
+    for (NODEID i=lf; i<rtstartid; i++) s << " " << (int)i << ":" << rightchild[i]; 
     s << endl;
 
     s << " lab= "; 
-    for (SPID i=0; i<lf; i++) s << " " << int(i) << ":" << lab[i]; 
+    for (NODEID i=0; i<lf; i++) s << " " << int(i) << ":" << lab[i]; 
     s << endl;   
 
     if (rt)
     {
       s << " retchild= "; 
-      for (SPID i=rtstartid; i<nn; i++) s << " " << (int)i << ":" << retchild[i]; 
+      for (NODEID i=rtstartid; i<nn; i++) s << " " << (int)i << ":" << retchild[i]; 
       s << endl;
 
       s << " retparent= "; 
-      for (SPID i=rtstartid; i<nn; i++) s << " " << (int)i << ":" << retparent[i]; 
+      for (NODEID i=rtstartid; i<nn; i++) s << " " << (int)i << ":" << retparent[i]; 
       s << endl;   
 
       s << " spid2retlabel= "; 
-      for (SPID i=rtstartid; i<nn; i++) s << " " << int(i) << ":" << spid2retlabel[i]; 
+      for (NODEID i=rtstartid; i<nn; i++) s << " " << int(i) << ":" << spid2retlabel[i]; 
       s << endl;   
 
 
@@ -744,11 +744,11 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
     printdebstats(s);
 
     s << endl;
-	  for (SPID i = 0; i < size(); i++ ) 
+	  for (NODEID i = 0; i < size(); i++ ) 
 	  {	  		
 	  	   	s << setiosflags(ios::left) << setw(2) << (int)i << " ";	  	   	
 	  	   		  	   	
-    		if (parent[i] == MAXSP) 
+    		if (parent[i] == MAXNODEID) 
     			s << "Root";
     		else { 
     			if (i<lf) 
@@ -759,11 +759,11 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
     			// s  << " par=" << setw(3) << (int)parent[i];
     		} 	
 
-    		SPID ic = MAXSP;            
+    		NODEID ic = MAXNODEID;            
     		while (getchild(i,ic)) 
           s << setw(0) << " c=" << (int)ic;    			                  
    		
-    		SPID ip = MAXSP;        
+    		NODEID ip = MAXNODEID;        
     		while (getparentiter(i,ip)) 
           s << setw(0) << " p=" << (int)ip;   	    	
           
@@ -796,7 +796,7 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
     // {
     //   s << "&s (";
     //   char cnt='A';
-    //   NODESLOOP if (par[i]==MAXSP)
+    //   NODESLOOP if (par[i]==MAXNODEID)
     //   {    
     //        if (cnt!='A') s << ",";          
     //        printsubtree(s,i) << " edgelab=\"" << cnt << "\"" ;
@@ -807,44 +807,44 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
     return s;
   }
 
-Dag::Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight)
+Dag::Dag(Dag *d, NODEID v, NODEID p, NODEID w, NODEID q, string retid, double dagweight)
 {
     init(d->lf,d->rt+1); 
 
-    for (SPID i=0; i<d->lf; i++) lab[i] = d->lab[i]; 
+    for (NODEID i=0; i<d->lf; i++) lab[i] = d->lab[i]; 
 
 #define CID(id)  ((id)>=d->rtstartid)?((id)+1):(id)
 
     // leaves and tree nodes - parent
-    for (SPID i=0; i<d->rtstartid; i++)            
+    for (NODEID i=0; i<d->rtstartid; i++)            
       parent[i] = CID(d->parent[i]);      
     
     // ret. nodes - parent
-    for (SPID i=d->rtstartid; i<d->nn; i++)        
+    for (NODEID i=d->rtstartid; i<d->nn; i++)        
       parent[i+1]=CID(d->parent[i]);     
 
     // children of tree nodes
-    for (SPID i=lf; i<d->rtstartid; i++)  
+    for (NODEID i=lf; i<d->rtstartid; i++)  
     {          
       leftchild[i] = CID(d->leftchild[i]);
       rightchild[i] = CID(d->rightchild[i]);
     }
 
     // children of retnodes
-    for (SPID i=d->rtstartid; i<d->nn; i++)            
+    for (NODEID i=d->rtstartid; i<d->nn; i++)            
       retchild[i+1] = CID(d->retchild[i]);
 
     // children of retnodes
-    for (SPID i=d->rtstartid; i<d->nn; i++)            
+    for (NODEID i=d->rtstartid; i<d->nn; i++)            
       retparent[i+1] = CID(d->retparent[i]);
 
     // ret labels        
-    for (SPID i=d->rtstartid; i<d->nn; i++)            
+    for (NODEID i=d->rtstartid; i<d->nn; i++)            
       spid2retlabel[i+1] = d->spid2retlabel[i];
 
     root = d->root;
 
-    parent[root] = MAXSP;
+    parent[root] = MAXNODEID;
 
     if (!retid.length())    
         retid = "#"+std::to_string(rt);
@@ -854,8 +854,8 @@ Dag::Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight)
     // new retid = nn-1 
     // new treenode id = rtstartid-1
 
-    SPID nr = nn - 1;
-    SPID nt = rtstartid - 1;
+    NODEID nr = nn - 1;
+    NODEID nt = rtstartid - 1;
 
     spid2retlabel[nr] = retid;
 
@@ -868,7 +868,7 @@ Dag::Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight)
     if (rootcase) // start node above the root
     {
       root = nt;
-      parent[root] = MAXSP;
+      parent[root] = MAXNODEID;
       parent[v] = root; 
     }
     else
@@ -924,12 +924,12 @@ Dag::Dag(const Dag &d, bool shallowcopy)
   {
     shallow = false;
     init(d.lf,d.rt);
-    memcpy ( lab, d.lab, sizeof(SPID)*lf );
-    memcpy ( parent, d.parent, sizeof(SPID)*nn );
-    memcpy ( leftchild+lf, d.leftchild+lf, sizeof(SPID)*(nn-lf) );
-    memcpy ( rightchild+lf, d.rightchild+lf, sizeof(SPID)*(nn-lf-rt) );  
+    memcpy ( lab, d.lab, sizeof(NODEID)*lf );
+    memcpy ( parent, d.parent, sizeof(NODEID)*nn );
+    memcpy ( leftchild+lf, d.leftchild+lf, sizeof(NODEID)*(nn-lf) );
+    memcpy ( rightchild+lf, d.rightchild+lf, sizeof(NODEID)*(nn-lf-rt) );  
     if (rt)
-      memcpy ( retparent+rtstartid, d.retparent+rtstartid, sizeof(SPID)*(nn-rtstartid) );
+      memcpy ( retparent+rtstartid, d.retparent+rtstartid, sizeof(NODEID)*(nn-rtstartid) );
     for (int i=rtstartid; i<nn; i++)
       spid2retlabel[i]=d.spid2retlabel[i];
   }
@@ -958,3 +958,184 @@ Dag::~Dag()
       delete[] spid2retlabel;
     }
 }
+
+
+
+// #define _DEBUG_COMPR_
+
+SPID* Dag::compressedrepr(SPID *r)
+{
+    if (!r)
+        r = new SPID(compressedreprsize());
+
+#ifdef _DEBUG_COMPR_
+      printdeb(cout,2);
+      cout << "RT=" << rtcount() << endl;
+#endif    
+
+    int rpos = 0;
+
+    r[rpos++] = lf;
+    r[rpos++] = rtcount();
+
+    NODEID stack[nn];
+    int last=0;
+
+    stack[last++] = getroot();
+
+    int speciescnt = specnames.size();
+
+    if (speciescnt+rtcount()>=MAXSPID)
+    {
+      cerr << "MAXSPID is to small to represent networks. " << speciescnt + rtcount() << endl;
+    }
+
+#define PPSTACK cout << "Stack:"; for(int i=0;i<last;i++) cout << stack[i] << " "; cout << endl;     
+
+    // compute mm's for every node
+    SPID mm[nn];
+    for (NODEID i=0; i<lf; i++) mm[i]=lab[i];
+    memset(mm+lf,MAXSPID,sizeof(SPID)*(nn-lf));
+
+    // take ret-mm's 
+    pair<NODEID,SPID> retmms[rtcount()]; // storing <reticulationnode, mm from the subtree>
+
+    int retn = 0;
+    while (last>0)
+    {
+        NODEID v = stack[--last];
+        if (v>=rtstartid)
+        {  
+          // reticulation
+          NODEID c = getretchild(v);
+          
+          if (mm[c]==MAXSPID)
+          {
+              stack[last++] = v;
+              stack[last++] = c;
+          }
+          else          
+          {
+              mm[v]=speciescnt+mm[c]; // reticulation forest id              
+              
+
+          }
+          
+          continue;
+        }
+
+        // internal
+        NODEID lc = getleftchild(v);
+        NODEID rc = getrightchild(v);
+
+        if ((mm[lc]!=MAXSPID) && (mm[rc]!=MAXSPID))
+        {
+            mm[v] = min(mm[lc],mm[rc]);
+            if ((v<=rtstartid) && (mm[v]>=speciescnt))            
+              cerr << "Warning: reticulation forest requires tree-child network (use -ot)" << endl;                            
+            continue;
+        }
+        stack[last++] = v;
+
+        if (mm[rc]==MAXSPID) stack[last++] = rc;
+        if (mm[lc]==MAXSPID) stack[last++] = lc;            
+    }
+
+
+#ifdef _DEBUG_COMPR_
+    // print mm's    
+    for (int i=0;i<nn;i++)
+    {
+      cout << "mm[" << i << "]=$" << (int)mm[i] << " ";
+      if (mm[i]<specnames.size()) 
+          cout << specnames[mm[i]]; 
+      cout << endl;
+    }    
+#endif
+
+    // aggregate mm's for reticulations
+    for(int i=0;i<rtcount();i++)   
+    {
+      retmms[i].first = i;
+      retmms[i].second = mm[getretchild(i)];
+    }
+
+    // sort ret-pairs
+    sort(retmms, retmms+rtcount(), [](const pair<NODEID,SPID> &pair1, 
+                             const pair<NODEID,SPID> &pair2){                              
+                              if(pair2.second < pair1.second) return 1;
+                              return 0;
+                        });
+    
+    // insert into the stack ret-roots (child of ret. node)
+    for(int i=0;i<rtcount();i++)         
+       stack[last++]=getretchild(retmms[i].first+rtstartid);       
+
+    // insert root    
+    stack[last++] = getroot();
+
+    // gen repr
+    while (last>0)
+    {
+      NODEID v = stack[--last];        
+#ifdef _DEBUG_COMPR_
+      cout << "Stack:" << int(v) << endl;
+#endif      
+      if (v==REPRCLOSE)
+      {
+        r[rpos++]=REPRCLOSE; 
+        continue;
+      }
+
+      if (v>=rtstartid)
+      {         
+        // reticulation
+        r[rpos++]=speciescnt + mm[getretchild(v)];
+        continue;
+      }
+      if (v<lf)
+      {
+        // leaf      
+        r[rpos++]=lab[v];
+        continue;
+      }
+
+      r[rpos++]=REPROPEN;
+      stack[last++] = REPRCLOSE;
+      SPID lc = getleftchild(v);;
+      SPID rc = getrightchild(v);
+      if (mm[lc]>mm[rc])
+      {
+        stack[last++] = lc;
+        stack[last++] = rc;
+      }
+      else
+      {
+        stack[last++] = rc;
+        stack[last++] = lc; 
+      }      
+    }
+
+
+#ifdef _DEBUG_COMPR_
+    for (int i=2;i<rpos;i++)
+    {
+      if (r[i]==REPROPEN) cout << "[";
+      else if (r[i]==REPRCLOSE) cout << "]";
+      else if (r[i]<specnames.size()) cout << specnames[r[i]];
+      else cout << (int)r[i];
+    }
+    cout << endl;
+#endif    
+
+    // cout << " " << rpos << " " << 3*lf+4*rtcount()-2 << endl;
+    // ofstream myfile;
+    // myfile.open ("g.dot");
+    // myfile << "digraph {" << endl;
+    // printdot(myfile,1);
+    // myfile << "}" << endl;
+    // myfile.close();
+  
+    return r;
+}
+

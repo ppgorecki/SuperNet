@@ -15,6 +15,8 @@
 #include "clusters.h"
 #include "dag.h"
 #include "network.h"
+#include "bitcluster.h"
+
 
 class Network;
 class CostFun;
@@ -25,23 +27,23 @@ class RootedTree: public Dag
 protected:
 
   // Set depth of nodes 
-  void _setdepth(SPID i, int dpt);
+  void _setdepth(NODEID i, int dpt);
 
 
 
   // Insert clusters of children node n into TreeClusters
-  GTCluster* _getgtccluster(SPID n, TreeClusters *gtc);
+  GTCluster* _getgtccluster(NODEID n, TreeClusters *gtc);
 
   // Used in sorted representation to compute min leaf labels
-  SPID _setmm_repr(SPID i, SPID* mm);
+  SPID _setmm_repr(NODEID i, SPID* mm);
 
 	// Used in sorted representation of tree
-	void _repr(SPID *t, SPID i, int &pos, SPID* mm);
+	void _repr(SPID *t, NODEID i, int &pos, SPID* mm);
 
 	void inittreestr();
 
 	// Variant of _cost without precomputing needed structures
-	double _cost(RootedTree &speciestree, SPID* lcamap, CostFun &costfun);
+	double _cost(RootedTree &speciestree, NODEID* lcamap, CostFun &costfun);
 
 	bool depthinitialized;
 
@@ -53,12 +55,14 @@ protected:
 
 public:
 
-	SPID *depth;
+	NODEID *depth;
 	GTCluster **gtcclusters; // node clusters
 
+	int treeid;
+
 #ifdef LCATAB
-  SPID **lcatab;  
-  SPID _lca(SPID a, SPID b);
+  NODEID **lcatab;  
+  NODEID _lca(NODEID a, NODEID b);
 #endif
 
   // Gen tree from str
@@ -67,7 +71,7 @@ public:
 	RootedTree(string s, double weight=1.0): RootedTree(strdup(s.c_str()), weight) { }
 
 	// Gen caterpillar tree from labs; cherry from the first two labels
-	RootedTree(int _lf, SPID* labels, double weight=1.0); 
+	RootedTree(int _lf, NODEID* labels, double weight=1.0); 
 
 	virtual ~RootedTree()
   	{
@@ -80,7 +84,7 @@ public:
 	// Get all clusters of nodes
 	// Now used only to compute the root cluster in quasiconsensus 
 	// TODO replace it by GTClusters
-	SPID** getspclusterrepr();
+	NODEID** getspclusterrepr();
 
 	// Compute cost using species tree
 	double cost(RootedTree &speciestree, CostFun &cost);
@@ -91,37 +95,48 @@ public:
 	
 
  //  // Compute duplication cost 
- // 	long costduplication(RootedTree &speciestree, SPID *lcamap);
+ // 	long costduplication(RootedTree &speciestree, NODEID *lcamap);
 
 	// // Compute deep-coalescence cost 
- // 	long costdeepcoalx(RootedTree &speciestree, SPID *lcamap);
+ // 	long costdeepcoalx(RootedTree &speciestree, NODEID *lcamap);
 
  // 	// Compute duplication-loss cost 
- // 	long costduplicationloss(RootedTree &speciestree, SPID *lcamap);
+ // 	long costduplicationloss(RootedTree &speciestree, NODEID *lcamap);
 
  // 	// Compute Robinson-Foulds cost 
- // 	long costrobinsonfoulds(RootedTree &speciestree, SPID *lcamap);
+ // 	long costrobinsonfoulds(RootedTree &speciestree, NODEID *lcamap);
 
  // 	// Compute loss cost 
- // 	long costloss(RootedTree &speciestree, SPID *lcamap);
+ // 	long costloss(RootedTree &speciestree, NODEID *lcamap);
   
  	// Insert clusters into Tree Clusters
  	void setspclusters(TreeClusters *gtc);
 
+ 	// all clusters 
+ 	bitcluster* getbitclusterrepr();
+
  	// Compute lca mapping to the species tree
  	// Allocates array if lcamap = NULL
-  SPID* getlcamapping(RootedTree &speciestree, SPID* lcamap = NULL);
+  NODEID* getlcamapping(RootedTree &speciestree, NODEID* lcamap = NULL);
 
   // Compute lca between nodes a and b
- 	SPID lca(SPID a, SPID b);
+ 	NODEID lca(NODEID a, NODEID b);
 
  	// Initialize lca query computations
  	void initlca();
 
- 	// Generate unique (sorted) representation of a tree as a vector
+ 	// Generate unique (sorted) representation of a tree 
   SPID* repr(SPID *t = NULL);
 
-  ostream& printrepr(ostream&s);
+  void setid(int id) { treeid = id; }
+  int getid() { return treeid; }
+ 
+  ostream& printsubtrees(ostream &s)
+  {
+  	for (NODEID i=0;i<nn;i++)
+  		printsubtree(s,i) << endl;
+  	return s;
+  }
 
   friend class Network;
 

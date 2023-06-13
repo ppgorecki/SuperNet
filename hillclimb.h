@@ -4,11 +4,10 @@
 #include "rtree.h"
 #include "network.h"
 #include "tools.h"
-#include "dagset.h"
 #include "costs.h"
 
 
-// Network neighbourhood iterator using edit operation; in situ
+// Network neighbourhood iterator using edfit operation; in situ
 // next - for accessing next neigbour of a network; returns false -> no more neighbours
 // reset - sets the current network to be the source
 class EditOp
@@ -37,9 +36,9 @@ class NNI: public EditOp
 {
 
 	int cycle;     // cycle=0 -> search for next; cycle=1,2,3 - in the rotation of curnode
-	SPID curnode;  // current (cand.) rotation node
-	SPID *ac,*bc,*cc;      // child addresses  (in leftchild/rightchild)
-	SPID *ap,*bp,*cp;   // parent addresses (in parent or retparent)  
+	NODEID curnode;  // current (cand.) rotation node
+	NODEID *ac,*bc,*cc;      // child addresses  (in leftchild/rightchild)
+	NODEID *ap,*bp,*cp;   // parent addresses (in parent or retparent)  
 
 public: 
 
@@ -52,22 +51,22 @@ public:
 class TailMove: public EditOp
 {
 
-	SPID u; // treenode
-	SPID v; // a child of unode
-	SPID s;
-	SPID t;
-	SPID p; // reversing
-	SPID q;
+	NODEID u; // treenode
+	NODEID v; // a child of unode
+	NODEID s;
+	NODEID t;
+	NODEID p; // reversing
+	NODEID q;
 	
 	bool moved;  // moved is true if the move was executed
 	bool limittotreechild;  // true - moves are limited to stay in TC class
 
 	bool *vreachable;
 
-	// SPID *ac,*bc,*cc;      // child addresses  (in leftchild/rightchild)
-	// SPID *ap,*bp,*cp;   // parent addresses (in parent or retparent)  
+	// NODEID *ac,*bc,*cc;      // child addresses  (in leftchild/rightchild)
+	// NODEID *ap,*bp,*cp;   // parent addresses (in parent or retparent)  
 
-	void move(SPID u, SPID v, SPID s, SPID t);
+	void move(NODEID u, NODEID v, NODEID s, NODEID t);
 
 public: 
 
@@ -79,65 +78,6 @@ public:
 
 };
 
-class NetworkHCStats
-{
-
-	DagSet *dagset;
-
-	double optcost;
-	long improvements;
-	double hctime;
-	double mergetime;
-	long steps; 
-	int startingnets;
-	int topnetworks; 
-
-public:
-
-	NetworkHCStats();
-	~NetworkHCStats();
-
-	void step() { steps++; }
-
-	int add(Dag &n) { 		
-		dagset->add(n);		
-		topnetworks = dagset->size();
-		return 1; 		
-	}
-
-	void setcost(double cost) { 
-		improvements++;
-		dagset->clear(); 
-		optcost = cost;
-	}
-
-	void save(string file)
-	{
-		dagset->save(file);
-	}
-	
-
-	void finalize()
-	{
-		hctime = gettime()-hctime;
-	}
-
-	void start()
-	{
-		hctime = gettime();
-	}
-
-	// Save dat file
-	void savedat(string file);
-
-	// Print stats
-	void print(bool global=false);
-
-	// Merge HC results
-	int merge(NetworkHCStats &nhc, int printstats);
-	
-
-}; 
 
 
 class HillClimb
@@ -145,19 +85,18 @@ class HillClimb
 protected:
 
 	vector<RootedTree*> &genetrees;
-	int verbose;	
 
 public:
 
 	// Initializes Gene Trees
-	HillClimb(vector<RootedTree*> &gtvec, int _verbose = 0): 
-		genetrees(gtvec), verbose(_verbose) {}
+	HillClimb(vector<RootedTree*> &gtvec): 
+		genetrees(gtvec) {}
 
 	// Executes hill climbing using edit operation
 	// Starts from net, net is modified
 	// Returns optimal cost 
 	// TODO: additional info (stats, more optimal solutions, etc.) 
-	double climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive, int runnaiveleqrt);
+	double climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive_oe, int runnaiveleqrt_t);
 
 };
 

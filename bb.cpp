@@ -9,12 +9,16 @@
 #include "dag.h"
 #include "dp.h"
 
+extern int verbosealg;
+
 // DCE via BB with naive switching
 // #define _DEBUG_DPBB_
+
 COSTT Network::mindce(
     RootedTree &genetree, 
-    int runnaiveleqrt, 
+    int runnaiveleqrt_t, 
     CostFun &costfun,
+    ODTStats &odtstats,
     BBTreeStats *bbtreestats,
     COSTT bbstartscore,
     bool bbstartscoredefined)
@@ -25,6 +29,7 @@ COSTT Network::mindce(
     COSTT dc2dce = 0;
 
     if (costfun.costtype()==COSTDEEPCOAL) dc2dce = 2*genetree.lf-2; // adjust DC to DCE
+
 
     if (bbstartscoredefined)
     {
@@ -53,15 +58,17 @@ COSTT Network::mindce(
 	cout << " displaytree-startcost:" << best_cost << endl;
 #endif	
 
-	
+    if (verbosealg>=6) 
+    { 
+        cout << " BB gid=" << genetree.getid() << " startcost=" << best_cost << endl;
+    }
 
     long branching_count = 0;
     int max_depth = 0;
     int best_depth = 0;
-    long dp_called = 0;
-    long naive_called = 0;
 
     bool bbstatsallocated = false;
+
     if (!bbtreestats) { 
         bbtreestats = new BBTreeStats(); // MEMLEAK 1
         bbstatsallocated = true;
@@ -72,7 +79,7 @@ COSTT Network::mindce(
     typedef struct {
         long nodeid;
 		ContractedNetwork *src;
-		SPID rtid;
+		NODEID rtid;
 		bool left;
 		long bbparnodeid;
         COSTT parcost;
@@ -147,13 +154,18 @@ COSTT Network::mindce(
    		q.pop();  
 
         // printf("#bestscore=%ld startscore=%ld %d\n",best_cost, bbstartscore,bbstartscoredefined);
-    
+
    		ContractedNetwork *srcc = qdata.src;
-   		SPID rtid = qdata.rtid;
+   		NODEID rtid = qdata.rtid;
    		bool left = qdata.left;
    		long bbparnodeid = qdata.bbparnodeid;
 
         // cout << qdata.nodeid << " lft=" << left << " par=" << bbparnodeid << " rt=" << qdata.rtnumber << endl;      
+
+        if (verbosealg>=6)
+        {
+            cout << " BB-main-loop parcost=" << qdata.parcost << " best=" << best_cost << endl; 
+        }
 
         // New optimization
         if (qdata.parcost>=best_cost)
@@ -161,10 +173,16 @@ COSTT Network::mindce(
           // parent lower bound is worst than the current best cost 
           // this branch cannot improve the cost
           if (bbparnodeid>=0)
+          {
+
             bbtreestats->parentcut(bbparnodeid,best_cost);
-#ifdef _DEBUG_DPBB_
-        cout << "Parent-Cut=" << qdata.parcost << " vs " << best_cost << endl;
-#endif      
+          }
+
+          if (verbosealg>=6)
+          {
+                cout << " --parent-cut=" << qdata.parcost << " vs " << best_cost << endl;
+          }
+
           continue;
         }
 
@@ -187,26 +205,35 @@ COSTT Network::mindce(
         	c->contract(retusage);        
    		}	
 
+// #define _VISNETS_
+
+
    		// run DP
+
 
 		COSTT cost;
 		bool naivecomputed = false;
 		int rtnum = c->rtcount();
 
-   		if (runnaiveleqrt>rtnum)   		
+   		if (runnaiveleqrt_t>rtnum)   		
    		{
    			                  
+            
+
    			bbnodeid = bbtreestats->start(rtnum, ALG_NAIVE, bbparnodeid);
 
    			// compute naive (exact)
-   			cost =  c->odtcostnaive(&genetree, costfun) + dc2dce;  
-   			bbtreestats->stop(bbnodeid, cost);		
-   			naive_called++;
+
+   			cost =  c->odtcostnaive(&genetree, costfun, odtstats) + dc2dce;  
+
+            if (verbosealg>=6) 
+            { 
+                cout << " --naive=" << cost << " rt=" << rtnum <<  endl;
+            }
+
+   			bbtreestats->stop(bbnodeid, cost);		   			
    			naivecomputed = true;
 
-#ifdef _DEBUG_DPBB_
-        cout << "Naive-cost=" << cost << endl;
-#endif
    		}
    		else 
    		{ 
@@ -216,19 +243,33 @@ COSTT Network::mindce(
    			// compute via DP (lower bound)
    			cost = c->approxmindceusage(genetree, retusage, costfun);
    			bbtreestats->stop(bbnodeid, cost);
-   			dp_called++;
-#ifdef _DEBUG_DPBB_
-        cout << "DP-cost=" << cost << endl;
-#endif
+
+            if (verbosealg>=6) 
+            { 
+                cout << " --dp=" << cost << endl;
+            }
+   			
+
+#ifdef _VISNETS_
+        //cout << "BBDP[" << genetree.gettid() << "] " << *c << endl;
+        cout << "BBDP[" << genetree.>getid() << "] ";
+        c->printrepr(cout) << endl;
+#endif        
+
    		}
    		
    		// If a cost for a potentially incomplete tree is higher than the one we achieved,
         // we can stop at that point
         if (cost >= best_cost)
         {
-#ifdef _DEBUG_DPBB_        	
-        	cout << " Cut branch" << endl;
-#endif
+
+            if (verbosealg>=6) 
+            { 
+                cout << " --cut branch " 
+                    << cost << ">=" << best_cost
+                    << endl;
+            }
+            
 
         	bbtreestats->costcut(bbnodeid, best_cost);
 
@@ -245,19 +286,16 @@ COSTT Network::mindce(
        	// if computed exactly - store and terminate branch
      	if (naivecomputed || !conflicted(retusage)) 
      	{
-            
-#ifdef _DEBUG_DPBB_                     
-            cout << " No-conflict: " << cost << endl;
-#endif          
-
+        
             if (cost < best_cost)
             {
-#ifdef _DEBUG_DPBB_                     
-            cout << " Best-cost update" << endl;
-#endif          
+                if (verbosealg>=6)
+                    cout << " --no-conflict & best-cost update" << cost << endl;
+
                 best_cost = cost;            
                 bbtreestats->bestupdated(bbnodeid, best_cost); 
-            }
+
+            }            
             bbtreestats->exactsolution(bbnodeid); 
             
             if (bbtreestats->visitedchild(bbparnodeid)) delete srcc;            
@@ -281,9 +319,15 @@ COSTT Network::mindce(
  		q.push({.nodeid=bbnodeid, .src=c, .rtid=rtid, .left=false, .bbparnodeid = bbnodeid, .parcost=cost, .rtnumber=rtnum-1 }); 
  		q.push({.nodeid=bbnodeid, .src=c, .rtid=rtid, .left=true, .bbparnodeid = bbnodeid, .parcost=cost, .rtnumber=rtnum-1}); 
 
+        if (verbosealg>=6)
+            cout << " --conflicted" << cost << endl;
+
         // if (left) delete srcc;
         if (bbtreestats->visitedchild(bbparnodeid)) delete srcc;            
     }
+
+
+    odtstats.addbbstats(bbtreestats->stats);
 
     if (bbstatsallocated)
         delete bbtreestats;

@@ -4,7 +4,6 @@
 #include <fstream>
 #include <queue>
 
-
 #include "bb.h"
 #include "rtree.h"
 #include "tools.h"
@@ -15,11 +14,7 @@
 
 
 long BBTreeStats::init(int rtnumber, COSTT start_cost)
-{
-	algnaivecnt = 0;
-	algdpcnt = 0;
-	algdptime = 0;
-	algnaivetime = 0;
+{	
 	minrtnumber = 100000;
 	long id = v.size();
 	v.push_back({rtnumber,BB_INIT,-1,start_cost,-1});
@@ -41,13 +36,13 @@ void BBTreeStats::stop(long id, COSTT cost)
 	v[id].stime = gettime() - v[id].stime;
 	if (v[id].type & ALG_NAIVE) 
 	{
-		algnaivecnt++;
-		algnaivetime+=v[id].stime;
+		stats.naivecnt++;
+		stats.naivetime+=v[id].stime;
 	}
 	else if (v[id].type & ALG_DP) 
 	{
-		algdpcnt++;
-		algdptime+=v[id].stime;
+		stats.dpcnt++;
+		stats.dptime+=v[id].stime;
 	}
 }
 
@@ -149,4 +144,25 @@ void BBTreeStats::savetsv()
 	// {
 
 	// }
+}
+
+
+void BBStats::add(struct BBStats &b)
+{
+	naivetime+=b.naivetime;
+	naivecnt+=b.naivecnt;
+	dptime+=b.dptime;
+	dpcnt+=b.dpcnt;
+}
+
+void BBStats::print()
+{
+	if (naivecnt)
+		cout 
+			<< " BBnaivetime:" << naivetime 
+			<< " BBnaivecnt:" << naivecnt;
+	if (dpcnt) 
+		cout 
+			<< " BBdptime:" << dptime 
+			<< " BBdpcnt:" << dpcnt;	
 }

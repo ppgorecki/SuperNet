@@ -2,14 +2,14 @@
 #include "network.h"
 #include "costs.h"
 
-#define HC_DEBUG
-
 void EditOp::init(Network *net) 
 { 
 	source = net; 
 	reset();
 }
 
+extern int verbosehccost;
+extern int verbosealg;
 
 void TailMove::reset()
 {
@@ -177,7 +177,7 @@ bool TailMove::next()
 
 		if (limittotreechild)
 		{
-			SPID rtstartid = source->rtstartid;
+			NODEID rtstartid = source->rtstartid;
 
 			// tree child conditions 3a-3c
 			if (v>=rtstartid && t>=rtstartid)
@@ -200,9 +200,9 @@ bool TailMove::next()
 			{
 				if (p >= source->lf)  // p - is a non-leaf tree node
 				{				
-					SPID pr = MAXSP;
-					SPID rc = source->rightchild[p];
-					SPID lc = source->leftchild[p];
+					NODEID pr = MAXNODEID;
+					NODEID rc = source->rightchild[p];
+					NODEID lc = source->leftchild[p];
 
 					if ((lc >= rtstartid) && (rc >= rtstartid))
 					{
@@ -217,7 +217,7 @@ bool TailMove::next()
 					if (lc >= rtstartid) pr = lc;
 					if (rc >= rtstartid) pr = rc;
 
-					if (pr != MAXSP) // ret. child is found
+					if (pr != MAXNODEID) // ret. child is found
 					{
 						if ((s!=p) || (t!=pr))
 						{
@@ -247,14 +247,14 @@ bool TailMove::next()
 	}
 }
 
-void TailMove::move(SPID un, SPID vn, SPID sn, SPID tn)
+void TailMove::move(NODEID un, NODEID vn, NODEID sn, NODEID tn)
 {
 
-	SPID pn = source->parent[un];
-	// SPID qn = source->sibling(vn); - wrong!
-	SPID qn = *(TreeNodeSiblingChildAddr(vn,un));
+	NODEID pn = source->parent[un];
+	// NODEID qn = source->sibling(vn); - wrong!
+	NODEID qn = *(TreeNodeSiblingChildAddr(vn,un));
 
-	SPID *qpar = ParentAddr(qn,un);
+	NODEID *qpar = ParentAddr(qn,un);
 	*qpar = pn; 
 
 #ifdef TAILMOVE_DEBUG
@@ -264,16 +264,16 @@ void TailMove::move(SPID un, SPID vn, SPID sn, SPID tn)
 
 	// move!
 	// disconnect u; connect p -> q
-	if (pn==MAXSP) // root	
+	if (pn==MAXNODEID) // root	
 		source->root = qn;			
 	else
 	{
-		SPID *pchild = ChildAddr(un,pn);		
+		NODEID *pchild = ChildAddr(un,pn);		
 		*pchild = qn;
 	}
 		
 	source->parent[u] = sn;
-	if (sn==MAXSP)
+	if (sn==MAXNODEID)
 	{
 		//above root move
 		source->root = un; // new root
@@ -281,8 +281,8 @@ void TailMove::move(SPID un, SPID vn, SPID sn, SPID tn)
 	}
 	else
 	{
-		SPID *schild = ChildAddr(tn,sn);
-		SPID *tpar = ParentAddr(tn,sn);
+		NODEID *schild = ChildAddr(tn,sn);
+		NODEID *tpar = ParentAddr(tn,sn);
 
 		// attach s->u->t
 		*schild = un;
@@ -290,7 +290,7 @@ void TailMove::move(SPID un, SPID vn, SPID sn, SPID tn)
 	}
 
 	// reattach u->q => u->t
-	SPID *qchild = ChildAddr(qn,un);
+	NODEID *qchild = ChildAddr(qn,un);
 	*qchild = tn;
 		
 }
@@ -306,7 +306,7 @@ bool NNI::next()
 	if (!cycle)
 	{	
 		curnode++;
-		SPID p;
+		NODEID p;
 		for (; curnode<source->rtstartid; curnode++)
 			if (source->parent[curnode]<source->rtstartid) 
 			{
@@ -345,13 +345,13 @@ bool NNI::next()
 	// 		" " << (*ap) << " " << (*bp) << " " << (*cp) << endl;
 
 	// rotate children
-	SPID d = *ac;
+	NODEID d = *ac;
 	*ac = *bc;
 	*bc = *cc;
 	*cc = d;
 
 	// rotate parent addresses
-	SPID *p = ap;
+	NODEID *p = ap;
 	ap = bp;
 	bp = cp;
 	cp = p; 
@@ -372,7 +372,7 @@ bool NNI::next()
 	return true;
 }
 
-double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive, int runnaiveleqrt)
+double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive_oe, int runnaiveleqrt_t)
 {
 
 	double starttime = gettime();
@@ -381,8 +381,12 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 	op.init(net);
 
 	// compute the first odt cost
-	// cout << " INITNET: "	 << *net << endl;
-	double optcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt);
+	double optcost = net->odtcost(genetrees, costfun, usenaive_oe, runnaiveleqrt_t, nhcstats.getodtstats());
+
+	if (verbosealg>=5 || verbosehccost>=1) 
+	{
+      cout << "   i: " << *net << " cost=" << optcost << endl;
+  }
 	
 	double curcost = optcost; 	
 	std::ofstream odtf;
@@ -390,37 +394,43 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 	nhcstats.setcost(optcost);
 	nhcstats.add(*net); // save the first network
 	
-	if ((verbose==3) && (curcost>optcost))
+	if ((verbosehccost==3) && (curcost>optcost))
+	{
 		cout << " = " << *net << " cost=" << curcost << endl;				
+	}
     
 	while (op.next())
-	{	
-		// cout << " CURNET: "	 << *net << endl;
-		double curcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt);
-		
-		 
+	{			
+		double curcost = net->odtcost(genetrees, costfun, usenaive_oe, runnaiveleqrt_t, nhcstats.getodtstats());
+			 
 		nhcstats.step();
 
-		if ((verbose==3) && (curcost>optcost))
-			cout << " < " << *net << " cost=" << curcost << endl;				
+		if ((verbosehccost==3) && (curcost>optcost))
+		{
+			cout << "   <: " << *net << " cost=" << curcost << endl;				
+		}
 		
 		if (curcost==optcost)
 		{
-			if (verbose>=2)					
-				cout << " = " << *net << " cost=" << curcost << endl;				
+			if (verbosehccost>=2)					
+			{
+				cout << "   =: " << *net << " cost=" << curcost << endl;				
+			}
 			
-			nhcstats.add(*net);	
-    
+			nhcstats.add(*net);	    
 		}
 			
 		// Yeah, new better network
 		if (curcost<optcost)
 		{
 			optcost = curcost; 						
-			if (verbose>=1)
-				cout << " > " << *net << " cost=" << optcost << endl;	
+			if (verbosehccost>=1)
+			{
+				cout << "   >: " << *net << " cost=" << optcost << endl;	
+			}
 
-			nhcstats.setcost(optcost); // new optimal; forget old   
+			// new optimal; forget old   
+			nhcstats.setcost(optcost); 
 
 			nhcstats.add(*net);					
 	
@@ -431,115 +441,12 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 
 	}
 
+	if (verbosealg>=4) 
+	{
+      cout << "HC run completed: " << *net << " cost=" << optcost << endl;
+  }
+
 
 	return optcost;
 
 }
-
-void NetworkHCStats::print(bool global)
-{
-    cout << "Cost:" << optcost    
-     << " Steps:" << steps 
-     << " Climbs:" << improvements 
-     << " TopNetworks:" << topnetworks; 
-     if (global) 
-     	cout 
-     		<< " HCruns:" << startingnets 
-     		<< " HCTime:" << hctime
-     		<< " MergeTime:" << mergetime
-     		<< endl;
-}
-
-// Merge stats. Returns 
-//    1 - new cost
-//    2 - new networks with the same cost
-//    0 - no improvement
-int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats) 
-{
-	double mtime = gettime();
-	int res = 0;
-
-  startingnets++;
-  improvements += nhc.improvements;
-  steps += nhc.steps;
-  improvements += nhc.improvements;
-  hctime += nhc.hctime;
-
-  // cout << "merge " << optcost << " " << dagset->size() << endl;
-
-  if (!dagset->size() || nhc.optcost < optcost)
-  {
-    delete dagset;
-    optcost = nhc.optcost;
-    dagset = nhc.dagset;
-    nhc.dagset = NULL;
-    if (printstats)   
-    {
-    	cout << startingnets << ". ";
-      nhc.print();    
-      cout << " NewOptCost!" << endl;             
-    }
-    res = 1;
-  }
-  else 
-  	if (nhc.optcost == optcost)
-    {      
-
-      int insnets = dagset->merge(*nhc.dagset);
-
-      if ((printstats==2  && insnets) || printstats==1)
-      {
-      	cout << startingnets << ". ";
-        nhc.print();    
-        cout << " NewNets:" << insnets << " " << "Total:" << dagset->size() << endl;
-      }
-      if (insnets) res=2;  // new opt nets.            
-
-    }
-    else 
-    	if (printstats==1)
-	    {     
-	      cout << startingnets << ". ";
-	      nhc.print();    
-	      cout << endl;
-	    }
-
-  mergetime += gettime()-mtime;
-	topnetworks = dagset->size();
-  return res; 
-   
-}
-
-
-void NetworkHCStats::savedat(string file)
-{
-    std::ofstream odtf;
-    odtf.open ( file, std::ofstream::out);
-    odtf << optcost << endl; // cost
-    odtf << (hctime + mergetime) << endl; // time
-    odtf << hctime << endl; // hill climbing time 
-    odtf << mergetime << endl; // merge time
-    odtf << topnetworks << endl; // networks
-    odtf << improvements << endl; // improvements
-    odtf << steps << endl; // steps
-    odtf << startingnets << endl; // networks merged
-    odtf.close();
-}
-
-NetworkHCStats::NetworkHCStats() 
-{ 
-    dagset = new DagSet();
-    improvements = -1; 
-    hctime = 0;
-    steps = 0;
-    startingnets = 0;
-    mergetime = 0;
-    topnetworks = 0;
-}
-
-NetworkHCStats::~NetworkHCStats()
-{ 
-    if (dagset)
-      delete dagset;
-}
-

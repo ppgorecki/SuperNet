@@ -7,23 +7,22 @@
 
 // TODO: cycles are allowed; add top. sort.
 
-
-class Dag // PG: New name: RootedDirectedGraph?
+class Dag // New name: RootedDirectedGraph?
 {
 
 protected:
 
-  // Nodes of a dag are represented using SPID numeric type (usually short int)  
-  SPID *lab;     // Leaf labels (id of species from specnames)
-  SPID *parent;  // Parent array
-  SPID *leftchild, *rightchild; // Left and right child arrays
-  SPID *retchild, *retparent;   
+  // Nodes of a dag are represented using NODEID numeric type (usually short int)  
+  NODEID *lab;     // Leaf labels (id of species from specnames)
+  NODEID *parent;  // Parent array
+  NODEID *leftchild, *rightchild; // Left and right child arrays
+  NODEID *retchild, *retparent;   
   // In implementation retchild == leftchild 
   // Reticulation child and parent (only for ret. nodes)
 
   string* spid2retlabel;        // Dict. of reticulation labels (spid -> string)
-  SPID lf, rt, nn;  // The number of leaves, reticulations and all nodes
-  SPID root, rtstartid; // root id, start id of reticulations
+  NODEID lf, rt, nn;  // The number of leaves, reticulations and all nodes
+  NODEID root, rtstartid; // root id, start id of reticulations
   
   double weight;     // Dag weight (unused)
   bool exactspecies; // True iff leaf ids == species ids
@@ -93,21 +92,21 @@ supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf
   // Parse from char*; allocates all needed arrays
   void parse(char *s);
 
-  SPID _parse(char *s, int &p, int num, SPID &freeleaf, SPID &freeint, SPID &freeret, SPID* &parentset, map<string, SPID> &retlabel2spid);
+  NODEID _parse(char *s, int &p, int num, NODEID &freeleaf, NODEID &freeint, NODEID &freeret, NODEID* &parentset, map<string, NODEID> &retlabel2spid);
 
   // allocates arrays based on lf and rf sizes
   void init(int _lf, int _rt);
 
-  void _dagrtreplace(SPID s, SPID d);
+  void _dagrtreplace(NODEID s, NODEID d);
 
   virtual ostream& printdebstats(ostream&s);
   virtual ostream& printdebarrays(ostream&s);
 
   // iso dag tests
-  inline bool _addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands, int& first, int& last);
-  bool _eqdagsbypermutations(Dag *d, SPID *isomap); 
-  bool validisomap(Dag *d, SPID *isomap);
-  bool _eqdags(Dag *d, SPID *isomap);
+  inline bool _addisomap(NODEID src, NODEID dest, Dag *d, NODEID *isomap, NODEIDPair* cands, int& first, int& last);
+  bool _eqdagsbypermutations(Dag *d, NODEID *isomap); 
+  bool validisomap(Dag *d, NODEID *isomap);
+  bool _eqdags(Dag *d, NODEID *isomap);
 
 public:
 
@@ -116,12 +115,12 @@ public:
   Dag(string s, double dagweight=1.0) : Dag(s.c_str(),dagweight) {}
 
   // Build caterpillar tree; first two leaves make cherry
-  Dag(int _lf, SPID *labels, double dagweight=1.0);
+  Dag(int _lf, NODEID *labels, double dagweight=1.0);
 
   // Make a dag by inserting new edge 
   // (v,p) --> (w,q); p,q are (ret)parents of v,w resp.
   // v may be root
-  Dag(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight=1.0);
+  Dag(Dag *d, NODEID v, NODEID p, NODEID w, NODEID q, string retid, double dagweight=1.0);
 
   // Copy constructor
   Dag(const Dag &d) : Dag(d, false) {}
@@ -133,7 +132,7 @@ public:
   
   // Find leaf with a given label
   // returns MAXSP if such a leaf does not exist
-  SPID findlab(SPID slab, int stoponerr=1);
+  NODEID findlab(NODEID slab, int stoponerr=1);
 
   // Returns true if the leaf labelling is bijective
   bool bijectiveleaflabelling();
@@ -142,57 +141,57 @@ public:
   // Sort reticulation nodes such that the first is the lowest
   void sortrtnodes();
 
-  int _height(SPID n, int heightarr[]);
+  int _height(NODEID n, int heightarr[]);
 
-  virtual SPID rtcount() { return rt; }
+  virtual NODEID rtcount() { return rt; }
 
   // Returns the parents; to get all parents use:
-  // SPID p=MAXSP;
+  // NODEID p=MAXSP;
   // while (getparentiter(i,p)) { .. p is the parent ... }
   // Double edges are colapsed
-  bool getparentiter(SPID i, SPID &rparent);
+  bool getparentiter(NODEID i, NODEID &rparent);
 
   // Returns nodes; to get all nodes use:
-  // SPID i=MAXSP;
+  // NODEID i=MAXSP;
   // while (getnodeiter(i)) { .. i is a node ... }  
-  virtual bool getnodeiter(SPID &i);
+  virtual bool getnodeiter(NODEID &i);
   
   // As above but for children
   // Double edges are colapsed
-  bool getchild(SPID i, SPID &rchild);
+  bool getchild(NODEID i, NODEID &rchild);
 
   // Print node and all edges to its parents in dot format
   ostream& printdot(ostream&s, int dagnum=0);
 
   // Print subtree rooted at i
-  ostream& printsubtree(ostream&s, SPID i, SPID iparent = MAXSP, int level = 0);
+  ostream& printsubtree(ostream&s, NODEID i, NODEID iparent = MAXSPECIES, int level = 0);
 
   // Print debug info 
   virtual ostream& printdeb(ostream&s, int gse, string tn="");
 
   // The number of nodes
-  SPID size() { return nn; }  
+  NODEID size() { return nn; }  
 
   // The number of nodes
-  SPID sizelf() { return lf; }  
+  NODEID sizelf() { return lf; }  
 
   // Sibling of u; where parent(u) is a tree node u
   // MAXSP otherwise
-  SPID sibling(SPID u) { 
-    SPID p = parent[u];
+  NODEID sibling(NODEID u) { 
+    NODEID p = parent[u];
     if (lf<=p<rtstartid) return leftchild[p]==u?rightchild[p]:leftchild[p];
-    return MAXSP;
+    return MAXSPECIES;
   }
 
   // Sibling of retnode u where w.r.t tree node retparent(u)
   // MAXSP otherwise
-  SPID retsibling(SPID u) { 
+  NODEID retsibling(NODEID u) { 
     if (u>=rtstartid)
-    {
-      SPID p = retparent[u];
+{
+      NODEID p = retparent[u];
       if (lf<=p<rtstartid) return leftchild[p]==u?rightchild[p]:leftchild[p];
     }
-    return MAXSP;
+    return MAXSPECIES;
   }
 
   friend ostream& operator<<(ostream&s, Dag &p)  { return p.print(s); }
@@ -218,6 +217,14 @@ public:
   bool eqdagstc1(Dag *d); // only tree child and class 1 testing (to be proved)
 
 
+  int compressedreprsize() { return COMPRSIZE(lf, rtcount()); } // +2 (prefix lf, rt )
+  SPID *compressedrepr(SPID *r=NULL);
+  ostream& printrepr(ostream&s = cout) 
+  {
+    SPID t[compressedreprsize()];    
+    return pprepr(compressedrepr(t),s);          
+  }
+
   bool eqdagsbypermutations(Dag *d); // brute force by permutations
 
   friend class DagSet;
@@ -225,11 +232,12 @@ public:
 
   long int getcount() { return count; }
 
-  virtual SPID getparent(SPID v) { return parent[v]; }
-  virtual SPID getleftchild(SPID v) { return leftchild[v]; }
-  virtual SPID getrightchild(SPID v) { return rightchild[v]; }
-  virtual SPID getretchild(SPID v) { return retchild[v]; }
-  virtual SPID getroot() { return root; }
+  virtual NODEID getparent(NODEID v) { return parent[v]; }
+  virtual NODEID getleftchild(NODEID v) { return leftchild[v]; }
+  virtual NODEID getrightchild(NODEID v) { return rightchild[v]; }
+  virtual NODEID getretchild(NODEID v) { return retchild[v]; }
+  virtual NODEID getroot() { return root; }
+  virtual NODEID getlabel(NODEID v) { return lab[v]; }  
   
 };
 

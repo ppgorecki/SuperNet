@@ -6,14 +6,14 @@
 
 
 // Check if internal node can be inserted into isomap
-bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands, int& first,int& last)
+bool Dag::_addisomap(NODEID src, NODEID dest, Dag *d, NODEID *isomap, NODEIDPair* cands, int& first,int& last)
 {
 
-    if (src==MAXSP && dest==MAXSP) return true;         
-    if (src==MAXSP) return false;
-    if (dest==MAXSP) return false;
+    if (src==MAXNODEID && dest==MAXNODEID) return true;         
+    if (src==MAXNODEID) return false;
+    if (dest==MAXNODEID) return false;
      
-    if (isomap[src]!=MAXSP) 
+    if (isomap[src]!=MAXNODEID) 
     {
       // already set
       if (isomap[src]==dest) return true; 
@@ -34,7 +34,7 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
     // if (src>=lf && dest<lf) return false; 
 
 
-    SPIDPair csrc[3];    
+    NODEIDPair csrc[3];    
     int lst=0;
 
 
@@ -44,7 +44,7 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
     if (src>=rtstartid)
     {
         // reticulation
-        if (isomap[retchild[src]]!=MAXSP)
+        if (isomap[retchild[src]]!=MAXNODEID)
         {
             if (isomap[retchild[src]]!=d->retchild[dest]) return false; // wrong retchild            
         }     
@@ -59,8 +59,8 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
     else if (src>=lf)
       {
         // tree node
-        SPID dl = isomap[leftchild[src]];
-        SPID dr = isomap[rightchild[src]];
+        NODEID dl = isomap[leftchild[src]];
+        NODEID dr = isomap[rightchild[src]];
 
         int tsl = rtype(leftchild[src]);
         int tsr = rtype(rightchild[src]);
@@ -72,24 +72,24 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
         bool rl = (tsr==tdl) &&  (dr==d->leftchild[dest]);
         bool rr = (tsr==tdr) &&  (dr==d->rightchild[dest]);
 
-        if (dl!=MAXSP && dr!=MAXSP)
+        if (dl!=MAXNODEID && dr!=MAXNODEID)
         {
             // two variants
             if  (!((ll && rr) || (lr && rl))) return false; 
         }
-        else if (dl!=MAXSP)
+        else if (dl!=MAXNODEID)
           {            
           
-            // dr == isomap[rightchild[src]] == MAXSP
+            // dr == isomap[rightchild[src]] == MAXNODEID
             if (ll && (tsr==tdr))
               { inscand(rightchild[src],d->rightchild[dest]); }          
             else if (lr && (tsr==tdl))
               { inscand(rightchild[src],d->leftchild[dest]); }          
             else return false;          
           } 
-        else if (dr!=MAXSP)
+        else if (dr!=MAXNODEID)
           {          
-            // isomap[leftchild[src]] == MAXSP
+            // isomap[leftchild[src]] == MAXNODEID
             if (rr && (tsl==tdl))
               { inscand(leftchild[src],d->leftchild[dest]); }          
             else if (rl && (tsl==tdr))
@@ -120,8 +120,8 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
     if (src>=rtstartid)
     {
         // ret node
-        SPID dl = isomap[parent[src]];
-        SPID dr = isomap[retparent[src]];
+        NODEID dl = isomap[parent[src]];
+        NODEID dr = isomap[retparent[src]];
 
 
         // types leaf/internal/ret
@@ -135,11 +135,11 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
         bool rl = (tsr==tdl) && (dr==d->parent[dest]);
         bool rr = (tsr==tdr) && (dr==d->retparent[dest]);        
 
-        if (dl!=MAXSP && dr!=MAXSP)
+        if (dl!=MAXNODEID && dr!=MAXNODEID)
         {
             if  (!((ll && rr) || (lr && rl))) return false; 
         }
-        else if (dl!=MAXSP)
+        else if (dl!=MAXNODEID)
           {
             if (ll && (tsr==tdr))
               { inscand(retparent[src],d->retparent[dest]); }          
@@ -147,7 +147,7 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
               { inscand(retparent[src],d->parent[dest]); }          
             else return false;          
           } 
-        else if (dr!=MAXSP)
+        else if (dr!=MAXNODEID)
           {
             if (rr && (tsl==tdl))
               { inscand(parent[ src],d->parent[dest]); }          
@@ -166,8 +166,8 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
     else 
     {
       // tree node/leaf
-      SPID pr = isomap[parent[src]];
-      if (pr!=MAXSP)
+      NODEID pr = isomap[parent[src]];
+      if (pr!=MAXNODEID)
         { if (d->parent[dest]!=pr) return false; }
       else
       {
@@ -192,25 +192,25 @@ bool Dag::_addisomap(SPID src, SPID dest, Dag *d, SPID *isomap, SPIDPair* cands,
     return true;    
 }
 
-#define ppisomap() cout << "{"; for (SPID q=0;q<nn;q++) cout << isomap[q] << " "; cout << "}" << endl;
+#define ppisomap() cout << "{"; for (NODEID q=0;q<nn;q++) cout << isomap[q] << " "; cout << "}" << endl;
 
 // only tree child and class 1 testing (to be proved)
 bool Dag::eqdagstc1(Dag *d)
 {
   if (d->lf!=lf || d->rt!=rt || d->nn!=nn) return false;
 
-  SPID isomap[nn];
-  SPIDPair cands[2*nn];
+  NODEID isomap[nn];
+  NODEIDPair cands[2*nn];
   int cfirst=0, clast=0;
 
-  for (SPID i=0; i<nn; i++) isomap[i]=MAXSP;
+  for (NODEID i=0; i<nn; i++) isomap[i]=MAXNODEID;
 
  
   // leaves
-  for (SPID i=0; i<lf; i++) 
+  for (NODEID i=0; i<lf; i++) 
     {
       isomap[i]=d->findlab(lab[i]);
-      if (isomap[i]==MAXSP) return false;    
+      if (isomap[i]==MAXNODEID) return false;    
       cands[clast][0]=parent[i];
       cands[clast++][1]=d->parent[isomap[i]];
     }
@@ -223,8 +223,8 @@ bool Dag::eqdagstc1(Dag *d)
   // inserted=0
   while (cfirst<clast)
   { 
-    SPID src = cands[cfirst][0];
-    SPID dest = cands[cfirst++][1];        
+    NODEID src = cands[cfirst][0];
+    NODEID dest = cands[cfirst++][1];        
 
     if (!_addisomap(src,dest,d,isomap,cands,cfirst,clast))   
     {
@@ -256,14 +256,14 @@ bool Dag::eqdagsbypermutations(Dag *d)
 
   if (d->lf!=lf || d->rt!=rt || d->nn!=nn) return false;
 
-  SPID isomap[nn];
-  for (SPID i=0; i<nn; i++) isomap[i]=MAXSP;  
+  NODEID isomap[nn];
+  for (NODEID i=0; i<nn; i++) isomap[i]=MAXNODEID;  
 
   // leaves
-  for (SPID i=0; i<lf; i++) 
+  for (NODEID i=0; i<lf; i++) 
     {
       isomap[i]=d->findlab(lab[i]);
-      if (isomap[i]==MAXSP) return false;          
+      if (isomap[i]==MAXNODEID) return false;          
     }
 
   isomap[root] = d->root;
@@ -278,15 +278,15 @@ bool Dag::eqdags(Dag *d, bool maplabels)
 
   if (d->lf!=lf || d->rt!=rt || d->nn!=nn) return false;
 
-  SPID isomap[nn];
-  for (SPID i=0; i<nn; i++) isomap[i]=MAXSP;  
+  NODEID isomap[nn];
+  for (NODEID i=0; i<nn; i++) isomap[i]=MAXNODEID;  
 
   // leaves
   if (maplabels)
-    for (SPID i=0; i<lf; i++) 
+    for (NODEID i=0; i<lf; i++) 
       {
         isomap[i]=d->findlab(lab[i]);
-        if (isomap[i]==MAXSP) return 0;          
+        if (isomap[i]==MAXNODEID) return 0;          
       }
 
   int _;
@@ -305,39 +305,39 @@ bool Dag::eqdags(Dag *d, bool maplabels)
 }
 
 
-bool Dag::validisomap(Dag *d, SPID *isomap)
+bool Dag::validisomap(Dag *d, NODEID *isomap)
 {
 
-  for (SPID i=lf;i<rtstartid;i++)
+  for (NODEID i=lf;i<rtstartid;i++)
   {
       //tree node
 
-      SPID di = isomap[i];      
-      if (di==MAXSP) return false; // prog error?      
-      if (parent[i]==MAXSP && d->parent[di]!=MAXSP) return false;      
-      if ((parent[i]!=MAXSP) && isomap[parent[i]]!=d->parent[di]) return false;              
+      NODEID di = isomap[i];      
+      if (di==MAXNODEID) return false; // prog error?      
+      if (parent[i]==MAXNODEID && d->parent[di]!=MAXNODEID) return false;      
+      if ((parent[i]!=MAXNODEID) && isomap[parent[i]]!=d->parent[di]) return false;              
 
-      SPID lt=isomap[leftchild[i]];
-      SPID rt=isomap[rightchild[i]];
-      SPID ld=d->leftchild[di];
-      SPID rd=d->rightchild[di];
+      NODEID lt=isomap[leftchild[i]];
+      NODEID rt=isomap[rightchild[i]];
+      NODEID ld=d->leftchild[di];
+      NODEID rd=d->rightchild[di];
       
       if (!((lt==ld && rt==rd) || (rt==ld && lt==rd))) return false;       
   }
 
 
-  for (SPID i=rtstartid;i<nn;i++)
+  for (NODEID i=rtstartid;i<nn;i++)
   {
       //tree node
-      SPID di = isomap[i];
-      if (di==MAXSP) return false; // prog error?      
+      NODEID di = isomap[i];
+      if (di==MAXNODEID) return false; // prog error?      
 
       if (isomap[retchild[i]]!=d->retchild[di]) return false;       
 
-      SPID lt=isomap[parent[i]];
-      SPID rt=isomap[retparent[i]];
-      SPID ld=d->parent[di];
-      SPID rd=d->retparent[di];
+      NODEID lt=isomap[parent[i]];
+      NODEID rt=isomap[retparent[i]];
+      NODEID ld=d->parent[di];
+      NODEID rd=d->retparent[di];
 
       if (!((lt==ld && rt==rd) || (rt==ld && lt==rd))) return false;  
   }
@@ -349,7 +349,7 @@ bool Dag::validisomap(Dag *d, SPID *isomap)
 
 
 // infer maps by permutations (costly)
-bool Dag::_eqdagsbypermutations(Dag *d, SPID *isomap)
+bool Dag::_eqdagsbypermutations(Dag *d, NODEID *isomap)
 {
 
   int pos[nn], dest[nn];
@@ -359,7 +359,7 @@ bool Dag::_eqdagsbypermutations(Dag *d, SPID *isomap)
   for (int i=0;i<nn;i++) used[i]=false;
 
   for (int i=0;i<nn;i++)  
-    if (isomap[i]==MAXSP) pos[cnt++]=i;
+    if (isomap[i]==MAXNODEID) pos[cnt++]=i;
     else used[isomap[i]]=true;
   
 
@@ -394,7 +394,7 @@ bool Dag::_eqdagsbypermutations(Dag *d, SPID *isomap)
 }
 
 // infer maps by combinations (less costly)
-bool Dag::_eqdags(Dag *d, SPID *isomap)
+bool Dag::_eqdags(Dag *d, NODEID *isomap)
 {
 
   int pos[nn], dest[nn];
@@ -404,7 +404,7 @@ bool Dag::_eqdags(Dag *d, SPID *isomap)
   for (int i=0;i<nn;i++) used[i]=false;
 
   for (int i=0;i<nn;i++)  
-    if (isomap[i]==MAXSP) pos[cnt++]=i;
+    if (isomap[i]==MAXNODEID) pos[cnt++]=i;
     else used[isomap[i]] = true;  
 
   int dcnt=0;
@@ -417,8 +417,8 @@ bool Dag::_eqdags(Dag *d, SPID *isomap)
     exit(-1);
   }
 
-  SPID candlist[nn][cnt];
-  SPID candlistsizes[nn];  
+  NODEID candlist[nn][cnt];
+  NODEID candlistsizes[nn];  
 
   int _;
   int fixed=1;
@@ -431,17 +431,17 @@ bool Dag::_eqdags(Dag *d, SPID *isomap)
   	cout << "=================" << endl;
 #endif    
   	fixed=0;
-  	SPID fixedarr[cnt];
+  	NODEID fixedarr[cnt];
 	  for (int i=0;i<cnt;i++)
 	  {
-	    SPID cur = pos[i];
-	    if (cur==MAXSP) continue;
+	    NODEID cur = pos[i];
+	    if (cur==MAXNODEID) continue;
 
 	    int s=0;
 
       // build candidates
 	    for (int j=0; j<cnt; j++)	         
-	      if (dest[j]!=MAXSP && _addisomap(cur,dest[j],d,isomap,NULL,_,_))
+	      if (dest[j]!=MAXNODEID && _addisomap(cur,dest[j],d,isomap,NULL,_,_))
 	        	candlist[cur][s++]=j;
 	    
 	    if (!s) // no candidates; non-identical dags 
@@ -460,9 +460,9 @@ bool Dag::_eqdags(Dag *d, SPID *isomap)
 #ifdef _DEBUG_ISO_        
 	    	cout <<"FIx!" << cur << "==>" << isomap[cur] << endl;
 #endif        
-	    	dest[candlist[cur][0]]=MAXSP;
+	    	dest[candlist[cur][0]]=MAXNODEID;
 	    	fixed++;
-	    	pos[i] = MAXSP; 
+	    	pos[i] = MAXNODEID; 
         left--;
 	    }
 
@@ -485,15 +485,15 @@ bool Dag::_eqdags(Dag *d, SPID *isomap)
     // find cand to 
     int v=0;
     for (;v<cnt;v++)      
-      if (pos[v]!=MAXSP) break;
+      if (pos[v]!=MAXNODEID) break;
 
-    SPID cur = pos[v];    
+    NODEID cur = pos[v];    
 
     for (int i=0;i<candlistsizes[cur];i++)
     {
 
-      SPID isomap2[nn];    
-      memcpy ( isomap2, isomap, sizeof(SPID)*nn );
+      NODEID isomap2[nn];    
+      memcpy ( isomap2, isomap, sizeof(NODEID)*nn );
       isomap2[cur] = dest[candlist[cur][i]]; // fix 
 
 #ifdef _DEBUG_ISO_

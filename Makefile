@@ -1,27 +1,67 @@
 #VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
 VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck 
 CPPFLAGS = -O3 
-CC = g++ 
-LFLAGS =  
+CC = g++ -O3
+LFLAGS = -O3
 MAKEFLAGS += -j10 # parallel
+
+.PHONY: all supnet clean_progx progx
 
 all: supnet
 
-SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp
+OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o bitcluster.o treespace.o hcstats.o odtstats.o
 
-clusters.o: clusters.h clusters.cpp tools.h
-tools.o : tools.cpp tools.h clusters.h 
-rtree.o : rtree.cpp rtree.h tools.h clusters.h dag.h
-network.o : network.cpp network.h dag.h rtree.h tools.h
-dag.o: dag.cpp dag.h tools.cpp tools.h dagset.h
-iso.o: iso.cpp dag.cpp dag.h tools.cpp tools.h
-hillclimb.o: hillclimb.h hillclimb.cpp tools.h dagset.h
-dp.o: dp.cpp network.cpp network.h rtree.h rtree.cpp
-bb.o: bb.cpp dp.cpp network.cpp network.h rtree.h rtree.cpp bbstats.cpp
-contrnet.o: contrnet.cpp contrnet.h network.h
-supnet: tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o bbstats.o
+SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp
+
+clusters.o: clusters.cpp clusters.h tools.h rtree.h dag.h network.h bb.h \
+ treespace.h bitcluster.h
+
+tools.o: tools.cpp tools.h bb.h
+
+rtree.o: rtree.cpp tools.h clusters.h rtree.h dag.h network.h bb.h \
+ treespace.h bitcluster.h costs.h
+
+network.o: network.cpp rtree.h tools.h clusters.h dag.h network.h bb.h \
+ treespace.h bitcluster.h dp.h costs.h
+
+dag.o: dag.cpp tools.h dag.h
+
+iso.o: iso.cpp tools.h dag.h
+
+hillclimb.o: hillclimb.cpp hillclimb.h rtree.h tools.h clusters.h dag.h \
+ network.h bb.h treespace.h bitcluster.h dagset.h costs.h
+
+dp.o: dp.cpp rtree.h tools.h clusters.h dag.h network.h bb.h treespace.h \
+ bitcluster.h contrnet.h dp.h
+
+
+bb.o: bb.cpp bb.h tools.h rtree.h clusters.h dag.h network.h treespace.h \
+ bitcluster.h costs.h contrnet.h dp.h
+
+contrnet.o: contrnet.h network.h dag.h tools.h bb.h rtree.h clusters.h \
+ bitcluster.h treespace.h
+
+treespace.o: treespace.cpp treespace.h bitcluster.h tools.h clusters.h \
+ rtree.h dag.h network.h bb.h
+
+supnet.o: supnet.cpp tools.h bb.h clusters.h rtree.h dag.h network.h \
+ treespace.h bitcluster.h contrnet.h hillclimb.h dagset.h costs.h
+
+supnet: $(OBJS)
 	$(CC) $(LFLAGS) -o $@ $^
 
+#supnet_dtcache: 
+#g++ -D DTCACHE -O3 -o -$@ ${SRC}
+
+clean_dtcache:
+	rm -f network.o
+supnet_dtcache: clean_dtcache $(OBJS)
+	$(MAKE) _supnet_dtcache
+_supnet_dtcache: network.o
+_supnet_dtcache: CPPFLAGS += -D DTCACHE
+_supnet_dtcache: $(OBJS) 
+	$(CC) $(LFLAGS) -o supnet_dtcache ${OBJS}
+	
 gdb: clean  
 	g++ -g -o supnet ${SRC}
 
@@ -44,7 +84,7 @@ o3: clean
 	g++ -g -O3 -o supnet ${SRC}
 	
 tgz: 
-	tar czvf supnet.tgz ${SRC} Makefile README
+	tar czvf supnet.tgz ${SRC} *.h Makefile README
 
 check-syntax:
 	gcc -o nul -S ${CHK_SOURCES}
@@ -70,6 +110,13 @@ valgrind80: gdb
 valgrind85: gdb	
 	${VALGRIND} --log-file=valgrind85.v2.q1.log supnet -G "gene_trees_45x.txt" -z 14 -O gene_trees_45_valgrind.odt -q1 -R4 -ot1 -CDC 
 
+
+valgrind45si: gdb	
+	${VALGRIND} --log-file=valgrind45si.log supnet -G "gene_trees_45si.txt" -z 14 -O gene_trees_45_valgrind.odt -q1 -R10 -ot1 -CDC  -z10
+
+
+valgrind45n: gdb	
+	${VALGRIND} --log-file=valgrind45.log supnet -G "gene_trees_45.txt" -z 14 -O gene_trees_45_valgrind.odt -q1 -R10 -ot1 -CDC  -z10
 
 profiler: 
 	g++ -Wall -pg -O3 -o supnet ${SRC}	

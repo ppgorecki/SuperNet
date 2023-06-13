@@ -36,15 +36,15 @@ public:
 
 	~DP_DCE();
 
-	inline RETUSAGE _deltaretusage(SPID g, SPID n);
+	inline RETUSAGE _deltaretusage(NODEID g, NODEID n);
 
 	COSTT mindeltaroot(RETUSAGE &retusage);
 
-	inline COSTT _delta(SPID g, SPID n);
+	inline COSTT _delta(NODEID g, NODEID n);
 		
-	inline COSTT _deltaup1(SPID g, SPID n);
+	inline COSTT _deltaup1(NODEID g, NODEID n);
 		
-	inline COSTT _deltaup0(SPID g, SPID n);
+	inline COSTT _deltaup0(NODEID g, NODEID n);
 
 };
 

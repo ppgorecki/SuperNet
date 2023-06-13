@@ -1,5 +1,4 @@
 
-
 #ifndef _CLUSTERS_H_
 #define _CLUSTERS_H_
 
@@ -12,16 +11,17 @@ class RootedTree;
 typedef struct GTCluster
 {
   GTCluster *l, *r; // child nodes composition; needed to compute lca
-  SPID type;        // >=0 species id, -1 - all species, -2 - l-r
-  SPID lcamap;      // map to species tree
-  SPID* spcluster;  // cluster
+  NODEID type;        // >=0 species id, -1 - all species, -2 - internal l-r
+  NODEID lcamap;      // map to species tree
+  NODEID* spcluster;  // cluster
   int usagecnt;     
   
-  GTCluster(GTCluster *lc, GTCluster *rc, SPID *s) : l(lc), r(rc), type(-2), lcamap(-1), spcluster(s), usagecnt(0)  
+  GTCluster(GTCluster *lc, GTCluster *rc, NODEID *s) : l(lc), r(rc), type(-2), lcamap(-1), spcluster(s), usagecnt(0)  
   { if (s[0] == 1) type = s[1]; }
 
   friend ostream& operator<<(ostream&s, GTCluster &p) {
     printspcluster(s, p.spcluster);
+    s << " #"<< p.usagecnt << " T" << p.type;
     return s;
   }
 
@@ -29,11 +29,14 @@ typedef struct GTCluster
 
 } GTCluster;
 
+/*
+ Collection of GTC clusters
+*/
 class TreeClusters
 {
   int ssize;
   int _usagecnt;  
-  map<SPID*, GTCluster*, comparespids> t;
+  map<NODEID*, GTCluster*, comparespids> t;
   
   vector<GTCluster*> internal;
   vector<GTCluster*> leaves;
@@ -45,7 +48,7 @@ public:
     _usagecnt = 0;
     // initialize singleton clusters
 
-    for (SPID i = 0; i < ssize; i++)
+    for (NODEID i = 0; i < ssize; i++)
     {
       GTCluster *gc = new GTCluster(0, 0, spec2spcluster[i]);
       t[gc->spcluster] = gc;
@@ -63,7 +66,7 @@ public:
   }
 
     
-  GTCluster* leafcluster(SPID n) 
+  GTCluster* leafcluster(NODEID n) 
   { 
     leaves[n]->usagecnt++; 
     _usagecnt++; 
@@ -77,6 +80,8 @@ public:
   void addtree(RootedTree *g);
 
   string genrootedquasiconsensus(RootedTree *preserveroottree);
+
+  friend ostream& operator<<(ostream&s, TreeClusters &c);
 
 };
 

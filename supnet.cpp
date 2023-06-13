@@ -6,7 +6,7 @@
  charged for it and provided that this copyright notice is not removed.
  *************************************************************************/
 
-const char *SUPNET="0.01";
+const char *SUPNET="0.02";
 
 #include <time.h> 
 #include <sys/time.h>
@@ -21,6 +21,8 @@ const char *SUPNET="0.01";
 #include <vector>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
+#include <queue>
 using namespace std;
 
 #include "tools.h"
@@ -31,15 +33,8 @@ using namespace std;
 #include "contrnet.h"
 #include "hillclimb.h"
 #include "costs.h"
-
-
-#include <sstream>
-#include <queue>
-
-#define VERBOSE_QUIET 1
-#define VERBOSE_CNTCOST 2
-#define VERBOSE_SMP 3
-#define VERBOSE_DETAILED 4
+#include "bitcluster.h"
+#include "treespace.h"
 
 double weightloss = 1.0;  // Unused
 double weightdup = 1.0;   // Unused
@@ -47,6 +42,8 @@ double weightdup = 1.0;   // Unused
 int gsid = GSFULL;
 char *gsdelim = NULL;
 int gspos = 0;
+int verbosehccost = 1; // 0=quiet
+int verbosealg = 3; // <4 quiet
 
 bool print_repr_inodtnaive = false;
 
@@ -100,9 +97,9 @@ void insertstr(vector<char*> &v,const char *t)
   free(y);
 }
 
-Network *addrandreticulations(int reticulationcnt, Network *n, int networktype)
+Network *addrandreticulations(int reticulationcnt_R, Network *n, int networktype)
 {      
-    for (int i=0; i<reticulationcnt; i++)
+    for (int i=0; i<reticulationcnt_R; i++)
     {
       Network *prev = n;
       n = n->addrandreticulation("",networktype);
@@ -116,7 +113,7 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networktype)
     return n;
 }
 
-Network *randnetwork(int reticulationcnt, int networktype)
+Network *randnetwork(int reticulationcnt_R, int networktype)
 {
     string r = randspeciestreestr();
     if (!r.length())
@@ -124,10 +121,10 @@ Network *randnetwork(int reticulationcnt, int networktype)
       cerr << "Cannot create initial random species tree" << endl;
       exit(-1);
     }        
-    return addrandreticulations(reticulationcnt,new Network(r),networktype);        
+    return addrandreticulations(reticulationcnt_R,new Network(r),networktype);        
 }
 
-Network *randquasiconsnetwork(int reticulationcnt, int networktype, TreeClusters *gtc, RootedTree *preserverootst)
+Network *randquasiconsnetwork(int reticulationcnt_R, int networktype, TreeClusters *gtc, RootedTree *preserverootst)
 {
     string r = gtc->genrootedquasiconsensus(preserverootst);
     if (!r.length())
@@ -136,7 +133,7 @@ Network *randquasiconsnetwork(int reticulationcnt, int networktype, TreeClusters
       exit(-1);
     }      
 
-    return addrandreticulations(reticulationcnt, new Network(r), networktype);
+    return addrandreticulations(reticulationcnt_R, new Network(r), networktype);
 }
 
 
@@ -146,7 +143,7 @@ Network *randquasiconsnetwork(int reticulationcnt, int networktype, TreeClusters
 Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, int &quasiconsensuscnt, 
   TreeClusters *gtc,
   RootedTree *preserverootst,
-  int reticulationcnt, int networktype)
+  int reticulationcnt_R, int networktype)
 {
   
   i++;
@@ -158,21 +155,21 @@ Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, in
   if (randomnetworkscnt!=0)   // with -1 infitite 
   { 
     if (randomnetworkscnt>0)  randomnetworkscnt--;             
-    return randnetwork(reticulationcnt, networktype);
+    return randnetwork(reticulationcnt_R, networktype);
   }
 
 
   if (quasiconsensuscnt!=0)  // with -1 infitite 
   { 
       if (quasiconsensuscnt>0) quasiconsensuscnt--;              
-      return randquasiconsnetwork(reticulationcnt, networktype, gtc, preserverootst);                     
+      return randquasiconsnetwork(reticulationcnt_R, networktype, gtc, preserverootst);                     
   }
 
   return NULL;
 
 }
 
-
+TreeSpace *globaltreespace;
 
 int main(int argc, char **argv) 
 {
@@ -209,8 +206,9 @@ int main(int argc, char **argv)
   int OPT_COMPAREDAGS = 0;
   int OPT_DAGSHAPES = 0;
   int OPT_UNIQUEDAGS = 0;
+  int OPT_PRINTSUBTREES = 0; // of s
   int OPT_UNIQUEDAGS_CNTS = 0;
-  char *odt = NULL;
+  char *odt_option = NULL;
 
   int OPT_PRESERVEROOT=0;
   int OPT_EDITOPERATIONTEST = 0;
@@ -225,19 +223,25 @@ int main(int argc, char **argv)
   int randomnetworkscnt = 0;
   int quasiconsensuscnt = 0;
 
-  int reticulationcnt = 0;
+  int reticulationcnt_R = 0;
   int networktype = 0;
   int improvementthreshoold = 0;  
 
-  int runnaiveleqrt = 13;  // default for DC, based on experiments
+  int runnaiveleqrt_t = 13;  // default for DC, based on experiments
+
+  bool odtlabelled = false;
 
   string odtfile = "odt.log";
+  string datfile = "odt.dat";
 
-  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:t:b:z:";
+  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:t:b:z:E:aT:v:";
   vector<char*> sgtvec, sstvec, snetvec;
 
   COSTT bbstartscore = 0;
   bool bbstartscoredefined = false;
+  float odtnaivesampling = 0.0;
+
+  bool treereprtesting = 0;
 
   
   while ((opt = getopt(argc, argv, optstring))   != -1)
@@ -253,8 +257,18 @@ int main(int argc, char **argv)
         srand((unsigned int)atoi(optarg));
         break;
 
+      case 'E':
+        odtnaivesampling = atof(optarg);
+        break;
+
+      case 'a': 
+        treereprtesting = 1;
+        break;
+
       case 'e':        
         if (strchr(optarg,'i')) OPT_PRINTINFO=1;
+        if (strchr(optarg,'a')) odtlabelled=true;
+
         if (strchr(optarg,'g')) OPT_PRINTGENE = 1;
         if (strchr(optarg,'t')) OPT_PRINTDISPLAYTREES = 1;
         if (strchr(optarg,'T')) OPT_PRINTDISPLAYTREES = 2;
@@ -263,6 +277,7 @@ int main(int argc, char **argv)
 
         if (strchr(optarg,'s')) OPT_PRINTSPECIES = 1;
         if (strchr(optarg,'S')) OPT_PRINTSPECIES = 2; // via printrepr
+        if (strchr(optarg,'_')) OPT_PRINTSUBTREES = 1;
         if (strchr(optarg,'r')) OPT_PRESERVEROOT = 1;
         if (strchr(optarg,'c')) OPT_PRINTCOST = 1; // just numbers
         if (strchr(optarg,'C')) OPT_PRINTCOST = 2; // with trees
@@ -276,9 +291,6 @@ int main(int argc, char **argv)
         if (strchr(optarg,'U')) OPT_UNIQUEDAGS_CNTS = 1;  // TODO: unified approach to rand test and generator
 
 
-        if (strchr(optarg,'N')) OPT_EDITOPERATIONTEST = 1; // nni test
-        if (strchr(optarg,'M')) OPT_EDITOPERATIONTEST = 2; // tailmove
-
         if (strchr(optarg,'R')) print_repr_inodtnaive = 1; 
 
         if (strchr(optarg,'1')) networktype = NT_CLASS1; 
@@ -289,6 +301,9 @@ int main(int argc, char **argv)
         if (strchr(optarg,'j')) OPT_BBSTATS |= 1;
         if (strchr(optarg,'J')) OPT_BBSTATS |= 2;
         if (strchr(optarg,'k')) OPT_BBSTATS |= 4;
+
+        if (strchr(optarg,'N')) OPT_EDITOPERATIONTEST = 1; // nni test
+        if (strchr(optarg,'M')) OPT_EDITOPERATIONTEST = 2; // tailmove
       
         // 
         // one net -r1 
@@ -309,11 +324,11 @@ int main(int argc, char **argv)
       break;
 
     case 'R':    
-      reticulationcnt = atoi(optarg);
+      reticulationcnt_R = atoi(optarg);
       break;
 
     case 't':    
-      runnaiveleqrt = atoi(optarg);
+      runnaiveleqrt_t = atoi(optarg);
       break;
     
     case 's':
@@ -442,9 +457,25 @@ int main(int argc, char **argv)
         odtfile = optarg;
         break;
 
-    case 'o':        
-        odt = strdup(optarg);
+    case 'T':
+        datfile = optarg;
         break;
+
+    case 'o':        
+        odt_option = strdup(optarg);
+        break;
+
+    case 'v':
+
+      // ugly
+      if (strchr(optarg,'0')) verbosehccost = verbosealg = 0;
+      if (strchr(optarg,'1')) verbosehccost = 1;
+      if (strchr(optarg,'2')) verbosehccost = 2;
+      if (strchr(optarg,'3')) verbosehccost = 3;
+      if (strchr(optarg,'4')) verbosealg = 4;
+      if (strchr(optarg,'5')) verbosealg = 5;
+      if (strchr(optarg,'6')) verbosealg = 6;
+      break;
 
     // Set cost function 
     case 'C':
@@ -474,17 +505,26 @@ int main(int argc, char **argv)
 
   for (size_t i = 0; i < sstvec.size(); i++)
   {
-    RootedTree *s = new RootedTree(sstvec[i]);
-    if (!s->bijectiveleaflabelling())
-    {
-      cerr << "Bijective leaf labelling expected in a species tree: " << *s << endl;
-      exit(-1);
-    }
-    stvec.push_back(s);
-  }
+      RootedTree *s = new RootedTree(sstvec[i]);
+      if (!s->bijectiveleaflabelling())
+      {
+        cerr << "Bijective leaf labelling expected in a species tree: " << *s << endl;
+        exit(-1);
+      }
+      stvec.push_back(s);
+  } 
 
   for (size_t i = 0; i < sgtvec.size(); i++)
-    gtvec.push_back(new RootedTree(sgtvec[i]));
+  {
+    RootedTree *gtree = new RootedTree(sgtvec[i]);
+    gtree->setid(i);
+    gtvec.push_back(gtree);
+    
+  }
+
+  globaltreespace = new TreeSpace(gtvec);
+
+
  
   for (size_t i = 0; i < snetvec.size(); i++)
   {
@@ -494,7 +534,7 @@ int main(int argc, char **argv)
       cerr << "Bijective leaf labelling expected in a network: " << *n << endl;
       exit(-1);
     }    
-    netvec.push_back(addrandreticulations(reticulationcnt,n,networktype));
+    netvec.push_back(addrandreticulations(reticulationcnt_R,n,networktype));
   }
     
   // Print species names    
@@ -514,8 +554,8 @@ int main(int argc, char **argv)
       gtc = new TreeClusters();    
       for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)    
         gtc->addtree(*gtpos);
+      // cout << *gtc;
   }
-
 
   // Gen quasi consensus trees and insert into netvec as networks 
   // Add reticulations if -R is set 
@@ -539,10 +579,12 @@ int main(int argc, char **argv)
       return -1;
     }
     
-    if (!odt) // odt generated separately
+    if (!odt_option) // odt generated separately
        for (int i = 0; i < quasiconsensuscnt; i++)      
-          netvec.push_back(randquasiconsnetwork(reticulationcnt, networktype, gtc, preserverootst));
+          netvec.push_back(randquasiconsnetwork(reticulationcnt_R, networktype, gtc, preserverootst));
   }
+
+
 
   // Random networks generated on the fly
   if (OPT_UNIQUEDAGS || OPT_UNIQUEDAGS_CNTS)
@@ -551,7 +593,7 @@ int main(int argc, char **argv)
       // get next network 
       Network *n; 
       long int i = -1;
-      while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype))!=NULL)              
+      while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt_R, networktype))!=NULL)              
          dagset.add(n);        
       
       cout << dagset;     
@@ -559,16 +601,24 @@ int main(int argc, char **argv)
       exit(0); // ignore rest opt
   }
 
-
-
   // Just printing
   if (OPT_PRINTSPECIES)
     for (stpos = stvec.begin(); stpos != stvec.end(); ++stpos)    
     {
         if (OPT_PRINTSPECIES==2)
-          (*stpos)->printrepr(cout) << endl;      
+          (*stpos)->printrepr() << endl;      
         else cout << **stpos << endl;      
     }
+
+
+
+  if (OPT_PRINTSUBTREES)
+  {
+    for (stpos = stvec.begin(); stpos != stvec.end(); ++stpos)    
+    {        
+        (*stpos)->printsubtrees(cout);              
+    }    
+  }
      
   if (OPT_PRINTGENE)
     for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
@@ -589,10 +639,10 @@ int main(int argc, char **argv)
 
   // Gen random trees and store in netvec
   // Add reticulations if -R is set 
-  if (OPT_RANDNETWORKS && !odt)
+  if (OPT_RANDNETWORKS && !odt_option)
   {      
       for (int i = 0; i < randomnetworkscnt; i++)      
-        netvec.push_back(randnetwork(reticulationcnt,networktype));              
+        netvec.push_back(randnetwork(reticulationcnt_R,networktype));              
   }     
 
   if (OPT_PRINTNETWORK)
@@ -651,11 +701,12 @@ int main(int argc, char **argv)
   if (OPT_ODTNAIVE)
   {
     DISPLAYTREEID optid;
+    ODTStats odtstats;
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
       {
         if (OPT_ODTNAIVE==2)        
           cout << **ntpos << " ";        
-        cout << (*ntpos)->odtcostnaive(gtvec, *costfun) << endl;
+        cout << (*ntpos)->odtcostnaive(gtvec, *costfun, odtstats, odtnaivesampling) << endl;
         
     }
   }
@@ -673,22 +724,23 @@ int main(int argc, char **argv)
   if (OPT_BB)
   {
       BBTreeStats bbtreestats;
+      ODTStats odtstats;
 
       for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
         for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)                        
         {
           double tm = gettime();
-          COSTT dce = (*ntpos)->mindce(**gtpos, runnaiveleqrt, *costfun, &bbtreestats, 
+          COSTT dce = (*ntpos)->mindce(**gtpos, runnaiveleqrt_t, *costfun, odtstats, &bbtreestats, 
             bbstartscore, bbstartscoredefined);               
           cout << dce - (**gtpos).sizelf()*2 - 2;
           if (OPT_BBSTATS&4) 
             cout   << " " << dce 
                    << " " << (gettime() - tm) 
                    << " " << bbtreestats.minrtnumber 
-                   << " " << bbtreestats.algnaivecnt
-                   << " " << bbtreestats.algnaivetime
-                   << " " << bbtreestats.algdpcnt
-                   << " " << bbtreestats.algdptime;
+                   << " " << bbtreestats.stats.naivecnt
+                   << " " << bbtreestats.stats.naivetime
+                   << " " << bbtreestats.stats.dpcnt
+                   << " " << bbtreestats.stats.dptime;
 
           cout << endl;
         }
@@ -698,50 +750,70 @@ int main(int argc, char **argv)
       exit(0);   
   }
   
-  // Run hill climbing
-  if (odt)
+  // ODT heuristic using HC, BB and DP
+  if (odt_option)
   {
-    DISPLAYTREEID optid;
-    int verbose = 0;
-    bool usenaive = false; 
-    if (strchr(odt,'1')) verbose = 1;
-    if (strchr(odt,'2')) verbose = 2;
-    if (strchr(odt,'3')) verbose = 3;
-    if (strchr(odt,'q')) odtfile = "";
-    if (strchr(odt,'e')) usenaive = true; // use exhaustive enumeration
+    DISPLAYTREEID optid;    
+    bool usenaive_oe = false;     
+
+    if (strchr(odt_option,'q')) 
+    {   
+        // do not generate odt/dat files
+        odtfile = ""; 
+        datfile = ""; 
+    }
+
+    if (strchr(odt_option,'e')) 
+    { 
+        // use exhaustive enumeration
+        usenaive_oe = true; 
+    }
 
     int printstats = 0;
-    if (strchr(odt,'s')) printstats=1;
-    if (strchr(odt,'S')) printstats=2;
+    if (strchr(odt_option,'s')) printstats=1;
+    if (strchr(odt_option,'S')) printstats=2;
 
-    HillClimb hc(gtvec, verbose);    
+    HillClimb hc(gtvec); 
+    
     EditOp *op; 
-    if (strchr(odt,'N')) op = new NNI();
-    else op = new TailMove(strchr(odt,'t'));        
+    if (strchr(odt_option,'N')) op = new NNI();
+    else op = new TailMove(strchr(odt_option,'t'));        
 
     NetworkHCStats *globalstats = new NetworkHCStats();
     
     long int i = -1;
     int lastimprovement=0;
+    if (verbosealg>=4) 
+        {
+            cout << "HC" << " start:"               
+              << " usenaive_oe=" << usenaive_oe
+              << " runnaiveleqrt_t=" << runnaiveleqrt_t
+              << endl;
+        }
+
     while (1)    
     {
+
         // stopping criterion
         if (improvementthreshoold && (i-lastimprovement)>improvementthreshoold) break; // stop
 
         // get next network 
-        Network *n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt, networktype);
+        Network *n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt_R, networktype);
 
-        if (!n) break;
-        
+        if (!n) break;        
+
         NetworkHCStats nhcstats;
         nhcstats.start();        
 
         // climb
-        double cost = hc.climb(*op, n, *costfun, nhcstats, usenaive, runnaiveleqrt);        
+        double cost = hc.climb(*op, n, *costfun, nhcstats, usenaive_oe, runnaiveleqrt_t);        
 
         nhcstats.finalize();
         
-        if (globalstats->merge(nhcstats, printstats)) lastimprovement=i;
+        if (globalstats->merge(nhcstats, printstats)) 
+        {
+            lastimprovement=i;
+        }
           
         delete n; 
 
@@ -756,17 +828,16 @@ int main(int argc, char **argv)
     {
 
       // save odt file
-      globalstats->save(odtfile);
-
-      //write dat file
-      string odtfiledat = odtfile.substr(0,odtfile.find_last_of('.'))+".dat";
-      globalstats->savedat(odtfiledat); 
+      globalstats->save(odtfile);      
+      
+      // save dat file
+      globalstats->savedat(datfile, odtlabelled); 
      
 
-      if (verbose>=1)
+      if (verbosealg>=4)
       {
         cout << "Optimal networks saved: " << odtfile << endl;  
-        cout << "Stats data save to: " << odtfiledat << endl;
+        cout << "Stats data save to: " << datfile << endl;
       }
     }
 
@@ -785,10 +856,29 @@ int main(int argc, char **argv)
         {
           if (OPT_PRINTDISPLAYTREES==2)
             cout << tid << " ";
-          t->printrepr(cout) << endl;       
+          t->printrepr() << endl;       
           tid++;      
         }
     }
+  }
+
+  if (treereprtesting)
+  {
+
+    for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)    
+    {
+        DISPLAYTREEID tid = 0;
+        Network *n = *ntpos;
+        SNode *t = NULL;
+        cout << *n << endl;     
+        while ((t=n->gendisplaytree2(tid, t, globaltreespace))!=NULL)   
+        {
+          //cout << tid << " <<";          
+          ppSNode(cout, t) << endl;
+          tid++;      
+        }
+    }
+
   }
 
   if (OPT_COMPAREDAGS)
@@ -902,8 +992,8 @@ int main(int argc, char **argv)
            cerr << "Cannot create initial random species tree" << endl;
            exit(-1);
         }        
-        Network *n1 = addrandreticulations(reticulationcnt,new Network(r1),networktype);
-        Network *n2 = addrandreticulations(reticulationcnt,new Network(r2),networktype);
+        Network *n1 = addrandreticulations(reticulationcnt_R,new Network(r1),networktype);
+        Network *n2 = addrandreticulations(reticulationcnt_R,new Network(r2),networktype);
 
         e1 = n1->eqdags(n2);                              
         e2 = n1->eqdagsbypermutations(n2);            
@@ -1005,7 +1095,7 @@ int main(int argc, char **argv)
       }
   }
 
-
+  // clustergraphtester();
   
   // Cleaning
 

@@ -5,34 +5,51 @@
  *      Author: gorecki
  */
 
+// #define _VISNETS_
+
 #ifndef TOOLS_H_
 #define TOOLS_H_
 
+#include <fstream>
+using namespace std;
+
 typedef long COSTT;
+
+unsigned long get_memory_size();
+
 #define INFTY 1000000
 
+#ifndef MAXSPECIES
+  #define MAXSPECIES 64    
+  #define MAXSPID 255
+#endif
+
+#if MAXSPECIES<=253
+  #define SPID unsigned char
+#elif 
+  #define SPID unsigned short int
+#endif
+
+#define REPRCLOSE (MAXSPID-2)
+#define REPROPEN (MAXSPID-1)
+
+#if !defined(SPSMALL) && !defined(SPMED) 
 #define SPMED
-//#define SPSMALL
+#endif
 
 #ifdef SPSMALL
-#define SPID char
-#define MAXSP 126
+#define NODEID char
+#define MAXNODEID 255
 #endif
 
 #ifdef SPMED
-#define SPID short
-#define MAXSP 32760
+#define NODEID short
+#define MAXNODEID 32000
 #endif
 
-#ifdef SPLARGE
-#define SPID int
-#define MAXSP 1000000
-#endif
+typedef NODEID *NODEIDARR;
 
-
-typedef SPID *SPIDARR;
-
-typedef SPID SPIDPair[2];
+typedef NODEID NODEIDPair[2];
 
 #define GSFULL 0
 #define GSPOS 1
@@ -53,18 +70,19 @@ using namespace std;
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <random>
 
 extern vector<string> specnames;
 extern vector<int> specorder;
 extern map<string, int> specnames2id;
-extern map<SPID, SPID*> spec2spcluster;
+extern map<NODEID, NODEID*> spec2spcluster;
 extern int rsort; // Important in nni - used to generated unique r|u species trees
 extern int gcenter; // Useful for drawing gene trees
 extern int costfromroot;
 extern int printleaves;
 extern int stprogress; // Print progress for species trees
 extern int ppgraphviz; // Print graphviz output
-extern SPID topspcluster[2];
+extern NODEID topspcluster[2];
 string getstringn(char *s, int len);
 
 // Count occurences of c in s
@@ -74,11 +92,11 @@ int strcount(char *s, char c);
 
 #define tostr(x) dynamic_cast< std::ostringstream & >(( std::ostringstream() << std::dec << x ) ).str()
 
-string genrandomtree(SPID *sp, int len);
+string genrandomtree(NODEID *sp, int len);
 
-SPID* joinspclusters(SPID* a, SPID* b, SPID *dest=NULL);
-SPID* spidcopy(SPID* a, int size);
-void printspcluster(ostream&s, SPID *a);
+NODEID* joinspclusters(NODEID* a, NODEID* b, NODEID *dest=NULL);
+NODEID* spidcopy(NODEID* a, int size);
+void printspcluster(ostream&s, NODEID *a);
 
 void initlinenuminfo(char *);
 void printlinepos();
@@ -92,42 +110,46 @@ char *mstrndup(const char *s, size_t n);
 char* getTok(char *s, int &p, int num);
 int getspecies(char *s, int len);
 
-void randomizearr(SPID*, int);
+void randomizearr(NODEID*, int);
 
 int usage(int argc, char **argv);
 
-int eqspclusters(SPID *a, SPID *b);
-bool spsubseteq(SPID *a, SPID *b);
+int eqspclusters(NODEID *a, NODEID *b);
+bool spsubseteq(NODEID *a, NODEID *b);
 
 void cleanspecies();
 
 double gettime();
 
+int ppreprsingle(SPID *t, ostream&s = cout); 
+ostream& pprepr(SPID *t, ostream&s = cout);
+
 struct comparespids
 {
-  bool operator()(const SPID* a, const SPID* b) const
-{
+  bool operator()(const NODEID* a, const NODEID* b) const
+  {  
       int i = 1, al = a[0] + 1, bl = b[0] + 1;
 
-      if (al<bl) { //cout << "Tx";
-  return true; }
-      if (al>bl) { //cout << "Fx";
-  return false; }
-    for ( ; i < al; i++ ) {
-      if (a[i] < b[i]) { //cout << "T";
-  return true;}
-      if (a[i] > b[i]) { //cout << "F";
-  return false; }
-    }
-      //    cout <<"F";
-    return false;
-  
+      if (al<bl) { return true; }
+      if (al>bl) { return false; }
+      for ( ; i < al; i++ ) {
+      if (a[i] < b[i]) { 
+        return true;
+      }
+      if (a[i] > b[i]) { 
+        return false; }
+      }      
+      return false;  
   }
 };
 
 
+void shuffle(NODEID *a, size_t n);
 
-void shuffle(SPID *a, size_t n);
 
+
+uint64_t rand64(void);
+
+#define COMPRSIZE(LF,RT) (3*(LF)+4*(RT))
 
 #endif /* TOOLS_H_ */

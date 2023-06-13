@@ -1,5 +1,4 @@
 
-
 /************************************************************************
  SuperNetwork Inference - based on FastUrec project
 
@@ -19,33 +18,32 @@ using namespace std;
 vector<string> specnames;
 vector<int> specorder;
 map<string, int> specnames2id;
-map<SPID, SPID*> spec2spcluster;
+map<NODEID, NODEID*> spec2spcluster;
 
 int linenum = 0;
 int charnum = 0;
 char *inputfilename = (char*)NULL;
 
-
-void printspcluster(ostream&s, SPID *a) {
+void printspcluster(ostream&s, NODEID *a) {
   s << a[0] << ":";
   for (int i = 1; i <= a[0]; i++) s << a[i] << " ";
 }
 
-SPID topspcluster[2] = {0, 0};
+NODEID topspcluster[2] = {0, 0};
  
 // Join two sets of species
 // Each set is an array where the first item (at index 0) is the size of the set
 // Species ids are sorted
 // Special case: topspcluster where all species names are present
 
-SPID* joinspclusters(SPID* a, SPID* b, SPID *dest)
+NODEID* joinspclusters(NODEID* a, NODEID* b, NODEID *dest)
 {
   if (!a[0]) return a; // topcluster
   if (!b[0]) return b; // topcluster
 
   int as = a[0], bs = b[0], cs = 1;  
   
-  SPID r[as+bs+1];
+  NODEID r[as+bs+1];
 
   int i = 1, j = 1;
 
@@ -63,8 +61,8 @@ SPID* joinspclusters(SPID* a, SPID* b, SPID *dest)
   if (cs - 1 == specnames.size())  // all species -> topcluster   
     return topspcluster;
 
-  SPID *rx = dest;
-  if (!dest) rx = new SPID[cs];
+  NODEID *rx = dest;
+  if (!dest) rx = new NODEID[cs];
 
   for (i=1; i<cs; i++) rx[i] = r[i];
   rx[0] = cs - 1;  // store size
@@ -73,7 +71,7 @@ SPID* joinspclusters(SPID* a, SPID* b, SPID *dest)
 }
 
 
-bool spsubseteq(SPID *a, SPID *b)
+bool spsubseteq(NODEID *a, NODEID *b)
 {
   if (b==topspcluster) return 1;
   if (a==topspcluster) return b==topspcluster;
@@ -98,9 +96,9 @@ void initlinenuminfo(char *fname)
   inputfilename = fname;
 }
 
-SPID* spidcopy(SPID* a, int size)
+NODEID* spidcopy(NODEID* a, int size)
 {
-  SPID *res = new SPID[size];
+  NODEID *res = new NODEID[size];
   for (int i = 0; i < size; i++) res[i] = a[i];
   return res;
 }
@@ -195,7 +193,7 @@ int getspecies(char *_s, int len)
   specnames2id[s] = num = specnames.size();
   specorder.push_back(num);
   specnames.push_back(s);    
-  SPID* speccluster = new SPID[2];
+  NODEID* speccluster = new NODEID[2];
   speccluster[0] = 1;
   speccluster[1] = num;
   spec2spcluster[num] = speccluster;
@@ -206,7 +204,7 @@ int getspecies(char *_s, int len)
 void cleanspecies()
 {
     int i;
-    for (SPID i = 0; i < specnames.size(); i++)
+    for (NODEID i = 0; i < specnames.size(); i++)
       delete[] spec2spcluster[i];
 }
 
@@ -223,7 +221,7 @@ char *mstrndup(const char *s, size_t n)
 }
 
 
-void randomizearr(SPID *t, int size)
+void randomizearr(NODEID *t, int size)
 {
   for (int i = 0; i < size; i++)
   {
@@ -291,6 +289,7 @@ int usage(int argc, char **argv) {
        "  -v NUM - verbose level 1 (print the name of outputfile only),\n"
        "       2 (simple output), 3 (detailed output)\n"       
        "  -z SEED - set seed for random generator (srand)\n"       
+       "  -E float - set odtnaive sampling (exponential distribution)\n"       
        "  -e [gsrD...]+ - multiple options:\n"
        "     g - print a gene tree\n"
        "     s - print a species tree\n"
@@ -313,6 +312,7 @@ int usage(int argc, char **argv) {
        "     x - two networks are equal if their shapes are isomorphic in u,U,p (i.e., ignore leaf labels)\n"
        "     L - for each v in V(N), print the number of nodes reachable from v (only from networks)\n"
        "     l - for each v in V(N), print the number of leaves reachable from v (only from networks)\n"       
+       "     a - odtdatfile in labelled format\n"
        "\n"               
        "COST SETTING OPTIONS\n"
        // " TODO: -D dupweight  - set weight of gene duplications (def. 1.0)\n"
@@ -329,6 +329,16 @@ int usage(int argc, char **argv) {
 
        "\n"
 
+       "Verbose option -v [123][34]:\n"
+       "       1 - in HC print visited network after each improvement (strictly)\n"
+       "       2 - in HC print visited networks if the cost is equal to the current or improved\n"
+       "       3 - in HC print all visited networks\n"
+       "       4 - in HC,BB,ODT print basic info\n"
+       "       5 - in HC,BB,ODT print more detailed info\n"
+       
+       "\n"
+       "\n"
+
        "ODT HEURISTIC SEARCH\n"
 
        "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file; summary stats are saved to odt.dat (opt cost, total time in sec., time of hill climbing, time of merge step, number of networks, improvements, steps and the number of starting networks)\n"
@@ -336,9 +346,6 @@ int usage(int argc, char **argv) {
        "       T - use TailMoves (default)\n"
        "       N - use NNI instead of TailMoves\n"      
        "       t - TailMoves limited to tree-child (with 3a-3c conditions)\n"
-       "       1 - print visited network after each improvement (strictly)\n"
-       "       2 - print visited networks if the cost is equal to the current or improved\n"
-       "       3 - print all visited networks\n"
        "       S - print stats after locating optimal networks after each HC runs\n"
        "       s - print extended stats after each HC run\n"
        "       q - do not save odt.log (and odt.dat) with optimal networks\n"
@@ -347,8 +354,9 @@ int usage(int argc, char **argv) {
        "  -K NUM - stopping criterion: stop when there is no new network after NUM HC runs\n"
 
        "\n"
-       "  -O ODTFILE - change the name of odt.log and odt.dat files\n"
-              
+       "  -O ODTFILE - the name of odt.log \n"
+       "  -D DATFILE - the name of odt.dat; see also -ea \n"
+                        
        "\n"
        // "*Starting tree options:\n"
        // "  -q NUM - generate NUM quasi-consensus trees sampled from gene tree clusters;\n"
@@ -451,15 +459,14 @@ int usage(int argc, char **argv) {
 
        ;
 
-
-       
+   
 
   exit(-1);
 }
 
 
 // return random tree string from given vector of species
-string genrandomtree(SPID *sp, int len)
+string genrandomtree(NODEID *sp, int len)
 {
   vector<string> v;
   int i;
@@ -493,7 +500,7 @@ int strcount(char *s, char c)
 }
 
 
-void shuffle(SPID *a, size_t n)
+void shuffle(NODEID *a, size_t n)
 {
     if (n > 1) 
     {
@@ -501,9 +508,122 @@ void shuffle(SPID *a, size_t n)
         for (i = 0; i < n - 1; i++) 
         {
           size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
-          SPID t = a[j];
+          NODEID t = a[j];
           a[j] = a[i];
           a[i] = t;
         }
     }
 }
+
+
+//  repr:
+// 0 - lf
+// 1 - rt
+// rest: tree rt+1 encodings
+
+ostream& pprepr(SPID *t, ostream&s) 
+{
+  int lf = t[0];
+  int rt = t[1];
+  // cout << "[[[";
+  // for (int i=2; i<COMPRSIZE(lf,rt); i++)
+  //   {
+  //     cout << (int)t[i]  << ".";
+  //   }
+  // cout << "]]]" << endl;
+  int lst=2;
+  for (int i=0; i<=rt; i++)
+    lst += ppreprsingle(t+lst, s);
+  
+  return s;
+}
+
+
+int ppreprsingle(SPID *t, ostream&s) 
+{
+    SPID prev = REPROPEN;
+    int i = 0;
+    int open = 0;
+    int speciescnt = specnames.size(); 
+
+    while(1)
+    {
+        SPID c = t[i];        
+        if (c==REPROPEN) 
+        { 
+          open++;
+          if (prev!=REPROPEN && prev!=MAXSPECIES) s << ",";
+          s << "("; 
+        }
+        else if (c==REPRCLOSE) { 
+          s << ")";       
+          open--;
+        }
+        else { 
+          if (prev!=REPROPEN) s << ",";
+          if (c<specnames.size())
+            s << specnames[c];                    
+          else
+            s << "^" << specnames[c-speciescnt];
+        }
+        prev = c;
+        i++;
+        if (!open) break;
+    }    
+    return i;
+}
+
+
+// Adopted from https://stackoverflow.com/questions/33010010/how-to-generate-random-64-bit-unsigned-integer-in-c
+#define IMAX_BITS(m) ((m)/((m)%255+1) / 255%255*8 + 7-86/((m)%255+12))
+
+#define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
+
+uint64_t rand64(void) {
+  uint64_t r = 0;
+  for (int i = 0; i < 64; i += RAND_MAX_WIDTH) {
+    r <<= RAND_MAX_WIDTH;
+    r ^= (unsigned) rand();
+  }
+  return r;
+}
+
+
+
+// Return the size of total used memory in MB
+unsigned long get_memory_size()
+{
+  unsigned long dummy, size;
+
+  const char* statm_path = "/proc/self/statm";
+
+  FILE *f = fopen(statm_path,"r");
+  if(!f){
+    perror(statm_path);
+    abort();
+  }
+  if(7 != fscanf(f,"%ld %ld %ld %ld %ld %ld %ld",
+    &size,&dummy,&dummy,&dummy,&dummy,&dummy,&dummy))
+  {
+    perror(statm_path);
+    abort();
+  }
+  fclose(f);
+
+  return size * getpagesize() / (1024 * 1024 );
+
+  //                 size       (1) total program size
+  //                            (same as VmSize in /proc/[pid]/status)
+  //                 resident   (2) resident set size
+  //                            (inaccurate; same as VmRSS in /proc/[pid]/status)
+  //                 shared     (3) number of resident shared pages
+  //                            (i.e., backed by a file)
+  //                            (inaccurate; same as RssFile+RssShmem in
+  //                            /proc/[pid]/status)
+  //                 text       (4) text (code)
+  //                 lib        (5) library (unused since Linux 2.6; always 0)
+  //                 data       (6) data + stack
+  //                 dt         (7) dirty pages (unused since Linux 2.6; always 0)
+}
+
+

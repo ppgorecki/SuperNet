@@ -1,14 +1,16 @@
 
-
 #ifndef _NETWORK_H_
 #define _NETWORK_H_
 
 #include "dag.h"
 #include "bb.h"
 #include "rtree.h"
+#include "treespace.h"
+#include "stats.h"
 
 class ContractedNetwork;
 class CostFun;
+class BBTreeStats;
 
 #define NT_GENERAL 2   // no limits
 #define NT_CLASS1 1    // int node has >=1 tree node/leaf child
@@ -65,31 +67,36 @@ class AdaptiveBB;
 
 // Bit represents reticulation switching
 // Range 0..2^{rt-1}, where rt is the number of reticulation nodes
-// Current limit is rt<=64
+// Current limit is rt==64
 typedef unsigned long DISPLAYTREEID;
 
 void initbitmask();
+struct SNode;
+class TreeSpace;
+
+
 
 class Network: public Dag
 {
 
 protected:
 
-	SPID _gendisplaytree(DISPLAYTREEID id, RootedTree *t, SPID i, SPID iparent, SPID &freeint);
+	NODEID _gendisplaytree(DISPLAYTREEID id, RootedTree *t, NODEID i, NODEID iparent, NODEID &freeint);
+	struct SNode *_gendisplaytree2(DISPLAYTREEID id, SNode *t, NODEID i, NODEID iparent, TreeSpace *tsp);
 
 	virtual ostream& printdebstats(ostream&s);
 
-	void _getreachablefrom(SPID v, bool *reachable, bool *visited);
-	void _getreachableto(SPID v, bool *reachable, bool *visited);
+	void _getreachablefrom(NODEID v, bool *reachable, bool *visited);
+	void _getreachableto(NODEID v, bool *reachable, bool *visited);
 
-	virtual bool _skiprtedge(SPID i, SPID iparent, DISPLAYTREEID id);
+	virtual bool _skiprtedge(NODEID i, NODEID iparent, DISPLAYTREEID id);
 	virtual void initdid();
 
 public:
 	
 	Network(char *s, double weight=1.0): Dag(s,weight) { initdid(); }
 	Network(string s, double weight=1.0): Dag(s,weight) { initdid(); }
-	Network(Dag *d, SPID v, SPID p, SPID w, SPID q, string retid, double dagweight=1.0):
+	Network(Dag *d, NODEID v, NODEID p, NODEID w, NODEID q, string retid, double dagweight=1.0):
 		Dag(d, v, p, w, q, retid, dagweight)
 	{
 		initdid();
@@ -97,7 +104,7 @@ public:
 
 	Network(Network &net, int shallowcopy) : Dag(net,shallowcopy) { initdid(); }
 
-	SPID tchild_contract(uint8_t mark[], SPID leftc[], SPID rightc[]);
+	NODEID tchild_contract(uint8_t mark[], NODEID leftc[], NODEID rightc[]);
 
 	// Max id + 1 of a display tree 
 	DISPLAYTREEID displaytreemaxid() { return 1 << rtcount(); }
@@ -125,27 +132,28 @@ public:
 
 
 	virtual RootedTree* gendisplaytree(DISPLAYTREEID id, RootedTree *t);
+	virtual SNode* gendisplaytree2(DISPLAYTREEID id, SNode *t, TreeSpace *tsp);
 
 	virtual ~Network() {}
 
 	// Compute min cost vs. gene trees via enumeration of all display trees
-	double odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun);
+	double odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, struct ODTStats &odtstats, float sampling = 0);
 
 	// Compute min cost vs. gene tree via enumeration of all display trees
-	double odtcostnaive(RootedTree *genetree, CostFun &costfun);
+	double odtcostnaive(RootedTree *genetree, CostFun &costfun, ODTStats &odtstats, float sampling = 0);
 
 	// Compute min cost vs. gene trees via DP&BB alg.	
 	// Only for DC
-	double odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, int runnaiveleqrt);
+	double odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, int runnaiveleqrt_t, ODTStats &odtstats);
 
 	// Compute min cost vs. gene trees 	
-	double odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive, int runnaiveleqrt);
+	double odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive_oe, int runnaiveleqrt_t, ODTStats &odtstats);
 	
 	// Mark nodes reachable from v (including v)	
-	void getreachablefrom(SPID v, bool *reachable);
+	void getreachablefrom(NODEID v, bool *reachable);
 
 	// Mark nodes w such that v is reachble from w (including v)	
-	void getreachableto(SPID v, bool *reachable);	
+	void getreachableto(NODEID v, bool *reachable);	
 
 	// approx DCE(G,N) via DP
 	COSTT approxmindce(RootedTree &genetree, CostFun &costfun);
@@ -153,8 +161,9 @@ public:
 
 	// exact DCE(G,M) via BB
 	COSTT mindce(RootedTree &genetree, 
-		int runnaiveleqrt, 
+		int runnaiveleqrt_t, 
 		CostFun &costfun,
+		ODTStats &odtstats,
 		BBTreeStats *bbtreestats=NULL, 
 		COSTT bbstartscore=0,
 		bool bbstartscoredefined=false);
@@ -168,6 +177,8 @@ public:
 	friend class DP_DC;
 
 };
+
+
 
 
 #endif

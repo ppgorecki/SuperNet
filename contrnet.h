@@ -4,23 +4,22 @@
 
 #include "network.h"
 
-
-
 class ContractedNetwork: public Network
 {
 
 protected: 
-	SPID *mapdn;
-	SPID *mapup;
+	NODEID *mapdn;
+	NODEID *mapup;
 	RETUSAGE retdeleted; 
 	DISPLAYTREEID *localbitmask;
 
-	string _newickrepr(SPID v, SPID p);
-	void _checkmaps(SPID v, SPID p);
+	string _newickrepr(NODEID v, NODEID p);
+	void _checkmaps(NODEID v, NODEID p);
 	void _init();	
-	void propagate_maps(SPID v);
+	void propagate_maps(NODEID v);
+	void initlocalbitmask(DISPLAYTREEID id);
 
-	virtual bool _skiprtedge(SPID i, SPID iparent, DISPLAYTREEID id);
+	virtual bool _skiprtedge(NODEID i, NODEID iparent, DISPLAYTREEID id);
 
 	public:
 
@@ -40,26 +39,29 @@ protected:
 		void contract(RETUSAGE &retcontract);
 		void contract2(RETUSAGE &retcontract);
 		void gendot(ostream &s);
-		void contractedge(SPID c, SPID p);
-		void contractabove(SPID v);
+		void contractedge(NODEID c, NODEID p);
+		void contractabove(NODEID v);
 		void gendotcontracted(ostream &s);
 		void checkmaps();
 
 		virtual RootedTree* gendisplaytree(DISPLAYTREEID id, RootedTree *t);
+		virtual SNode* gendisplaytree2(DISPLAYTREEID id, SNode *t, TreeSpace *tsp);
 
 		// Reticulation count
-		SPID rtcount();
+		NODEID rtcount();
 
 		string newickrepr();
 
-		SPID getconflictedreticulation(RETUSAGE &retusage);
+		NODEID getconflictedreticulation(RETUSAGE &retusage);
 		
-		SPID getparent(SPID v) { return mapup[parent[v]]; }
-		SPID getleftchild(SPID v) { return mapdn[leftchild[v]]; }
-		SPID getrightchild(SPID v) { return mapdn[rightchild[v]]; }
-		SPID getretchild(SPID v) { return mapdn[retchild[v]]; }
+		NODEID getparent(NODEID v) { return mapup[parent[v]]; }
+		NODEID getleftchild(NODEID v) { return mapdn[leftchild[v]]; }
+		NODEID getrightchild(NODEID v) { return mapdn[rightchild[v]]; }
+		NODEID getretchild(NODEID v) { return mapdn[retchild[v]]; }
 		  
-		bool getnodeiter(SPID &i);
+		bool getnodeiter(NODEID &i);
+
+		ostream& printdebstats(ostream&s);
   
 };
 

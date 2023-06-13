@@ -18,10 +18,10 @@ bool compsize(const GTCluster *a, const GTCluster *b)
 // Only for compatible clusters collections
 class GTCC {
 public:
-  SPID *c;
+  NODEID *c;
   string s;
   int clean;
-  GTCC(SPID *_c, string _s, bool _clean=0) : c(_c), s(_s), clean(_clean) {}
+  GTCC(NODEID *_c, string _s, bool _clean=0) : c(_c), s(_s), clean(_clean) {}
 };
 
 
@@ -38,11 +38,11 @@ string TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
   // for (int i=0;i<specnames.size();i++) cout<< i << "-" << specnames[i] << " ";
   //   cout << endl;
 
-  SPID lc=MAXSP,rc=MAXSP;
+  NODEID lc=MAXSPECIES,rc=MAXSPECIES;
   if (preserveroottree)
   {
-    SPID** t=preserveroottree->getspclusterrepr();
-    SPID prroot = preserveroottree->getroot(); 
+    NODEID** t=preserveroottree->getspclusterrepr();
+    NODEID prroot = preserveroottree->getroot(); 
     preserveroottree->getchild(prroot,rc);
     lc=rc;
     preserveroottree->getchild(prroot,rc);        
@@ -75,13 +75,13 @@ string TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
         for (size_t j=0; j<compclusters.size();j++)
         {
 
-            SPID *cur=compclusters[j]->spcluster;            
+            NODEID *cur=compclusters[j]->spcluster;            
             if (cur==topspcluster) continue;
                                     
             
             if (spsubseteq(gc->spcluster,cur) && spsubseteq(cur, gc->spcluster)) { ok=0; break; }
 
-            SPID* sum=joinspclusters(cur,gc->spcluster);  // genrootedquasiconsensus
+            NODEID* sum=joinspclusters(cur,gc->spcluster);  // genrootedquasiconsensus
             
             if (spsize(sum)==spsize(gc->spcluster) 
                 || spsize(sum)==spsize(cur) || spsize(sum)==spsize(gc->spcluster)+spsize(cur)) { 
@@ -193,11 +193,11 @@ Returns a cluster from two children clusters l and r.
 {
   GTCluster *gc;
   
-  SPID *s = joinspclusters(l->spcluster, r->spcluster); // OK
+  NODEID *s = joinspclusters(l->spcluster, r->spcluster); // OK
 
   if (s[0]==1) return t[s]; // leaf cluster
 
-  map<SPID*, GTCluster*, comparespids>::iterator it = t.find(s);
+  map<NODEID*, GTCluster*, comparespids>::iterator it = t.find(s);
 
   if (it == t.end()) {
     // add new cluster 
@@ -215,6 +215,13 @@ Returns a cluster from two children clusters l and r.
   gc->usagecnt++;
   _usagecnt++;
   return gc;
+}
+
+ostream& operator<<(ostream&s, TreeClusters &c)
+{
+  for (size_t i=0; i<c.leaves.size(); i++) s << *c.leaves[i] << endl;  
+  for (size_t i=0; i<c.internal.size(); i++) s << *c.internal[i] << endl;
+  return s;
 }
 
 
