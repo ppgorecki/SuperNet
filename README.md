@@ -115,7 +115,7 @@ Insert 2 reticulations into a network; tree-child network in output (default)
 Insert 10 reticulations into a network; general network `-e2`
 ```  
 > supnet -R10 -n '(a,((d)#1,(b,(c,#1))))' -en2
-16: no connection from retparent[i]417: no connection from retparent[i]418: no connection from retparent[i]4(#2,(((((#3)#5,(#10,(((#11)#4,((#5)#8,((((c)#3)#10,(((#8)#11,(b)#7),(d)#6)),a))))#2)),#9))#1,(#7,(#4,((#6)#9,a)))))
+(((#5,((d)#1,(#9,((((c,(((#2)#4)#11,#1)))#8,((b)#3)#7),(((((#3)#9,#8))#10,#11),(((a)#2)#5,#10)))))))#6,((#7,#4),#6))
 ```
 
 ## Display trees of networks
@@ -758,10 +758,10 @@ Usage: `-e [gsrD...]+`
 
 ### Preserve root when searching the species tree/network space and in quasi-consensus `-er`: 
 
-Print a quasi consensus tree with preserved split of the root.
+Print 5 quasi consensus tree with preserved split of the root.
 ```
-> supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -q1 -enr
-/home/gorecki/Dropbox/articles/readmemdexecutor/readme.sh: linia 15: 143368 Naruszenie ochrony pamięci   (zrzut pamięci) supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -q1 -enr
+> supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -q5 -enr
+((d,(e,c)),(a,b))
 ```
 
 ### Print unique networks from odt.log `-eu`

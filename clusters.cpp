@@ -30,23 +30,27 @@ public:
 string TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
 {
   
-  vector<GTCluster*> sc,compclusters;
+  vector<GTCluster*> sc,compclusters;  
+
   for (size_t i=0; i<internal.size(); i++) sc.push_back(internal[i]);
-  for (size_t i=0;i<leaves.size(); i++) sc.push_back(leaves[i]);
+  for (size_t i=0; i<leaves.size(); i++) sc.push_back(leaves[i]);
   sort(sc.begin(),sc.end(),compcnt);
 
   // for (int i=0;i<specnames.size();i++) cout<< i << "-" << specnames[i] << " ";
   //   cout << endl;
 
-  NODEID lc=MAXSPECIES,rc=MAXSPECIES;
   if (preserveroottree)
   {
-    NODEID** t=preserveroottree->getspclusterrepr();
+    NODEID** t=preserveroottree->getspclusterrepr(); 
     NODEID prroot = preserveroottree->getroot(); 
+    NODEID rc = MAXNODEID;
+
     preserveroottree->getchild(prroot,rc);
-    lc=rc;
+    NODEID lc=rc;
+    
     preserveroottree->getchild(prroot,rc);        
-    compclusters.push_back(new GTCluster(0,0,t[lc]));
+    
+    compclusters.push_back(new GTCluster(0,0,t[lc])); // SEG  FAULT
     compclusters.push_back(new GTCluster(0,0,t[rc]));    
 
     // TODO: Clean array t
@@ -56,7 +60,7 @@ string TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
   float minusage=0.01*maxcnt;
 
   // for (int i=0;i<sc.size();i++)
-  //   { cout << "cr#" << sc[i]->usagecnt << " cluster=" << *sc[i] << " ";      
+  //   { cout << i << " cr#" << sc[i]->usagecnt << " cluster=" << *sc[i] << " ";      
   //     if (sc[i]->spcluster[0]<specnames.size()/2 && sc[i]->spcluster[0]>1)
   //       if (sc[i]->spcluster[0]==1)
   //         cout << "+";

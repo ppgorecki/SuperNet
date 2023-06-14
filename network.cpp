@@ -163,9 +163,9 @@ void Network::getreachablefrom(NODEID v, bool *reachable)
 // supnet -n '((a,b),c);(a,b)' -eL
 // 1 1 1 3 5 
 // 1 1 3 
-
 // nodetype==1 -> count visible leaves 
 // nodetype==2 -> count all visible nodes
+
 ostream& Network::visibilenodestats(int nodetypes, ostream&s)
 {
 	bool *vreachable = new bool[nn];	
@@ -552,6 +552,8 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 // set v and parent
 #define getvenc(nod,par) if (nod==root) { par=MAXNODEID; } else  { if (nod<0) { nod=-nod; par = retparent[nod]; } else { par = parent[nod]; } }
 
+	// printdeb(cout,2) << endl;
+
 	for (NODEID i = 0; i<len; i++)
 	{		
 		NODEID v = esrc[i];
@@ -564,7 +566,7 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 		// gen reachable 	
 		getreachableto(v, reachable);
 
-		// cout << "CAND v=" << v << " ::";
+		// cout << "CAND v=" << v << " ::" << p << endl;
 
 		for (NODEID i = 0; i<nn; i++)			
 			if (!reachable[i]) 
@@ -620,16 +622,16 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 		NODEID w = dsrc[rand()%dlen][1];
 		NODEID q;
 		getvenc(w,q);
-	
-
+		getvenc(v,p);
+			
 		// yeah, connect (v,p) --> (w,q)
 
 #ifdef RNDDEBUG		
 		cout << " v=" << v << " p=" << p << endl;
 		cout << " escr=";
-		for (NODEID i = 0; i < len; i++) cout << " " << esrc[i] ;
+		for (NODEID i = 0; i < len; i++) cout << " " << esrc[i];
 		cout << " dscr=";
-		for (NODEID i = 0; i < dlen; i++) cout << " " << dsrc[i] ;
+		for (NODEID i = 0; i < dlen; i++) cout << " " << dsrc[i][0] << "," << dsrc[i][1];
 		cout << endl;
 		cout << v << " " << p << " -> " << w << " " << q << endl;
 #endif	
@@ -672,11 +674,13 @@ COSTT Network::approxmindceusage(RootedTree &genetree, RETUSAGE &retusage, CostF
 {
 
 #ifdef _DPDEBUG_	
+
 	cout << " GENE TREE  -------------------------------------- " << endl;
 	genetree.printdeb(cout,2);
 	cout << " NETWORK ----------------------------------------- " << endl;
 	printdeb(cout,2);
 	cout << " ----------------------------------------- " << endl;
+
 #endif	
 	        
     DP_DCE dpdce(genetree, *this);

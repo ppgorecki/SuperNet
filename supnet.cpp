@@ -6,7 +6,7 @@
  charged for it and provided that this copyright notice is not removed.
  *************************************************************************/
 
-const char *SUPNET="0.02";
+const char *SUPNET="0.03";
 
 #include <time.h> 
 #include <sys/time.h>
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
         // 
         // one net -r1 
         // 3 species -A3
-        // 5 reticulations
+        // 5 
         // ./supnet -R5 -r1 -A3 -e1X 6 1 && dot -Tpdf contr.dot -o c.pdf && evince c.pdf
         if (strchr(optarg,'X')) OPT_CONTRACTTEST = 1;
         
@@ -534,7 +534,9 @@ int main(int argc, char **argv)
       cerr << "Bijective leaf labelling expected in a network: " << *n << endl;
       exit(-1);
     }    
+
     netvec.push_back(addrandreticulations(reticulationcnt_R,n,networktype));
+
   }
     
   // Print species names    
@@ -603,12 +605,19 @@ int main(int argc, char **argv)
 
   // Just printing
   if (OPT_PRINTSPECIES)
+  {
     for (stpos = stvec.begin(); stpos != stvec.end(); ++stpos)    
     {
         if (OPT_PRINTSPECIES==2)
+        {
           (*stpos)->printrepr() << endl;      
-        else cout << **stpos << endl;      
+        }
+        else 
+        {
+          cout << **stpos << endl;      
+        }
     }
+  }
 
 
 
@@ -621,19 +630,29 @@ int main(int argc, char **argv)
   }
      
   if (OPT_PRINTGENE)
-    for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
+  {
+    for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)     
+    {     
       cout << **gtpos << endl;  
+    }
+  }
 
 
   if (OPT_PRINTCOST)
   {    
     for (stpos = stvec.begin(); stpos != stvec.end(); ++stpos)        
+    {
       for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)        
       {
+     
         if (OPT_PRINTCOST==2)        
+        {
           cout << **stpos << " " << **gtpos << " ";
+        }
+
         cout << costfun->computegt(**gtpos, **stpos)  << endl;
       }
+    }
   }   
 
 
@@ -642,12 +661,19 @@ int main(int argc, char **argv)
   if (OPT_RANDNETWORKS && !odt_option)
   {      
       for (int i = 0; i < randomnetworkscnt; i++)      
+      {
         netvec.push_back(randnetwork(reticulationcnt_R,networktype));              
+      }
   }     
 
   if (OPT_PRINTNETWORK)
+  {
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)      
+    {
+      //(*ntpos)->printdeb(cout,2) << endl;
       cout << **ntpos << endl;     
+    }
+  }
       
 
   if (OPT_PRINTDETAILED)    
@@ -705,9 +731,10 @@ int main(int argc, char **argv)
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
       {
         if (OPT_ODTNAIVE==2)        
+        {
           cout << **ntpos << " ";        
-        cout << (*ntpos)->odtcostnaive(gtvec, *costfun, odtstats, odtnaivesampling) << endl;
-        
+        }
+        cout << (*ntpos)->odtcostnaive(gtvec, *costfun, odtstats, odtnaivesampling) << endl;        
     }
   }
 
@@ -715,8 +742,12 @@ int main(int argc, char **argv)
   if (OPT_DP)
   {    
     for (ntpos = netvec.begin(); ntpos != netvec.end(); ++ntpos)            
+    {
       for (gtpos = gtvec.begin(); gtpos != gtvec.end(); ++gtpos)          
+      {
           cout << ((*ntpos)->approxmindce(**gtpos, *costfun)) << endl; 
+      }
+    }
     exit(0);
   }
 
