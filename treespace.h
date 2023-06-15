@@ -13,6 +13,8 @@ constexpr std::uint32_t log2(std::uint32_t n) noexcept
 };
 
 
+#define CACHE_STATS_FREQ_REPORTING 1000000
+
 #define PPTT(r) cout << "["; for (int i=0;i<(r)[0];i++) cout << (NODEID)((r)[i]) << "."; cout << (NODEID)(r)[(r)[0]] << "]"
 
 typedef struct NODEIDKey
@@ -111,6 +113,13 @@ typedef struct GNode
 	GNode *left, *right;		
 	bitcluster cluster;	
 	NODEID *repr; // node repr
+
+	~GNode()
+	{
+		if (left) delete left;
+		if (right) delete right;
+	}
+
 } GNode;
 
 class TreeSpace;
@@ -119,66 +128,24 @@ typedef struct SNode
 {
 	NODEIDKey repr; // node repr		
 	COSTT *cost;	
+	
 
 	// internal node
 	SNode(int gts)
 	{
-		cost = new COSTT[gts];		
+		cost = new COSTT[gts];	
+				
 	}
 	 		   
-   /*
-   SPECIESTREE ((c,b),a)
-
-G:abc->a S:bc->c|b
-G:bc->b S:bc->c|b +Y
-G:bc->c S:bc->c|b +X
-G:abc->bc S:bc->c|b
-
-OK
-
-G:abc->a S:abc->bc|a +Y
-
-G:bc->b S:abc->bc|a +X ZLE!
-G:bc->c S:abc->bc|a +X ZLE
-
-G:abc->bc S:abc->bc|a +X
-
-0.0000  6.0000  2.0000
-
-   */
-
-
-		
-		//  	if (ISSUBSET(gtclu[j],stclu[x]))
- 	// 		{
- 	// 			//cout << " inx" << bool(INTERSECTION(gtclu[p],stclu[y])) <<  " " << DIFFERENCE(gtclu[p],stclu[i]) << " " ;
- 	// 			if (INTERSECTION(gtclu[p],stclu[y]) || DIFFERENCE(gtclu[p],stclu[i])) { 
- 	// 				c++;
- 	// 				//cout << " +X ";
- 	// 				//ppbitclusterspecies(cout,DIFFERENCE(gtclu[p],stclu[i]));
- 	// 			}
-	 // 		}	
-	 // 		else if (ISSUBSET(gtclu[j],stclu[y]))
-	 // 		{
-	 // 			if (INTERSECTION(gtclu[p],stclu[x]) || DIFFERENCE(gtclu[p],stclu[i])) { 
-	 // 				c++;
-	 // 				//cout << " +Y ";
-	 // 				//ppbitclusterspecies(cout,DIFFERENCE(gtclu[p],stclu[i]));
-	 // 			}
-	 // 		}
-	 // 		//cout << endl;
-		// }
-
-	
 	void computecost2(SNode *snodeleft, SNode *snoderight, TreeSpace *treespace);
-		
-
+	
 	// tmp struct for find
 	SNode(NODEID *pt, size_t phsh)
 	{
 		repr.t = pt;
 		repr.hsh = phsh;
 		cost = NULL;
+		
 	}
 
 	// leaf
@@ -191,14 +158,15 @@ G:abc->bc S:abc->bc|a +X
 		repr.t[1] = l;		
 		repr.t[2] = l;
 		repr.hsh = (size_t)rand64(); // rand hash for leaves
+		
 	}
 
 	~SNode()
 	{
-		if (cost && left) 
-		{ 
+		if (cost) // clean internal only
+		{ 					
 			delete[] repr.t;
-			delete[] cost; // clean internal only
+			delete[] cost; 
 		}
 	}
 
@@ -257,6 +225,7 @@ class TreeSpace
 
 	long n_missed;
 	long n_present;
+	int maxdisplaytreecachesize;
 
 	void initleaves();
 
@@ -267,22 +236,30 @@ class TreeSpace
 
 		int maxgenetreesize;
 	
-		TreeSpace(RootedTree *g)
+		TreeSpace(RootedTree *g, int _maxdisplaytreecachesize)
 		 { 
 			n_missed = 0;
 			n_present = 0;
 			maxgenetreesize = 0;
+			maxdisplaytreecachesize = _maxdisplaytreecachesize;	
 			addgenetree(g); 
 			initleaves();			
 		}
 
-		TreeSpace(vector<RootedTree*> &genetrees) 
+		TreeSpace(vector<RootedTree*> &genetrees, int _maxdisplaytreecachesize) 
 		{
 			n_missed = 0;
 			n_present = 0;
 			maxgenetreesize = 0;
+			maxdisplaytreecachesize = _maxdisplaytreecachesize;	
 			for (auto g: genetrees) addgenetree(g);
 			initleaves();
+		}
+
+		~TreeSpace()
+		{
+			clearcache();			
+			for (auto v: gtrees) delete v;
 		}
 		
 		void addgenetree(RootedTree *g);
@@ -302,12 +279,10 @@ class TreeSpace
 
 		void treecompleted()
 		{
-			if (get_memory_size()>10) 
+			if (repr2node.size()>maxdisplaytreecachesize)			
 			{
-
-				//cout << "CLEAR" << get_memory_size() << "MB nodes=" <<  repr2node.size() << endl;
-				//clearcache();
-				//cout << "After" << get_memory_size() << endl;
+			 	cout << "CLEAR" << get_memory_size() << "MB nodes=" << repr2node.size() << endl;
+			 	clearcache();			 	
 			}
 		}
 
@@ -315,15 +290,19 @@ class TreeSpace
 		{
 			// remove all internal SNodes (of the size >3)
 			// std::unordered_set<SNode*, SNode::Hash, SNodeEq > repr2node;
+			vector<SNode*> tmp;
 			for (const auto& element : repr2node) 
-			{
-				//delete[] element->repr.t;
-    		    delete element;
+			{				
+				if (element->repr.t[0]>2)
+    		    	delete element;
+    		   	else
+    		   		tmp.push_back(element);
+
     		}
     		repr2node.clear();
+    		for (const auto& element : tmp) 
+    			repr2node.insert(element);
 		}
-		
-
 };
 
 ostream& ppSNode(ostream& os, SNode *s);

@@ -46,7 +46,7 @@ bool TailMove::next()
 
 	if (moved)
 	{
-		//peform reverse move
+		//perform reverse move
 		move(u,v,p,q);
 		moved = false;
 	}
@@ -372,7 +372,7 @@ bool NNI::next()
 	return true;
 }
 
-double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive_oe, int runnaiveleqrt_t)
+double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive_oe, int runnaiveleqrt_t, int maximprovements)
 {
 
 	double starttime = gettime();
@@ -399,6 +399,8 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 		cout << " = " << *net << " cost=" << curcost << endl;				
 	}
     
+  int improvementscnt = 0;
+
 	while (op.next())
 	{			
 		double curcost = net->odtcost(genetrees, costfun, usenaive_oe, runnaiveleqrt_t, nhcstats.getodtstats());
@@ -433,9 +435,16 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 			nhcstats.setcost(optcost); 
 
 			nhcstats.add(*net);					
-	
+
+			// Stopping condition for maximprovements
+			if (maximprovements && improvementscnt==maximprovements)
+				break;
+
+			improvementscnt++;
+
 			// search in a new neighbourhood
 			op.reset();
+
 			
 		}
 

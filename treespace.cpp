@@ -189,13 +189,13 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
 	memcpy ( tr+2+REPRLEN(l), REPRT(r)+2, sizeof(NODEID)*(REPRLEN(r)-1));	
 	tr[tr[0]] = REPRCLOSE;
 
-	SNode sk(tr,HASHINT(l->repr.hsh,r->repr.hsh,REPRMM(r)));
+	SNode sk(tr,HASHINT(l->repr.hsh, r->repr.hsh, REPRMM(r)));
 
 #ifdef CACHE_STATS	
 
-	if ((n_missed+n_present)%10000000==0) 
+	if ((n_missed+n_present)%CACHE_STATS_FREQ_REPORTING==0) 
 	{
-		cout << -n_missed << "+" << n_present << " " << 1.0*n_missed/(n_missed+n_present);			
+		cout << -n_missed << "+" << n_present << " " << 1.0*n_missed/(n_missed+n_present) << " nodes=" << repr2node.size();			
 		cout << " Mem:" << get_memory_size() << "MB" << endl;
 	}
 
@@ -228,7 +228,6 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
 #ifdef DEBUG_TSP 
 		cout << " NEW! ";
 #endif
-
     	n_missed++;	 
     	ret = new SNode(gtrees.size());
     	ret->repr.t = new NODEID[lf*3];
@@ -269,7 +268,7 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
 	ppSNode(cout, r); printf(" "); 		
 	cout << "size=" << repr2node.size() << endl;
 
- 	//    for (auto elt : repr2node)
+ 	//for (auto elt : repr2node)
 	// {
 	// 	cout << ":: " << elt->repr.hsh << " ";
 	// 	ppSNode(cout, elt);
@@ -333,7 +332,6 @@ void SNode::computecost2(SNode *snodeleft, SNode *snoderight, TreeSpace *treespa
 	// cout << endl;
 
     bitcluster cluster = UNION(rightcluster,leftcluster);
-
 
     // compute dc cost for each gene tree
 	GNode* stack[treespace->maxgenetreesize];

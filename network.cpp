@@ -64,8 +64,6 @@ SNode* Network::gendisplaytree2(DISPLAYTREEID id, SNode *t, TreeSpace *treespace
 
 	SNode *dtroot = _gendisplaytree2(id, t, getroot(), MAXNODEID, treespace); 
 
-	treespace->treecompleted(); // inform treespace 
-
 	return dtroot;
 }
 
@@ -423,6 +421,10 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     			t->printrepr() << " " << curcost << endl;
     		}
     	}
+
+#ifdef DTCACHE
+    	globaltreespace->treecompleted(); // inform treespace 
+#endif    	
 
     	if (lbcnt == genetrees.size())
     	{

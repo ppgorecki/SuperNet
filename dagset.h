@@ -69,7 +69,14 @@ public:
 		return v->size();
 	}
 
-	void clear() {	v->clear();  }
+	void clear() {	
+
+		for( size_t i = 0; i < v->size(); i++ )
+		{
+	    	delete (*v)[i];
+		}	
+		v->clear();  
+	}
 
 	void save(string file)
 	{		

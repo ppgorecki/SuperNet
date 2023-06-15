@@ -234,7 +234,7 @@ int main(int argc, char **argv)
   string odtfile = "odt.log";
   string datfile = "odt.dat";
 
-  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:t:b:z:E:aT:v:";
+  const char* optstring = "e:g:s:G:S:N:l:q:L:D:C:r:A:n:do:O:R:K:t:b:z:E:aT:v:m:c:";
   vector<char*> sgtvec, sstvec, snetvec;
 
   COSTT bbstartscore = 0;
@@ -243,6 +243,9 @@ int main(int argc, char **argv)
 
   bool treereprtesting = 0;
 
+  int maximprovements = 0;
+
+  int maxdisplaytreecachesize = 1000000;
   
   while ((opt = getopt(argc, argv, optstring))   != -1)
   {    
@@ -255,6 +258,10 @@ int main(int argc, char **argv)
 
       case 'z':
         srand((unsigned int)atoi(optarg));
+        break;
+
+      case 'c':
+        maxdisplaytreecachesize = atoi(optarg);
         break;
 
       case 'E':
@@ -329,6 +336,10 @@ int main(int argc, char **argv)
 
     case 't':    
       runnaiveleqrt_t = atoi(optarg);
+      break;
+
+    case 'm':    
+      maximprovements = atoi(optarg);
       break;
     
     case 's':
@@ -522,7 +533,7 @@ int main(int argc, char **argv)
     
   }
 
-  globaltreespace = new TreeSpace(gtvec);
+  globaltreespace = new TreeSpace(gtvec,maxdisplaytreecachesize);
 
 
  
@@ -837,7 +848,7 @@ int main(int argc, char **argv)
         nhcstats.start();        
 
         // climb
-        double cost = hc.climb(*op, n, *costfun, nhcstats, usenaive_oe, runnaiveleqrt_t);        
+        double cost = hc.climb(*op, n, *costfun, nhcstats, usenaive_oe, runnaiveleqrt_t, maximprovements);        
 
         nhcstats.finalize();
         
@@ -871,6 +882,8 @@ int main(int argc, char **argv)
         cout << "Stats data save to: " << datfile << endl;
       }
     }
+
+
 
   }
 
@@ -1129,6 +1142,9 @@ int main(int argc, char **argv)
   // clustergraphtester();
   
   // Cleaning
+
+
+  delete globaltreespace;
 
   for (size_t i = 0; i < sgtvec.size(); i++) 
     free(sgtvec[i]);

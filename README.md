@@ -999,9 +999,29 @@ Print unique random shapes of networks with counts
 unique=5 all=0
 ```
 
-Generate the picture of BB-tree search 
+Generate the picture of BB-tree search:
+
 ```  
 > supnet -r1 -A15 -en  | supnet -G- -r1 -A15 -R12 -ebj; dot bb.dot -Tpdf > bb.pdf
 -4
+```
+
+## Development variants
+
+### Display tree cache 
+
+When compiling with macro DTCACHE `make supnet_dtcache` option `-c MAXTREECACHESIZE` will limit the number of stored nodes in the cache. The default is `1000000` nodes.
+
+```
+make supnet_dtcache
+supnet_dtcache -c 5000000 ...
+```
+
+### Limit the number of improvements
+
+The number of HC steps in improvements 
+```
+make supnet_dtcache
+supnet_dtcache -c 5000000 ...
 ```
 
