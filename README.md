@@ -1106,6 +1106,18 @@ Generate the picture of BB-tree search:
 -4
 ```
 
+## Coronavirus dataset processing
+
+Infering generic networks, start from 10 networks `-q10`.
+```
+supnet_dtcache -G corona.txt -R7 -q10 -os 
+```
+
+For tree-child use `-ost`
+```
+supnet_dtcache -G corona.txt -R7 -q10 -os 
+```
+
 ## Development variants
 
 ### Display tree cache 
@@ -1124,4 +1136,7 @@ The number of HC steps in improvements
 make supnet_dtcache
 supnet_dtcache -c 5000000 ...
 ```
+
+
+
 
