@@ -116,10 +116,15 @@ public:
 	// type - 0 - TC insertion
 	// type - 1 - non-TC type 1
 	// type - 2 - general
+
+	// uniform=true - each pair of candidate edges is equally probable
+	// uniform=false - take random src edge -> take random reachable dest edge -> connect
 	// 
 	// Returns NULL if such a network cannot be created
+
 	Network *addrandreticulation(string retid, int networktype, bool unform=false);
 		
+	
 	// Generate id'th display tree; 
 	// id encodes switching reticulation nodes and should be in range 0..2^{rt-1}	
 	// id encodes reticulation schema -> for long size is 8 -> 64 bits
@@ -129,7 +134,6 @@ public:
 	// Typical usage:
 	//   RootedTree *t = NULL;
 	//   DISPLAYTREEID tid = 0;
-	//   while ((t=n->gendisplaytree(tid,t))!=NULL)   { ... use display tree t ... }    
 
 
 	virtual RootedTree* gendisplaytree(DISPLAYTREEID id, RootedTree *t);
@@ -154,6 +158,7 @@ public:
 	void getreachablefrom(NODEID v, bool *reachable);
 
 	// Mark nodes w such that v is reachble from w (including v)	
+
 	void getreachableto(NODEID v, bool *reachable);	
 
 	// approx DCE(G,N) via DP
@@ -168,6 +173,7 @@ public:
 		BBTreeStats *bbtreestats=NULL, 
 		COSTT bbstartscore=0,
 		bool bbstartscoredefined=false);
+
 	
 	// nodetype==1 -> count visible leaves 
 	// nodetype==2 -> count all visible nodes
@@ -175,6 +181,7 @@ public:
 
 	friend class NNI;
 	friend class TailMove;	
+
 	friend class DP_DC;
 
 };

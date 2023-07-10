@@ -309,9 +309,13 @@ int usage(int argc, char **argv) {
        "     U - similar to u plus counts of networks\n"
        "     x - two networks are equal if their shapes are isomorphic in u,U,p (i.e., ignore leaf labels)\n"
        "     L - for each v in V(N), print the number of nodes reachable from v (only from networks)\n"
+
        "     l - for each v in V(N), print the number of leaves reachable from v (only from networks)\n"       
        "     a - odtdatfile in labelled format\n"
-       "\n"               
+
+       "     f - draw uniformly pairs edges to create random reticulation (in random network generator); the default is first draw source next draw destination edge\n" // CHECK
+       "\n"       
+
        "COST SETTING OPTIONS\n"
        // " TODO: -D dupweight  - set weight of gene duplications (def. 1.0)\n"
        // " TODO: -L lossweight - set weight of gene losses (def. 1.0)\n" 
@@ -449,6 +453,9 @@ int usage(int argc, char **argv) {
 
        " Print unique random networks with counts\n"
        "  supnet -r100000 -R1 -A3 -eU\n"
+
+       " Print unique random networks with counts under uniform pairs model\n"
+       "  supnet -r100000 -R1 -A3 -eUf\n"
 
        " Print unique random shapes of networks with counts\n"
        "  supnet -r100000 -R1 -A3 -eUx\n"

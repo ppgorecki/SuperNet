@@ -531,6 +531,7 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 	
 	len=0;
 	for (NODEID i = 0; i<rtstartid; i++) 		
+
 		esrc[len++]=i;
 
 	if (networktype==NET_GENERAL)
@@ -552,6 +553,7 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 
 
 // set v and parent
+
 #define getvenc(nod,par) if (nod==root) { par=MAXNODEID; } else  { if (nod<0) { nod=-nod; par = retparent[nod]; } else { par = parent[nod]; } }
 
 	// printdeb(cout,2) << endl;
@@ -562,6 +564,7 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 		NODEID vsrc = v;
 		NODEID p = MAXNODEID;
 		NODEID dlen = 0;
+
 		getvenc(v,p);
 		
 		// src edge (v,p)
@@ -617,7 +620,10 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 						}
 					}
 			}		
+			
+		if (!uniform && dlen) break; // take the first non-empty
 		
+
 		if (!dlen) continue;
 
 		v = dsrc[rand()%dlen][0];
@@ -628,22 +634,26 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 			
 		// yeah, connect (v,p) --> (w,q)
 
+
 #ifdef RNDDEBUG		
+		cout << " dlen=" << dlen << endl;
 		cout << " v=" << v << " p=" << p << endl;
+
 		cout << " escr=";
 		for (NODEID i = 0; i < len; i++) cout << " " << esrc[i];
 		cout << " dscr=";
 		for (NODEID i = 0; i < dlen; i++) cout << " " << dsrc[i][0] << "," << dsrc[i][1];
+
 		cout << endl;
 		cout << v << " " << p << " -> " << w << " " << q << endl;
 #endif	
 
-		
 		return new Network(this, v, p, w, q, retid);
 
 	}
 	return NULL;
 }
+
 
 #if MAXRTNODES > 32
 ostream& operator<<(ostream& os, const RETUSAGE& r)

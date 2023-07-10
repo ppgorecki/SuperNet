@@ -97,12 +97,13 @@ void insertstr(vector<char*> &v,const char *t)
   free(y);
 }
 
+
 Network *addrandreticulations(int reticulationcnt_R, Network *n, int networktype)
 {      
     for (int i=0; i<reticulationcnt_R; i++)
     {
       Network *prev = n;
-      n = n->addrandreticulation("",networktype);
+      n = n->addrandreticulation("",networktype, uniform);
       if (!n)
       {
         cerr << "Cannot insert random " << (i+1) << "-th reticulation into " << *prev << endl;
@@ -113,6 +114,7 @@ Network *addrandreticulations(int reticulationcnt_R, Network *n, int networktype
     return n;
 }
 
+
 Network *randnetwork(int reticulationcnt_R, int networktype)
 {
     string r = randspeciestreestr();
@@ -121,7 +123,9 @@ Network *randnetwork(int reticulationcnt_R, int networktype)
       cerr << "Cannot create initial random species tree" << endl;
       exit(-1);
     }        
+
     return addrandreticulations(reticulationcnt_R,new Network(r),networktype);        
+
 }
 
 Network *randquasiconsnetwork(int reticulationcnt_R, int networktype, TreeClusters *gtc, RootedTree *preserverootst)
@@ -133,7 +137,9 @@ Network *randquasiconsnetwork(int reticulationcnt_R, int networktype, TreeCluste
       exit(-1);
     }      
 
+
     return addrandreticulations(reticulationcnt_R, new Network(r), networktype);
+
 }
 
 
@@ -143,7 +149,9 @@ Network *randquasiconsnetwork(int reticulationcnt_R, int networktype, TreeCluste
 Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, int &quasiconsensuscnt, 
   TreeClusters *gtc,
   RootedTree *preserverootst,
+
   int reticulationcnt_R, int networktype)
+
 {
   
   i++;
@@ -155,7 +163,9 @@ Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, in
   if (randomnetworkscnt!=0)   // with -1 infitite 
   { 
     if (randomnetworkscnt>0)  randomnetworkscnt--;             
+
     return randnetwork(reticulationcnt_R, networktype);
+
   }
 
 
@@ -231,6 +241,8 @@ int main(int argc, char **argv)
 
   bool odtlabelled = false;
 
+  bool randnetuniform = false;
+
   string odtfile = "odt.log";
   string datfile = "odt.dat";
 
@@ -304,6 +316,7 @@ int main(int argc, char **argv)
         if (strchr(optarg,'2')) networktype = NET_GENERAL;         
         if (strchr(optarg,'d')) OPT_DP = 1;
         if (strchr(optarg,'b')) OPT_BB = 1;
+
 
         if (strchr(optarg,'j')) OPT_BBSTATS |= 1;
         if (strchr(optarg,'J')) OPT_BBSTATS |= 2;
@@ -546,6 +559,7 @@ int main(int argc, char **argv)
       exit(-1);
     }    
 
+
     netvec.push_back(addrandreticulations(reticulationcnt_R,n,networktype));
 
   }
@@ -606,7 +620,9 @@ int main(int argc, char **argv)
       // get next network 
       Network *n; 
       long int i = -1;
+
       while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt_R, networktype))!=NULL)              
+
          dagset.add(n);        
       
       cout << dagset;     
@@ -672,9 +688,9 @@ int main(int argc, char **argv)
   if (OPT_RANDNETWORKS && !odt_option)
   {      
       for (int i = 0; i < randomnetworkscnt; i++)      
-      {
-        netvec.push_back(randnetwork(reticulationcnt_R,networktype));              
-      }
+
+        netvec.push_back(randnetwork(reticulationcnt,networktype,randnetuniform));              
+
   }     
 
   if (OPT_PRINTNETWORK)
@@ -838,6 +854,7 @@ int main(int argc, char **argv)
 
         // stopping criterion
         if (improvementthreshoold && (i-lastimprovement)>improvementthreshoold) break; // stop
+
 
         // get next initial network 
         Network *n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt_R, networktype);
