@@ -46,7 +46,7 @@ bool TailMove::next()
 
 	if (moved)
 	{
-		//perform reverse move
+		//pefrorm reverse move
 		move(u,v,p,q);
 		moved = false;
 	}
@@ -175,7 +175,7 @@ bool TailMove::next()
 		cout << endl;
 #endif
 
-		if (limittotreechild)
+		if (networkclass==NET_TREECHILD || networkclass==NET_CLASS1RELAXED)
 		{
 			NODEID rtstartid = source->rtstartid;
 
@@ -188,7 +188,7 @@ bool TailMove::next()
 				continue;
 			}
 
-			if (p>=rtstartid && q>=rtstartid)
+			if ((networkclass==NET_TREECHILD) && (p>=rtstartid && q>=rtstartid))
 			{
 #ifdef TAILMOVE_DEBUG								
 				cout << "3b" << endl;
@@ -231,7 +231,7 @@ bool TailMove::next()
 				}				
 			} // 3c
 
-		} // limittotreechild
+		} // limittotreechild or relaxed
 
 		// Finally, move!
 		move(u,v,s,t);

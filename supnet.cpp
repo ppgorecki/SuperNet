@@ -224,7 +224,7 @@ int main(int argc, char **argv)
   int quasiconsensuscnt = 0;
 
   int reticulationcnt_R = 0;
-  int networktype = 0;
+  int networktype = NET_TREECHILD; // default network type
   int improvementthreshoold = 0;  
 
   int runnaiveleqrt_t = 13;  // default for DC, based on experiments
@@ -300,8 +300,8 @@ int main(int argc, char **argv)
 
         if (strchr(optarg,'R')) print_repr_inodtnaive = 1; 
 
-        if (strchr(optarg,'1')) networktype = NT_CLASS1; 
-        if (strchr(optarg,'2')) networktype = NT_GENERAL; 
+        if (strchr(optarg,'1')) networktype = NET_CLASS1RELAXED; 
+        if (strchr(optarg,'2')) networktype = NET_GENERAL;         
         if (strchr(optarg,'d')) OPT_DP = 1;
         if (strchr(optarg,'b')) OPT_BB = 1;
 
@@ -819,9 +819,9 @@ int main(int argc, char **argv)
     
     EditOp *op; 
     if (strchr(odt_option,'N')) op = new NNI();
-    else op = new TailMove(strchr(odt_option,'t'));        
+    else op = new TailMove(networktype);        
 
-    NetworkHCStats *globalstats = new NetworkHCStats();
+    NetworkHCStats *globalstats = new NetworkHCStats(networktype);
     
     long int i = -1;
     int lastimprovement=0;
@@ -839,12 +839,12 @@ int main(int argc, char **argv)
         // stopping criterion
         if (improvementthreshoold && (i-lastimprovement)>improvementthreshoold) break; // stop
 
-        // get next network 
+        // get next initial network 
         Network *n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt_R, networktype);
 
         if (!n) break;        
 
-        NetworkHCStats nhcstats;
+        NetworkHCStats nhcstats(networktype);
         nhcstats.start();        
 
         // climb

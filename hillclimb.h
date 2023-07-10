@@ -59,7 +59,7 @@ class TailMove: public EditOp
 	NODEID q;
 	
 	bool moved;  // moved is true if the move was executed
-	bool limittotreechild;  // true - moves are limited to stay in TC class
+	bool networkclass;  // treechild, relaxed or general
 
 	bool *vreachable;
 
@@ -70,7 +70,7 @@ class TailMove: public EditOp
 
 public: 
 
-	TailMove(bool _limittotreechild) : EditOp(), vreachable(NULL), limittotreechild(_limittotreechild) {}
+	TailMove(bool _networkclass) : EditOp(), vreachable(NULL), networkclass(_networkclass) {}
 
 	bool next();
 	void reset();

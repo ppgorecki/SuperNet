@@ -112,12 +112,14 @@ class NetworkHCStats
 	long steps; 
 	long startingnets;
 	int topnetworks; 
+
+	int networktype;
 		
 	ODTStats odtstats;
 
 public:
 
-	NetworkHCStats();
+	NetworkHCStats(int networktype);
 	~NetworkHCStats();
 
 	void step() { steps++; }

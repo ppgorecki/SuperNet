@@ -533,7 +533,7 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 	for (NODEID i = 0; i<rtstartid; i++) 		
 		esrc[len++]=i;
 
-	if (networktype==NT_GENERAL)
+	if (networktype==NET_GENERAL)
 		for (NODEID i = rtstartid; i < nn; i++) 
 		{	
 			esrc[len++]=i;
@@ -574,7 +574,7 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 			if (!reachable[i]) 
 			{
 				NODEID w = i; // candidate
-				if (networktype==NT_TREECHLD)
+				if (networktype==NET_TREECHILD)
 				{
 					// w, parent of w and sib w must be tree nodes/leaves
 					if (w<rtstartid && parent[w]<rtstartid)
@@ -584,7 +584,7 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 							dsrc[dlen++][1]=w;						
 						}
 				}
-				else if (networktype==NT_CLASS1)
+				else if (networktype==NET_CLASS1RELAXED)
 				{										
 					// w is a tree node or ret
 					// par tree node ->  sibling not ret. 

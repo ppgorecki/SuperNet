@@ -9,6 +9,16 @@ void NetworkHCStats::print(bool global)
      << " Steps:" << steps 
      << " Climbs:" << improvements 
      << " TopNetworks:" << topnetworks;     
+
+     if (networktype==NET_TREECHILD)
+     cout << " Class:TreeChild";
+
+    if (networktype==NET_CLASS1RELAXED)
+     cout << " Class:Relaxed";
+
+   if (networktype==NET_GENERAL)
+     cout << " Class:General";
+
      if (global) 
      {     		
      		cout 
@@ -108,6 +118,10 @@ void NetworkHCStats::savedat(string file, bool labelled)
   	if (labelled) odtf << "topnets=";
     odtf << topnetworks << endl; // networks
 
+    if (labelled) odtf << "class=";
+    odtf << networktype << endl; // network type
+
+
   	if (labelled) odtf << "improvements=";
     odtf << improvements << endl; // improvements
 
@@ -147,8 +161,10 @@ void NetworkHCStats::savedat(string file, bool labelled)
     odtf.close();
 }
 
-NetworkHCStats::NetworkHCStats() 
+NetworkHCStats::NetworkHCStats(int _networktype) 
 { 
+    networktype= _networktype;
+
     dagset = new DagSet();
     improvements = 0; 
     hctime = 0;

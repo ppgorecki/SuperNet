@@ -1,7 +1,5 @@
-
 /************************************************************************
  SuperNetwork Inference - based on FastUrec project
-
  *************************************************************************/
 
 #include <ctype.h>
@@ -304,8 +302,8 @@ int usage(int argc, char **argv) {
        "     C - print cost between two trees with trees (G,S)\n"              
        "     d - run DP algorithm only (approx DC) per each (G,N)\n"
        "     b - run BB algorithm only (exact DC); see jJ subopt.\n"
-       "     1 - class 1 networks in rand generator (int node has at most one reticulation child); see -R\n"       
-       "     2 - general phylogenetic networks (no restrictions); see -R\n"
+       "     1 - class 1 networks in rand generator and hill climbing (int node has at most one reticulation child); see -R\n"       
+       "     2 - general phylogenetic networks in rand network generator and hill climbing (no restrictions); see -R\n"
        "     p - pairwise comparison of all networks\n"
        "     u - print unique networks; summary stats printed on stderr\n"
        "     U - similar to u plus counts of networks\n"
@@ -342,15 +340,16 @@ int usage(int argc, char **argv) {
        "ODT HEURISTIC SEARCH\n"
 
        "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file; summary stats are saved to odt.dat (opt cost, total time in sec., time of hill climbing, time of merge step, number of networks, improvements, steps and the number of starting networks)\n"
-       "   By default each HC step starts from the set of predefined networks (if -n or -N are provided); otherwise by using quasi-random networks\n"
+       "   By default each HC step starts from the set of predefined networks (if -n or -N are provided); otherwise by using quasi-random networks\n"       
        "       T - use TailMoves (default)\n"
        "       N - use NNI instead of TailMoves\n"      
-       "       t - TailMoves limited to tree-child (with 3a-3c conditions)\n"
        "       S - print stats after locating optimal networks after each HC runs\n"
        "       s - print extended stats after each HC run\n"
        "       q - do not save odt.log (and odt.dat) with optimal networks\n"
-       
+       "  By default searches and initial networks are limited to tree-child. Use -e1 or -e2 to extend the search to relaxed or general networks, resp."
 
+       " "
+       
        "  -K NUM - stopping criterion: stop when there is no new network after NUM HC runs\n"
 
        "\n"

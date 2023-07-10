@@ -12,9 +12,10 @@ class ContractedNetwork;
 class CostFun;
 class BBTreeStats;
 
-#define NT_GENERAL 2   // no limits
-#define NT_CLASS1 1    // int node has >=1 tree node/leaf child
-#define NT_TREECHLD 0  // int node has <=1 ret. child
+
+#define NET_GENERAL 2   // no limits
+#define NET_CLASS1RELAXED 1    // int node has >=1 tree node/leaf child
+#define NET_TREECHILD 0  // int node has <=1 ret. child
 
 #ifndef MAXRTNODES
 	#define MAXRTNODES 64
