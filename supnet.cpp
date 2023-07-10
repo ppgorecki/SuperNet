@@ -98,9 +98,9 @@ void insertstr(vector<char*> &v,const char *t)
 }
 
 
-Network *addrandreticulations(int reticulationcnt_R, Network *n, int networktype)
+Network *addrandreticulations(int reticulationcnt, Network *n, int networktype, bool uniform)
 {      
-    for (int i=0; i<reticulationcnt_R; i++)
+    for (int i=0; i<reticulationcnt; i++)
     {
       Network *prev = n;
       n = n->addrandreticulation("",networktype, uniform);
@@ -115,7 +115,7 @@ Network *addrandreticulations(int reticulationcnt_R, Network *n, int networktype
 }
 
 
-Network *randnetwork(int reticulationcnt_R, int networktype)
+Network *randnetwork(int reticulationcnt, int networktype, bool uniform)
 {
     string r = randspeciestreestr();
     if (!r.length())
@@ -124,11 +124,11 @@ Network *randnetwork(int reticulationcnt_R, int networktype)
       exit(-1);
     }        
 
-    return addrandreticulations(reticulationcnt_R,new Network(r),networktype);        
+    return addrandreticulations(reticulationcnt,new Network(r),networktype, uniform);        
 
 }
 
-Network *randquasiconsnetwork(int reticulationcnt_R, int networktype, TreeClusters *gtc, RootedTree *preserverootst)
+Network *randquasiconsnetwork(int reticulationcnt, int networktype, TreeClusters *gtc, RootedTree *preserverootst)
 {
     string r = gtc->genrootedquasiconsensus(preserverootst);
     if (!r.length())
@@ -138,7 +138,7 @@ Network *randquasiconsnetwork(int reticulationcnt_R, int networktype, TreeCluste
     }      
 
 
-    return addrandreticulations(reticulationcnt_R, new Network(r), networktype);
+    return addrandreticulations(reticulationcnt, new Network(r), networktype, false);
 
 }
 
@@ -149,9 +149,7 @@ Network *randquasiconsnetwork(int reticulationcnt_R, int networktype, TreeCluste
 Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, int &quasiconsensuscnt, 
   TreeClusters *gtc,
   RootedTree *preserverootst,
-
-  int reticulationcnt_R, int networktype)
-
+  int reticulationcnt, int networktype, bool randnetuniform)
 {
   
   i++;
@@ -164,7 +162,7 @@ Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, in
   { 
     if (randomnetworkscnt>0)  randomnetworkscnt--;             
 
-    return randnetwork(reticulationcnt_R, networktype);
+    return randnetwork(reticulationcnt, networktype, randnetuniform);
 
   }
 
@@ -172,7 +170,7 @@ Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, in
   if (quasiconsensuscnt!=0)  // with -1 infitite 
   { 
       if (quasiconsensuscnt>0) quasiconsensuscnt--;              
-      return randquasiconsnetwork(reticulationcnt_R, networktype, gtc, preserverootst);                     
+      return randquasiconsnetwork(reticulationcnt, networktype, gtc, preserverootst);                     
   }
 
   return NULL;
@@ -333,6 +331,9 @@ int main(int argc, char **argv)
         if (strchr(optarg,'X')) OPT_CONTRACTTEST = 1;
         
         if (strchr(optarg,'.')) OPT_COMPAREDAGS_BFTEST = 1; // hidden
+
+        if (strchr(optarg,'f')) randnetuniform = true;  
+
         break;
     
     // case 'v': 
@@ -560,7 +561,7 @@ int main(int argc, char **argv)
     }    
 
 
-    netvec.push_back(addrandreticulations(reticulationcnt_R,n,networktype));
+    netvec.push_back(addrandreticulations(reticulationcnt_R, n, networktype, randnetuniform));
 
   }
     
@@ -621,7 +622,7 @@ int main(int argc, char **argv)
       Network *n; 
       long int i = -1;
 
-      while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt_R, networktype))!=NULL)              
+      while  ((n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt_R, networktype, randnetuniform))!=NULL)              
 
          dagset.add(n);        
       
@@ -689,7 +690,7 @@ int main(int argc, char **argv)
   {      
       for (int i = 0; i < randomnetworkscnt; i++)      
 
-        netvec.push_back(randnetwork(reticulationcnt,networktype,randnetuniform));              
+        netvec.push_back(randnetwork(reticulationcnt_R, networktype, randnetuniform));              
 
   }     
 
@@ -857,7 +858,7 @@ int main(int argc, char **argv)
 
 
         // get next initial network 
-        Network *n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt_R, networktype);
+        Network *n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, gtc, preserverootst, reticulationcnt_R, networktype, randnetuniform);
 
         if (!n) break;        
 
@@ -1053,8 +1054,8 @@ int main(int argc, char **argv)
            cerr << "Cannot create initial random species tree" << endl;
            exit(-1);
         }        
-        Network *n1 = addrandreticulations(reticulationcnt_R,new Network(r1),networktype);
-        Network *n2 = addrandreticulations(reticulationcnt_R,new Network(r2),networktype);
+        Network *n1 = addrandreticulations(reticulationcnt_R, new Network(r1), networktype, randnetuniform);
+        Network *n2 = addrandreticulations(reticulationcnt_R, new Network(r2), networktype, randnetuniform);
 
         e1 = n1->eqdags(n2);                              
         e2 = n1->eqdagsbypermutations(n2);            

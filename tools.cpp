@@ -313,7 +313,7 @@ int usage(int argc, char **argv) {
        "     l - for each v in V(N), print the number of leaves reachable from v (only from networks)\n"       
        "     a - odtdatfile in labelled format\n"
 
-       "     f - draw uniformly pairs edges to create random reticulation (in random network generator); the default is first draw source next draw destination edge\n" // CHECK
+       "     f - draw uniformly pairs edges to create random reticulation (in random network generator); the default is first draw from source destination edge\n" 
        "\n"       
 
        "COST SETTING OPTIONS\n"

@@ -557,13 +557,15 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 #define getvenc(nod,par) if (nod==root) { par=MAXNODEID; } else  { if (nod<0) { nod=-nod; par = retparent[nod]; } else { par = parent[nod]; } }
 
 	// printdeb(cout,2) << endl;
-
+	NODEID dlen = 0;
+	NODEID v,p,w,q;
+	
 	for (NODEID i = 0; i<len; i++)
 	{		
-		NODEID v = esrc[i];
-		NODEID vsrc = v;
-		NODEID p = MAXNODEID;
-		NODEID dlen = 0;
+		v = esrc[i];
+		NODEID vsrc = v;		
+		if (!uniform) dlen=0;  // initialize after each iteration
+		NODEID p;
 
 		getvenc(v,p);
 		
@@ -618,22 +620,25 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 							dsrc[dlen][0]=vsrc;		
 							dsrc[dlen++][1]=-w;	
 						}
-					}
+					}				
 			}		
+
+		if (!uniform && dlen) break; // take the first non-empty set 
 			
-		if (!uniform && dlen) break; // take the first non-empty
+	}
+
+	if (!dlen) return NULL;
+
+
+	int pair = rand()%dlen;
+
+	v = dsrc[pair][0];
+	w = dsrc[pair][1];
+	getvenc(v,p);		
+	getvenc(w,q);
 		
-
-		if (!dlen) continue;
-
-		v = dsrc[rand()%dlen][0];
-		NODEID w = dsrc[rand()%dlen][1];
-		NODEID q;
-		getvenc(w,q);
-		getvenc(v,p);
 			
-		// yeah, connect (v,p) --> (w,q)
-
+	// yeah, connect (v,p) --> (w,q)
 
 #ifdef RNDDEBUG		
 		cout << " dlen=" << dlen << endl;
@@ -648,10 +653,9 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 		cout << v << " " << p << " -> " << w << " " << q << endl;
 #endif	
 
-		return new Network(this, v, p, w, q, retid);
-
-	}
-	return NULL;
+	return new Network(this, v, p, w, q, retid);
+	
+	
 }
 
 
