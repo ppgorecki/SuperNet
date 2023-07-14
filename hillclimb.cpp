@@ -43,7 +43,6 @@ bool TailMove::next()
 { 
 	// TODO: uniform random sampling; store all candidates and uniformly draw
 
-
 	if (moved)
 	{
 		//pefrorm reverse move
@@ -369,10 +368,17 @@ bool NNI::next()
 		// Search for the next 
 		return next();
 
-	return true;
+	return true; 
 }
 
-double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive_oe, int runnaiveleqrt_t, int maximprovements)
+
+double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, 
+		bool usenaive, 
+		int runnaiveleqrt_t, 
+		int timeconsistent,
+		int hcmaximprovements,
+		int hcstopclimb
+		)
 {
 
 	double starttime = gettime();
@@ -380,8 +386,24 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 	// init edit operation
 	op.init(net);
 
+	if (timeconsistent)
+	{
+			bool tc = net->istimeconsistent();
+			if (timeconsistent==TIMECONSISTENT && !tc)
+			{
+				 cerr << "Initial network in HC is not time consistent" << endl;
+				 exit(-1);
+			}
+
+			if (timeconsistent==NOTIMECONSISTENT && tc)	
+			{
+				 cerr << "Initial network in HC is time consistent" << endl;
+				 exit(-1);
+			}
+	}
+
 	// compute the first odt cost
-	double optcost = net->odtcost(genetrees, costfun, usenaive_oe, runnaiveleqrt_t, nhcstats.getodtstats());
+	double optcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats());
 
 	if (verbosealg>=5 || verbosehccost>=1) 
 	{
@@ -399,11 +421,21 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 		cout << " = " << *net << " cost=" << curcost << endl;				
 	}
     
-  int improvementscnt = 0;
+  int improvementscnt = 0;   // number of improvements
+
+  int noimprovementstep = 0; // number of steps without improvement
 
 	while (op.next())
 	{			
-		double curcost = net->odtcost(genetrees, costfun, usenaive_oe, runnaiveleqrt_t, nhcstats.getodtstats());
+
+		if (timeconsistent)			
+		{  
+			bool tc = net->istimeconsistent();
+			if (timeconsistent==TIMECONSISTENT && !tc) continue; // skip network
+			if (timeconsistent==NOTIMECONSISTENT && tc) continue; // skip network
+		}
+		
+		double curcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats());
 			 
 		nhcstats.step();
 
@@ -437,15 +469,23 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 			nhcstats.add(*net);					
 
 			// Stopping condition for maximprovements
-			if (maximprovements && improvementscnt==maximprovements)
+			if (hcmaximprovements && (improvementscnt==hcmaximprovements))
 				break;
 
 			improvementscnt++;
+		  noimprovementstep = 0; // reset counter
 
 			// search in a new neighbourhood
-			op.reset();
+			op.reset();			
+		}
+		else
+		{
+				noimprovementstep++;
+		}
 
-			
+		if (hcstopclimb && (noimprovementstep==hcstopclimb))
+		{
+		 	 break;
 		}
 
 	}

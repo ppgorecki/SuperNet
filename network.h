@@ -13,13 +13,17 @@ class CostFun;
 class BBTreeStats;
 
 
-#define NET_GENERAL 2   // no limits
-#define NET_CLASS1RELAXED 1    // int node has >=1 tree node/leaf child
-#define NET_TREECHILD 0  // int node has <=1 ret. child
-
 #ifndef MAXRTNODES
 	#define MAXRTNODES 64
 #endif 
+
+
+class RootedTree;
+class Network;
+
+typedef vector<RootedTree*> VecRootedTree;
+typedef vector<Network*> VecNetwork;
+
 
 class AdaptiveBB;
 

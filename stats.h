@@ -112,14 +112,15 @@ class NetworkHCStats
 	long steps; 
 	long startingnets;
 	int topnetworks; 
+	int timeconsistency;
 
-	int networktype;
+	int networkclass;
 		
 	ODTStats odtstats;
 
 public:
-
-	NetworkHCStats(int networktype);
+ 
+	NetworkHCStats(int networkclass, int timeconsistency);
 	~NetworkHCStats();
 
 	void step() { steps++; }

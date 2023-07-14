@@ -10,16 +10,18 @@ void NetworkHCStats::print(bool global)
      << " Climbs:" << improvements 
      << " TopNetworks:" << topnetworks;     
 
-     if (networktype==NET_TREECHILD)
+     if (networkclass==NET_TREECHILD)
      cout << " Class:TreeChild";
 
-    if (networktype==NET_CLASS1RELAXED)
+    if (networkclass==NET_CLASS1RELAXED)
      cout << " Class:Relaxed";
 
-   if (networktype==NET_GENERAL)
+    if (networkclass==NET_GENERAL)
      cout << " Class:General";
 
-     if (global) 
+    cout << " TimeConsistency:" << timeconsistency;
+
+    if (global) 
      {     		
      		cout 
 	     		<< " HCruns:" << startingnets 
@@ -36,6 +38,12 @@ void NetworkHCStats::print(bool global)
 //    2 - new networks with the same cost
 //    1 - new cost
 //    0 - no improvement
+
+// printstats = 0 - no print
+// printstats = 1 - improvements
+// printstats = 2 - improvements and new nets
+// printstats = 3 - always
+
 int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats) 
 {
 	double mtime = gettime();
@@ -49,6 +57,9 @@ int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats)
   odtstats.merge(nhc.getodtstats());
 
   // cout << "merge " << optcost << " " << dagset->size() << endl;
+#define PNET  { cout << startingnets << ". ";  nhc.print();  printed=1; }
+
+  bool printed = false;
 
   if (!dagset->size() || nhc.optcost < optcost)
   {
@@ -57,34 +68,28 @@ int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats)
     dagset = nhc.dagset;
     nhc.dagset = NULL;
     if (printstats)   
-    {
-    	cout << startingnets << ". ";
-      nhc.print();    
-      cout << "NewOptCost: " << nhc.optcost << endl;             
+    {    	
+      PNET;
+      cout << " New optimal cost: " << nhc.optcost << endl;             
     }
     res = 1;
   }
   else 
   	if (nhc.optcost == optcost)
     {      
-
       int insnets = dagset->merge(*nhc.dagset);
 
-      if (insnets && (printstats==2 || printstats==1))
+      if ((insnets && printstats==2) || printstats==3)
       {
-      	cout << startingnets << ". ";
-        nhc.print();    
-        cout << " NewNets:" << insnets << " " << "Total:" << dagset->size() << endl;
+      	PNET;
+        cout << " New optimal networks:" << insnets << " " << "Total:" << dagset->size() << endl;
       }
       if (insnets) res=2;  // new opt nets.            
 
     }
     else 
-    	if (printstats==1)
-	    {     
-	      cout << startingnets << ". ";
-	      nhc.print();    	     
-	    }
+    	if (printstats == 3)
+	      PNET;
 
   mergetime += gettime()-mtime;
 	topnetworks = dagset->size();
@@ -119,8 +124,10 @@ void NetworkHCStats::savedat(string file, bool labelled)
     odtf << topnetworks << endl; // networks
 
     if (labelled) odtf << "class=";
-    odtf << networktype << endl; // network type
+    odtf << networkclass << endl; // network type
 
+    if (labelled) odtf << "timeconsistency=";
+    odtf << timeconsistency << endl; 
 
   	if (labelled) odtf << "improvements=";
     odtf << improvements << endl; // improvements
@@ -161,9 +168,10 @@ void NetworkHCStats::savedat(string file, bool labelled)
     odtf.close();
 }
 
-NetworkHCStats::NetworkHCStats(int _networktype) 
+NetworkHCStats::NetworkHCStats(int _networkclass, int _timeconsistency) 
 { 
-    networktype= _networktype;
+    networkclass= _networkclass;
+    timeconsistency = _timeconsistency;
 
     dagset = new DagSet();
     improvements = 0; 

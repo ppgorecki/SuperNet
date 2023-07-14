@@ -59,7 +59,8 @@ class TailMove: public EditOp
 	NODEID q;
 	
 	bool moved;  // moved is true if the move was executed
-	bool networkclass;  // treechild, relaxed or general
+	int networkclass;  // treechild, relaxed or general
+	bool timeconsistent; // if networks have to be time consistent
 
 	bool *vreachable;
 
@@ -70,7 +71,7 @@ class TailMove: public EditOp
 
 public: 
 
-	TailMove(bool _networkclass) : EditOp(), vreachable(NULL), networkclass(_networkclass) {}
+	TailMove(int _networkclass) : EditOp(), vreachable(NULL), networkclass(_networkclass) {}
 
 	bool next();
 	void reset();
@@ -96,7 +97,13 @@ public:
 	// Starts from net, net is modified
 	// Returns optimal cost 
 	// TODO: additional info (stats, more optimal solutions, etc.) 
-	double climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, bool usenaive_oe, int runnaiveleqrt_t, int maximprovements = 0);
+	double climb(EditOp &op, Network *net, CostFun &costfun, 
+		NetworkHCStats &nhcstats, 
+		bool usenaive, 
+		int runnaiveleqrt_t, 
+		int timeconsistent,
+		int hcmaximprovements = 0,
+		int hcstopclimb = 0);
 
 };
 

@@ -246,120 +246,173 @@ extern const char *SUPNET;
 int usage(int argc, char **argv) {
 
   cout <<
+       
+       "SupNet: Phylogenetic networks visualisation, evaluation and inference\n"
+
        "SuperNetwork " << SUPNET << " with "
 #if defined USE_PRIORITY_QUEUE_MINRT
        "MinRT-strategy\n"
 #endif
 #if defined USE_PRIORITY_QUEUE_MINLB
-      "MinLB-strategy\n"
+       "MinLB-strategy\n"
 #endif 
 #if defined USE_QUEUE_BFS
       "BFS-strategy\n"
 #endif      
 
-       "Software homepage: http:...\n"
+       "Software homepage: https://github.com/ppgorecki/SuperNet\n"
+       
        "Usage: " << argv[0] << " [options]\n\n"
 
-       "INPUT OPTIONS:\n"
-       "  -g STR: gene trees from a string (separator is semicolon)\n"
-       "  -s species tree\n"
-       "  -n network\n"
-       "  -G filename - gene trees from a file; EOLN separated; - stdin\n"              
-       "  -S filename - species trees from a file; EOLN separated; - stdin\n"
-       "  -N filename - networks from a file; EOLN separated; - stdin\n"
-
-       "  -l [aDELIM|bDELIM|pPOS] - rules for matching gene tree names with species tree names;\n"       
-       "       a - after delimiter; b - before delimiter; p - from position \n"
-       
-       "\n"
-       
-       "Random and quasi consensus generators\n"
-       "  -r NUM - gen NUM random species trees/networks\n"       
-       "  -q NUM - gen NUM quasi-consensus species trees/networks\n"              
-       "  -R NUM - inserts NUM reticulation nodes in all networks/trees from -q, -r, -n, -N (default 0)\n"
-       "  -A SPECIESNUM - define SPECIESNUM species a,b,...\n"       
-       
-       "  By default generator produces tree-child networks. Use -e1, -e2 for other classes (see below)\n"
        "\n"
 
+       "Input:\n"
+       " --genetrees, -g STR: gene trees from a string (separator is semicolon)\n"
+       " --speciestrees, -s STR: species trees from a string\n"
+       " --networks, -n STR: networks from a string\n"
 
-       "ADDITIONAL OPTIONS\n"
-       "  -v NUM - verbose level 1 (print the name of outputfile only),\n"
-       "       2 (simple output), 3 (detailed output)\n"       
-       "  -z SEED - set seed for random generator (srand)\n"       
-       "  -E float - set odtnaive sampling (exponential distribution)\n"       
-       "  -e [gsrD...]+ - multiple options:\n"
-       "     g - print a gene tree\n"
-       "     s - print a species tree\n"
-       "     n - print a network\n"
-       "     t - print all display trees\n"
-       "     T - print all display trees with their ids\n"
-       "     o - min total cost of all gene trees vs network using naive approach\n"
-       "     r - preserve root when searching the species tree space and in quasi-consensus\n"              
-       "     D - detailed tree info\n"       
-       "     i - list species dictionary\n"       
-       "     c - print cost between two trees (G,S)\n"       
-       "     C - print cost between two trees with trees (G,S)\n"              
-       "     d - run DP algorithm only (approx DC) per each (G,N)\n"
-       "     b - run BB algorithm only (exact DC); see jJ subopt.\n"
-       "     1 - class 1 networks in rand generator and hill climbing (int node has at most one reticulation child); see -R\n"       
-       "     2 - general phylogenetic networks in rand network generator and hill climbing (no restrictions); see -R\n"
-       "     p - pairwise comparison of all networks\n"
-       "     u - print unique networks; summary stats printed on stderr\n"
-       "     U - similar to u plus counts of networks\n"
-       "     x - two networks are equal if their shapes are isomorphic in u,U,p (i.e., ignore leaf labels)\n"
-       "     L - for each v in V(N), print the number of nodes reachable from v (only from networks)\n"
+       " --genetreesfile, -G FILE: gene trees from a file; EOLN separated; - stdin\n"              
+       " --speciestreesfile, -S FILE: species trees from a file; EOLN separated; - stdin\n"
+       " --networksfile, -N filename: networks from a file; EOLN separated; - stdin\n"
 
-       "     l - for each v in V(N), print the number of leaves reachable from v (only from networks)\n"       
-       "     a - odtdatfile in labelled format\n"
+       "\n"
 
-       "     f - draw uniformly pairs edges to create random reticulation (in random network generator); the default is first draw from source destination edge\n" 
+       "Print:\n"
+       " --pgenetrees: print gene trees\n"
+       " --pspeciestrees: print species trees\n"
+       " --pnetworks: print networks\n"
+       " --pdisplaytrees: print all display trees\n"
+       " --pdisplaytreesext: print all display trees with their ids\n"
+       " --dot: print dot representation of networks\n"
+
+       "Matching gene leaf labels with species leaf labels:\n"
+
+       " [TODO] --matchparam, -l [NUM|STR]: parameter for the occurrence of species name in gene label; see --match* options below\n"
+       " [TODO] --matchafter: species name is after --matchparam (STR) in gene label\n" 
+       " [TODO] --matchbefore: species name is before --matchparam (STR) in gene label\n" 
+       " [TODO] --matchatpos: species name is at fixed --matchparam (NUM) position in gene label; negative NUM positions from the end of label\n" 
+
+       //"  -l [aDELIM|bDELIM|pPOS] - rules for matching gene tree names with species tree names;\n"       
+       // "       a - after delimiter; b - before delimiter; p - from position \n"
+       
+       "\n"
+
+       "Binary network classes in random generator and HC heuristic:\n"
+       " --treechild: tree-child networks (default); a non-leaf node has at least one tree node child \n"
+       " --timeconsistent: time-consistent networks \n"              
+       " --notimeconsistent: no time-consistent networks \n"              
+       " --relaxed: a node has at most one reticulation child; see -R\n"       
+       " --general: general phylogenetic networks (not applicable with DP algorithm) \n"
+       " --detectclass: for each network N print 't tc r N', where t is 1 if N is time consistent, tc is 1 if N is tree-child network, r is 1 if N is relaxed network.\n"
+       
        "\n"       
-
-       "COST SETTING OPTIONS\n"
-       // " TODO: -D dupweight  - set weight of gene duplications (def. 1.0)\n"
-       // " TODO: -L lossweight - set weight of gene losses (def. 1.0)\n" 
-       "  -C COST - set cost function from {DL,D,L,DC,RF,DCE}; default is DC\n"
-       "\n"
+       "Random and quasi consensus tree/network generators\n"
+       " -r NUM: generate NUM random networks; if NUM=-1 generator is infinite\n"       
+       " -q NUM: generate NUM quasi-consensus networks; if NUM=-1 generator is infinite\n"              
+       " -R NUM: insert NUM reticulation nodes into networks from -q, -r, -n, -N; default is 0\n"       
+       " -A SPECIESNUM: define SPECIESNUM species a,b,... [TODO: expand label range]\n"       
+       " --uniformedgesampling: draw uniformly a pair of edges to create random reticulation; the default: first draw the source edge, then the uniformly the destination edge given the source\n" 
+       " --preserveroot: preserve root in quasi-consensus and in HC algorithm\n"              
+       " --randseed, -z SEED: set seed for random generator (srand)\n"       
        
-       "BB algorithm for DC (with -eb)\n"      
-       "  -t THRESHOLD - run naive odt computation, when the number of reticulations is < THRESHOLD; otherwise run DP;\n"
-       "  -ebJ - gen bb.tsv with stats\n"
-       "  -ebj - gen bb.dot with bb tree search\n"
-       "  -ebk - print time per each pair\n"
+       // " S - print species trees using compressed representation\n" 
+
        "\n"
+       "Tree/network print:"
+       " --pgenetrees: print gene trees\n"
+       " --pspeciestrees: print species trees\n"
+       " --pnetworks: print networks\n"
+       " --pdisplaytrees: print all display trees\n"
+       " --pdisplaytreesext: print all display trees with their ids\n"
+       " --dot: print dot representation of networks\n"
 
        "\n"
 
-       "Verbose option -v [123][34]:\n"
-       "       1 - in HC print visited network after each improvement (strictly)\n"
-       "       2 - in HC print visited networks if the cost is equal to the current or improved\n"
-       "       3 - in HC print all visited networks\n"
-       "       4 - in HC,BB,ODT print basic info\n"
-       "       5 - in HC,BB,ODT print more detailed info\n"
+       "Cost functions:\n"
+       " --cost, -C COST: set cost function from {DL,D,L,DC,RF,DCE}; default is DC\n"
+       " [TODO] -D dupweight: set weight of gene duplications (def. 1.0)\n"
+       " [TODO] -L lossweight: set weight of gene losses (def. 1.0)\n" 
+
+       "\n"
+
+       "Tree(s) vs tree(s) cost computation:\n"
+       " --ptreecost: print cost between two trees (G,S)\n"       
+       " --ptreecostext: print cost between two trees with trees (G,S)\n"              
        
        "\n"
-       "\n"
 
-       "ODT HEURISTIC SEARCH\n"
-
-       "  -o [TNt123sq]+ - run hill climbing heuristic using cost function and print optimal cost, non TC networks are allowed, tail/nni moves, all optimal networks are written in odt.log file; summary stats are saved to odt.dat (opt cost, total time in sec., time of hill climbing, time of merge step, number of networks, improvements, steps and the number of starting networks)\n"
-       "   By default each HC step starts from the set of predefined networks (if -n or -N are provided); otherwise by using quasi-random networks\n"       
-       "       T - use TailMoves (default)\n"
-       "       N - use NNI instead of TailMoves\n"      
-       "       S - print stats after locating optimal networks after each HC runs\n"
-       "       s - print extended stats after each HC run\n"
-       "       q - do not save odt.log (and odt.dat) with optimal networks\n"
-       "  By default searches and initial networks are limited to tree-child. Use -e1 or -e2 to extend the search to relaxed or general networks, resp."
-
-       " "
-       
-       "  -K NUM - stopping criterion: stop when there is no new network after NUM HC runs\n"
+       "DP algorithm to compute lower bound of DC between a gene tree and a network by dynamic programming\n"
+       "--DP: run DP and print the bound\n"            
 
        "\n"
-       "  -O ODTFILE - the name of odt.log \n"
-       "  -D DATFILE - the name of odt.dat; see also -ea \n"
-                        
+
+       "ODT-naive algorithm via enumeration of display trees to compute exact DC cost between gene trees and a network:\n"
+       " --odtnaivecost: run ODT-naive and print the cost\n"
+       " [TODO] --odtnaivesampling: set sampling in ODT naive (exponential distribution)\n"       
+       " --ptreesinodtnaive: print additional details\n"
+
+       "\n"
+
+       "Branch and bound (BB) algorithm to compute exact DCE cost by multiple calls of ODT-naive and/or DP\n"
+       " --BB: compute exact DCE by BB\n"      
+       " -t THRESHOLD, --runnaiveleqrt: run ODT-naive cost computation, when the number of reticulations is <= THRESHOLD; otherwise run DP;\n"
+       " --bbtsvstats: gen bb.tsv with stats\n"
+       " --bbtreesearch: gen bb.dot with bb tree search\n"
+       " --bbtimestats: print time per each pair\n"
+       " --bbstartscore=FLOAT: define initial score in BB (testing only)\n"
+                          
+       "\n"
+
+       "Hill Climbing (HC) heuristic for DC cost (only) by using BB and/or ODT-naive \n"
+
+       " --HC: run hill climbing heuristic for each initial network using cost function and print optimal cost, all optimal networks are written in odt.log file; summary stats are saved to odt.dat;\n"
+       "  By default each HC step starts from the set of predefined networks (if -n or -N are provided); otherwise by using quasi-random networks\n"              
+       " --hcnnimove: use NNI instead of TailMoves\n"      
+       " --hcrunstats: print improvements stats after each HC runs\n"
+       " --hcrunstatsext: print improvements stats after locating optimal networks after each HC runs\n"
+       " --hcrunstatsalways: print stats after each HC run\n"
+       " --noodtfiles: do not save odt.log and odt.dat with optimal networks\n"
+       " --hcusenaive: use only ODT naive algorithm in HCH (no BB)\n"
+       " --hcstopinit=NUM: stop when there is no new optimal network after NUM HC runs\n"
+       " --hcstopclimb=NUM: stop in a single HC when there is no improvements after NUM steps\n"
+       " --hcmaximprovements=NUM: stop after NUM improvements in HC climb\n"       
+       " -O ODTFILE: the name of odt.log \n"
+       " -D DATFILE: the name of odt.dat; see also --odtlabelled and --noodtfiles \n"
+       " --noodtfiles: do not generate odt and dat files\n"
+       " --odtlabelled: odt and dat file in labelled format\n"
+
+       " By default HC is limited to tree-child and non time consistent networks. Use --general, --relaxed or/and --timeconsistent to change the search space.\n"
+
+       "\n"
+
+       "\nVerbose:"
+       " --verbose, -v [123][34]: where\n"
+       "  0: quiet mode in HC, BB and ODT-naive\n"
+       "  1: print visited network in HC after each improvement\n"
+       "  2: print visited networks in HC if the cost is equal to the current or improved\n"
+       "  3: print all visited networks in HC \n"
+       "  4: print basic info in HC, BB, ODT-naive \n"
+       "  5: print detailed info in HC, BB, ODT-naive \n"
+
+       "\n"
+
+       "Networks/dags comparing and aggregating\n"
+       " --comparedags: pairwise comparison of all networks or their shapes\n"
+       " --uniquedags: print unique networks; summary stats printed on stderr\n"
+       " --uniquedagscnts: as above plus counts of networks\n"
+       " --dagshapes: two networks are equal if their shapes are isomorphic in --*dags* options (i.e., ignore leaf labels)\n"
+
+       "\n"
+
+       "Other options, print, debug, test, etc.\n"
+       " --pspeciesdictionary: list species dictionary\n"      
+       " --pdetailed: print debug tree and network structures\n"
+       " --reachablenodescnt: for each v in V(N), print the number of nodes reachable from v\n"
+       " --reachableleafvescnt: for each v in V(N), print the number of leaves reachable from v\n"         
+       " --pstsubtrees: print species tree subtrees\n"
+       " --maxdisplaytreecachesize: set limit for the size of the cache of display tree nodes (only if DTCACHE is enabled)\n"
+
+                       
        "\n"
        // "*Starting tree options:\n"
        // "  -q NUM - generate NUM quasi-consensus trees sampled from gene tree clusters;\n"
@@ -371,101 +424,97 @@ int usage(int argc, char **argv) {
        "Examples: \n\n"
 
        "Print 10 quasi consensus trees\n"
-       " supnet -g '(a,((b,c),d));(a,(b,d))' -q10 -en\n"
+       "  supnet -g '(a,((b,c),d));(a,(b,d))' -q10 --pnetworks\n"
        
        "Print 10 quasi consensus trees with preserved split of the root (-er)\n"
-       " supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -q10 -enr\n"
-
-       "Detailed tree/network info\n"
-       "  supnet -g '(a,((b,a),c))' -eD\n"
+       "  supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -q10 --pnetworks --preserveroot\n"
 
        "Print DC cost\n"
-       "  supnet -g '(b,(a,c))' -s '(a,(b,c))' -CDC -ec \n"
+       "  supnet -g '(b,(a,c))' -s '(a,(b,c))' -CDC --ptreecost\n"
 
-       "Print 10 random species trees over a..e (5)\n"
-       "  supnet -A5 -r10 -en\n"
+       "Print 10 random species trees (i.e., networks with no reticulation) over a..e\n"
+       "  supnet -A5 -r10 --pnetworks\n"
 
-       "Print display trees (based on reticulation switching; trees maybe non-unique)\n"
-       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -et\n"
-       
-       "Print display trees with ids\n"
-       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -eT\n"
+       "Print display trees based on reticulation switching; trees maybe non-unique\n"
+       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' --pdisplaytrees\n"
 
-       "Print min total cost 10 random gene trees vs random tree-child network with 5 reticulations over 8 species; print the initial network\n"
-       "  supnet -r10 -A8 -en  | supnet -G- -r1 -A8 -R5 -eon"
-       //"  supnet -r10 -A10 -en | supnet -G- -n $( embnet.py -n \"rand:10:5\" -pn ) -eo\n"
+       "Print the cost of 10 random gene trees vs random tree-child network with 5 reticulations over 8 species\n"
+       "  supnet -r10 -A8 --pnetworks | supnet -G- -r1 -A8 -R5 --odtnaivecost --pnetworks\n"
 
-       "Printing and visualizing\n"
-       "  supnet -n '((a)#A,(#A,(c,b)))' -enD\n"       
-       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -enD\n"       
-       "  supnet -n '(((b)#A,a),(#A,c))' -d\n"
-       "  supnet -n '((a)#A,(#A,(c,b)))' -d | dot -Tpdf > n.pdf\n"
-       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf\n"
-       "  supnet  -r1 -R10  -A20 -d | dot -Tpdf > n.pdf\n"
-       "  N=$( embnet.py -n 'rand:3:1' -pn ); echo $N; supnet -n$N -d | dot -Tpdf > n.pdf\n"
+       "Printing and visualizing\n"                     
+       "  supnet -n '((a)#A,(#A,(c,b)))' --dot | dot -Tpdf > n.pdf\n"
+       "  supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' --dot | dot -Tpdf > n.pdf\n"
+       "  supnet -r1 -R10  -A20 --dot | dot -Tpdf > n.pdf\n"
+       //"  N=$( embnet.py -n 'rand:3:1' -pn ); echo $N; supnet -n$N -d | dot -Tpdf > n.pdf\n"
 
-       "\nHILL CLIMBING HEURISTIC (-o...)\n"
+       "\nDynamic programming --DP (approximate DC cost)\n"
+       "  supnet -g '(a,(b,c))' -n '((a)#A,(#A,(c,b)))' --DP\n"
+
+       "\nBranch and bound --BB (exact DCE cost)\n"
+       "  supnet -g '(a,(b,c))' -n '((a)#A,(#A,(c,b)))' --BB\n"
+
+       "\nHill climbing heuristic (--HC ...)\n"
 
        " Minimalistic run: print cost; result in odt.log; one random initial network (-r1, i.e., one HC climb) with 2 (-R2) reticulations\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R2 -oT\n"
+       "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -r1 -R2 --HC\n"
        
        " Print summary stats; 10 HC runs with random networks\n"
-       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -r10 -R3 -o2S\n"
+       "  supnet -g '(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))' -r10 -R3 --HC -v2 --hcpstatsext\n"
 
-       " Print cost, improvements and stats (s); tree-child search (t); quasi consensus initial network (-q) with 3 random reticulations\n"
-       "  supnet -g \"(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))\" -q1 -R3  -o2st\n"
+       " Print cost, improvements and stats; tree-child search; quasi consensus initial network (-q) with 3 random reticulations\n"
+       "  supnet -g '(a,(b,(c,(d,e)))); ((a,b),(c,(e,a))); ((b,c),(d,a))' -q1 -R3 --HC -v2 --hcpstats\n"
 
-       " Larger instance; tree-child search:\n"
-       "  supnet -g \"((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))\" -R8 -q1 -o2st\n"
+       " Larger instance; relaxed and time consistent network search:\n"
+       "  supnet -g '((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))' -R8 -q1 --HC -v2 --hcpstats --relaxed --timeconsistent\n"
 
-       " Print only improvements:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o1\n"
+       " Print only improvements, general network search:\n"
+       "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -r1 -R3 --HC -v1 --general \n"
        
        " Print only improvements and equal cost networks:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o2\n"
-
-       " Print improvements and equal cost networks; NNI moves:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o3N\n"
+       "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -r1 -R3 --HC -v2\n"
        
-       " Print improvements; skip odt.log:\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -r1 -R3 -o3Nq\n"
+       " Print improvements; skip odt.log and odt.dat:\n"
+       "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -r1 -R3 -v1 --HC --noodtfiles \n"
 
        " Recommended with large HC-runs using quasi-consensus rand networks\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -q1000 -R3 -oS\n"
+       "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -q1000 -R3 --HC --hcpstatsext \n"
 
-       " Using stoppning criterion (-K1000) with quasi-consensus rand networks\n"
-       "  supnet -g \"(a,(b,(c,d))); ((a,b),(c,d))\" -q-1 -R3 -oS -K1000\n"
+       " Using stopping criterion (1000) with quasi-consensus networks\n"
+       "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -q-1 -R3 --HC --hcpstatsext --hcstopinit=1000\n"
 
        " Display trees usage stats:\n"
-       "  supnet -N odt.log -et | sort | uniq -c | sort -k1 -n\n"
+       "  supnet -N odt.log --pdisplaytrees | sort | uniq -c | sort -k1 -n\n"
 
        " Insert 2 reticulations into a network (tree-child output)\n"
-       "  supnet -R2 -n '(a,((d)#1,(b,(c,#1))))' -en\n"
+       "  supnet -R2 -n '(a,((d)#1,(b,(c,#1))))' --pnetworks \n"
 
-       " Insert 10 reticulations into a network (general network)\n"
-       "  supnet -R10 -n '(a,((d)#1,(b,(c,#1))))' -en2\n"
+       " Insert 10 reticulations into a general network\n"
+       "  supnet -R10 -n '(a,((d)#1,(b,(c,#1))))' --pnetworks --general\n"
 
-       " Pairwise comparison of random dags (general dags)\n"
-       "  supnet -r10 -R1 -A2 -en2p\n"
+       " Pairwise comparison of random dags (general networks)\n"
+       "  supnet -r10 -R1 -A2 --pnetworks --general --comparedags\n"
 
-       " Print unique networks from odt.log (-eu)\n"
-       "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -r1 -R3 -o2 && supnet -eu -N odt.log\n"
+       " Print unique networks from odt.log\n"
+       "  supnet -g '(a,(b,(c,d))); ((a,b),(c,d))' -r1 -R3 --HC -v2 && supnet --uniquedags -N odt.log\n"
 
        " Print unique random networks with counts\n"
-       "  supnet -r100000 -R1 -A3 -eU\n"
+       "  supnet -r100000 -R1 -A3 --uniquedagscnts\n"
 
        " Print unique random networks with counts under uniform pairs model\n"
-       "  supnet -r100000 -R1 -A3 -eUf\n"
+       "  supnet -r100000 -R1 -A3 --uniquedagscnts --uniformedgesampling\n"
 
        " Print unique random shapes of networks with counts\n"
-       "  supnet -r100000 -R1 -A3 -eUx\n"
+       "  supnet -r100000 -R1 -A3 --dagshapes --uniquedagscnts \n"
 
        " Gen BB-tree search\n" 
-       "  supnet -r1 -A15 -en  | supnet -G- -r1 -A15 -R12 -ebj; dot bb.dot -Tpdf > bb.pdf\n"
+       "  supnet -r1 -A15 --pnetworks  | supnet -G- -r1 -A15 -R12 --BB --bbtreesearch; dot bb.dot -Tpdf > bb.pdf\n"
 
        ;
 
-   
+/*
+ To test correctness of the above commands run:
+grep '^[ \t]*"  supnet' tools.cpp | sed 's#[\]"#\"#g;  s/^[[:space:]]*"/( /g; s/\\n"/ ) || exit -1; echo ==================;sleep 1;/g' | bash -x 
+*/
 
   exit(-1);
 }
@@ -631,5 +680,8 @@ unsigned long get_memory_size()
   //                 data       (6) data + stack
   //                 dt         (7) dirty pages (unused since Linux 2.6; always 0)
 }
+
+
+
 
 

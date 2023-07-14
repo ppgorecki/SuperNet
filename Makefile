@@ -8,9 +8,9 @@ MAKEFLAGS += -j10 # parallel
 
 all: supnet
 
-OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o bitcluster.o treespace.o hcstats.o odtstats.o
+OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o bitcluster.o treespace.o hcstats.o odtstats.o topsort.o randnets.o
 
-SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp
+SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp topsort.cpp randnets.cpp
 
 clusters.o: clusters.cpp clusters.h tools.h rtree.h dag.h network.h bb.h \
  treespace.h bitcluster.h

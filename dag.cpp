@@ -5,7 +5,10 @@
 using namespace std;
 #include "tools.h"
 #include "dag.h"
+#include "topsort.h"
 
+#include <bits/stdc++.h>
+using namespace std;
 
 void Dag::init(int _lf, int _rt)
 {
@@ -402,6 +405,26 @@ bool Dag::bijectiveleaflabelling()
   for (size_t i=0; i<specnames.size(); i++) occ[i]=0;
   for (NODEID i=0; i<lf; i++)    
     if (occ[lab[i]]++ == 1) return false;
+  return true;
+}
+
+bool Dag::belongtoclass(int netclass)
+{
+  NODEID i=MAXNODEID;
+  while (getnodeiter(i)) 
+  {   
+    int retcnt = 0;
+    int chcnt = 0;
+    NODEID ic=MAXNODEID;
+    while (getchild(i,ic)) 
+    { 
+      if (ic>=rtstartid)
+        retcnt++;
+      chcnt++;
+    }
+    if ((netclass==NET_TREECHILD) && (chcnt>0) && chcnt==retcnt) return false;
+    if ((netclass==NET_CLASS1RELAXED) && (retcnt>1)) return false;
+  }  
   return true;
 }
 
@@ -1139,3 +1162,108 @@ SPID* Dag::compressedrepr(SPID *r)
     return r;
 }
 
+
+
+bool Dag::istimeconsistent()
+{
+   vector<vector<NODEID>> adj(nn);
+   NODEID e[nn][2];
+   NODEID nmap[nn]; 
+   NODEID stack[nn];
+   int last=0;
+
+   for (NODEID i=0; i<nn; i++)
+   {
+      e[i][0] = i;
+      e[i][1] = MAXNODEID;
+      nmap[i] = i;
+   }
+
+// #define TCDEBUG
+
+    // glue ret parents
+    // 
+    for (NODEID i=rtstartid; i<nn; i++)
+    {
+      NODEID iparent=MAXNODEID;
+      getparentiter(i,iparent);
+      NODEID p1 = iparent;
+      getparentiter(i,iparent);
+      NODEID p2 = iparent;
+      // cout << " p1=" << p1;            
+      // cout << " p2=" << p2;            
+      // cout << " mp1=" << e[p1][0] << "." << e[p1][1];            
+      // cout << " mp1=" << e[p2][0] << "." << e[p2][1];            
+            
+      if (p1!=p2)
+      {
+        if (e[p1][0]==p1) e[p1][0]=p2;
+        else e[p1][1]=p2;
+
+        if (e[p2][0]==p2) e[p2][0]=p1;
+        else e[p2][1]=p1;    
+      }      
+      // cout << " amp1=" << e[p1][0] << "." << e[p1][1];            
+      // cout << " amp2=" << e[p2][0] << "." << e[p2][1];                  
+    }
+//#define TCDEBUG
+
+#ifdef TCDEBUG      
+    for (NODEID i=0; i<nn; i++)
+    {            
+      cout << i << "~~" << e[i][0] << " " << e[i][1] << endl;    
+    }
+#endif    
+
+    // merging parent is not sufficient if network is general
+    // fix to min values, when general network is present
+    
+    for (NODEID i=lf; i<nn; i++)
+    {         
+       last = 0;
+       auto curmap = nmap[i];
+
+       if (curmap<=i) 
+       {
+          // propagate
+          stack[last++] = i;
+          nmap[i] = MAXNODEID;
+
+          while (last)
+          {
+             auto cur = stack[--last];            
+             //cout << "STACK" << i <<  " cur=" << cur << endl; 
+             if (nmap[cur] != curmap)
+             {
+                nmap[cur] = curmap;
+                stack[last++] = e[cur][0];
+                if (e[cur][1]<MAXNODEID) 
+                  stack[last++] = e[cur][1];                
+             }
+          }
+          
+       }       
+    }
+
+
+#ifdef TCDEBUG      
+    for (NODEID i=0; i<nn; i++)
+    {            
+      cout << i << ". " << e[i][0] << "~~" << e[i][1] << "   " << nmap[i] << endl;    
+    }
+#endif        
+               
+
+
+     NODEID i = MAXNODEID;    
+     while (getnodeiter(i)) 
+     { 
+        NODEID iparent=MAXNODEID;            
+        while (getparentiter(i, iparent))
+        {          
+            addadjedge(adj, nmap[iparent], nmap[i]);
+            // cout << nmap[iparent] << " -> " <<  nmap[i] << endl;
+        }
+     }
+     return isacyclic(adj,nn);
+}

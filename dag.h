@@ -5,6 +5,13 @@
 #include "tools.h"
 
 
+#define NET_GENERAL 2   // no limits
+#define NET_CLASS1RELAXED 1    // int node has >=1 tree node/leaf child
+#define NET_TREECHILD 0  // int node has <=1 ret. child
+
+#define TIMECONSISTENT 1
+#define NOTIMECONSISTENT 2
+
 // TODO: cycles are allowed; add top. sort.
 
 class Dag // New name: RootedDirectedGraph?
@@ -146,13 +153,13 @@ public:
   virtual NODEID rtcount() { return rt; }
 
   // Returns the parents; to get all parents use:
-  // NODEID p=MAXSP;
+  // NODEID p=MAXNODEID;
   // while (getparentiter(i,p)) { .. p is the parent ... }
   // Double edges are colapsed
   bool getparentiter(NODEID i, NODEID &rparent);
 
   // Returns nodes; to get all nodes use:
-  // NODEID i=MAXSP;
+  // NODEID i=MAXNODEID;
   // while (getnodeiter(i)) { .. i is a node ... }  
   virtual bool getnodeiter(NODEID &i);
   
@@ -187,7 +194,7 @@ public:
   // MAXSP otherwise
   NODEID retsibling(NODEID u) { 
     if (u>=rtstartid)
-{
+  {
       NODEID p = retparent[u];
       if (lf<=p<rtstartid) return leftchild[p]==u?rightchild[p]:leftchild[p];
     }
@@ -212,6 +219,12 @@ public:
   // -----------------------------------------------------
   // TODO: Topological sort; optionally with returning top. ordering
   bool isdag() { return true; } 
+
+  bool istreechild() { return belongtoclass(NET_TREECHILD); }
+  bool isrelaxed()   { return belongtoclass(NET_CLASS1RELAXED); }
+  bool belongtoclass(int netclass);
+
+  bool istimeconsistent();
 
   bool eqdags(Dag *d, bool maplabels=true);
   bool eqdagstc1(Dag *d); // only tree child and class 1 testing (to be proved)

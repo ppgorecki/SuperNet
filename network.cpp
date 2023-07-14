@@ -522,7 +522,7 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     return mincost;        
 }
 
-
+// TODO: Checking time consistency here?
 Network* Network::addrandreticulation(string retid, int networktype, bool uniform)
 {
 	int len=nn+rt-1; 
