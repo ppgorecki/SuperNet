@@ -574,9 +574,16 @@ make supnet_dtcache
 supnet_dtcache -G corona.txt -R7 -q10 --HC --hcrunstats 
 ```
 
-Infering relaxed time-consistent networks, start from 10 networks `-q10`.
+Inferring relaxed time-consistent networks, start from 10 networks `-q10`.
 ```
 supnet_dtcache -G corona.txt -R7 -q10 --HC --hcrunstats --timeconsistent --relaxed
+```
+
+Inferring relaxed time-consistent networks, start from 10 networks `-q10`, save networks to first.log.
+```
+supnet_dtcache -G corona.txt -R7 -q10 --HC -v0 --timeconsistent --relaxed -O first.log
+supnet_dtcache -G corona.txt -N first.log --odtnaivecost
+supnet_dtcache -G corona.txt -N first.log --HC -v0 --timeconsistent --relaxed
 ```
 
 Check network classes in the result:
