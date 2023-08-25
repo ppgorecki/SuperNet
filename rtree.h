@@ -29,12 +29,7 @@ protected:
   // Set depth of nodes 
   void _setdepth(NODEID i, int dpt);
 
-
-
-  // Insert clusters of children node n into TreeClusters
-  GTCluster* _getgtccluster(NODEID n, TreeClusters *gtc);
-
-  // Used in sorted representation to compute min leaf labels
+    // Used in sorted representation to compute min leaf labels
   SPID _setmm_repr(NODEID i, SPID* mm);
 
 	// Used in sorted representation of tree
@@ -50,8 +45,6 @@ protected:
 #ifdef LCATAB
 	bool lcatabinitialized;
 #endif
-
-
 
 public:
 
@@ -110,7 +103,7 @@ public:
  // 	long costloss(RootedTree &speciestree, NODEID *lcamap);
   
  	// Insert clusters into Tree Clusters
- 	void setspclusters(TreeClusters *gtc);
+ 	void setspclusters(Clusters *gtc);
 
  	// all clusters 
  	bitcluster* getbitclusterrepr();

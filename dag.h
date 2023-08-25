@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include "tools.h"
+#include "clusters.h"
 
 
 #define NET_GENERAL 2   // no limits
@@ -114,6 +115,8 @@ supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf
   bool _eqdagsbypermutations(Dag *d, NODEID *isomap); 
   bool validisomap(Dag *d, NODEID *isomap);
   bool _eqdags(Dag *d, NODEID *isomap);
+  
+  void _getclusters(NODEID v, GTCluster **res, Clusters *clusters);
 
 public:
 
@@ -184,7 +187,8 @@ public:
 
   // Sibling of u; where parent(u) is a tree node u
   // MAXSP otherwise
-  NODEID sibling(NODEID u) { 
+  NODEID sibling(NODEID u) 
+  { 
     NODEID p = parent[u];
     if (lf<=p<rtstartid) return leftchild[p]==u?rightchild[p]:leftchild[p];
     return MAXSPECIES;
@@ -251,6 +255,13 @@ public:
   virtual NODEID getretchild(NODEID v) { return retchild[v]; }
   virtual NODEID getroot() { return root; }
   virtual NODEID getlabel(NODEID v) { return lab[v]; }  
+  
+  void getclusters(Clusters *clusters);
+  
+  // Check if the network has all clusters from given collection
+  bool hasclusters(Clusters *clusters);
+
+  void printclusters(ostream &os);
   
 };
 

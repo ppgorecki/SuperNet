@@ -158,13 +158,22 @@ If NUM is -1, the network generator will provide network when requested (e.g., w
 
 By default, the generator produces tree-child networks without time-consistency restriction. 
 
-Print 2 quasi consensus treeS with preserved split of the root.
+Print 2 quasi consensus trees with preserved split of the root.
 ```
 > supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -q2 --preserveroot --pnetworks
 (((e,d),c),(a,b))
 ((a,b),((e,c),d))
 ```
 
+### Guide trees: used in quasi consensus 
+
+```
+> supnet --guidetree "((a,b,c),(d,e,f))" -q4 --pnetworks
+(((d,e),f),(c,(a,b)))
+(((e,d),f),((a,c),b))
+((e,(f,d)),((b,a),c))
+((d,(e,f)),((a,c),b))
+```
 
 ### Random trees
     
@@ -192,9 +201,16 @@ Print one random relaxed network with species {a,b,c}  and 5 reticulations.
 
 Print one quasi-consensus network with two reticulations.
 ```
-> supnet -G examples/gtrees.txt -q1 -R2 --pnetwork
+> supnet -G examples/gtrees.txt -q1 -R2 --pnetwork --pnetworkclusters
 ((((b)#1,(d,a)))#2,((#1,c),#2))
 ```
+
+Print one quasi-consensus network with one reticulations and having guide tree clusters, and print all network clusters.
+```
+> supnet -q1 -R2 --pnetworks --guidetree '((a,b,c),(d,e,f))' --pnetworkclusters
+((((b)#1,(d,a)))#2,((#1,c),#2))
+```
+
 
 ### Fixed seed for random generator
 

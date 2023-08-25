@@ -150,7 +150,7 @@ void Network::getreachablefrom(NODEID v, bool *reachable)
 {
 	bool visited[nn];
 	for (NODEID i=0; i<nn; i++) reachable[i] = visited[i] = false;
-	_getreachablefrom(v,reachable, visited);
+	_getreachablefrom(v, reachable, visited);
 }
 
 // Print how many nodes are reachable from all nodes
@@ -522,7 +522,6 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     return mincost;        
 }
 
-// TODO: Checking time consistency here?
 Network* Network::addrandreticulation(string retid, int networktype, bool uniform)
 {
 	int len=nn+rt-1; 
@@ -548,7 +547,7 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 	}
 	
 	// shuffle nodes for randomness
-	shuffle(esrc,len);	
+	shuffle(esrc, len);	
 	bool reachable[size()];
 
 
@@ -704,4 +703,6 @@ COSTT Network::approxmindceusage(RootedTree &genetree, RETUSAGE &retusage, CostF
     dpdce.preprocess();    
     return dpdce.mindeltaroot(retusage);
 }
+
+
 

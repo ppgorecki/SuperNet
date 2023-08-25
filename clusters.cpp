@@ -11,9 +11,8 @@ bool compcnt(const GTCluster *a, const GTCluster *b)
 
 bool compsize(const GTCluster *a, const GTCluster *b)
 { 
-  return (spsize(a->spcluster) < spsize(b->spcluster)); 
+  return a->size() < b->size(); 
 } 
-
 
 // Only for compatible clusters collections
 class GTCC {
@@ -24,20 +23,46 @@ public:
   GTCC(NODEID *_c, string _s, bool _clean=0) : c(_c), s(_s), clean(_clean) {}
 };
 
+bool propercompatiblecluster(GTCluster *candcluster, GTCluster *basecluster)
+{
+    // top cluster 
+    if (basecluster->spcluster==topspcluster) return true;
+
+    // check if equal (redundant)
+    if (spsubseteq(candcluster->spcluster, basecluster->spcluster) && spsubseteq(basecluster->spcluster, candcluster->spcluster)) return false; 
+
+    NODEID* sum = joinspclusters(basecluster->spcluster, candcluster->spcluster);  
+
+    int sumsize = spsize(sum);
+    int candclustersize = spsize(candcluster->spcluster);
+    int baseclustersize = spsize(basecluster->spcluster);
+        
+    deletespcluster(sum);
+    
+    return sumsize==candclustersize || sumsize==baseclustersize || sumsize==(candclustersize+baseclustersize);
+      // inclusion/disjont
+
+}
+
 
 // Generate quasi consensus tree
-// If preserveroottree is given, the root split will be takes from the tree
-string TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
+// If preserveroottree is given, the root split will be taken from the tree
+string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters *guidetreeclusters)
 {
   
-  vector<GTCluster*> sc,compclusters;  
+  vector<GTCluster*> candidates, compclusters;  
 
-  for (size_t i=0; i<internal.size(); i++) sc.push_back(internal[i]);
-  for (size_t i=0; i<leaves.size(); i++) sc.push_back(leaves[i]);
-  sort(sc.begin(),sc.end(),compcnt);
-
-  // for (int i=0;i<specnames.size();i++) cout<< i << "-" << specnames[i] << " ";
-  //   cout << endl;
+  for (NODEID i = 0; i < specnames.size(); i++)
+  {
+    get(spec2gtcluster[i]->spcluster);
+  }
+  
+  for (auto& pairObj: t)
+  {
+      candidates.push_back(pairObj.second);  
+  }
+    
+  sort(candidates.begin(), candidates.end(), compcnt);
 
   if (preserveroottree)
   {
@@ -50,59 +75,80 @@ string TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
     
     preserveroottree->getchild(prroot,rc);        
     
-    compclusters.push_back(new GTCluster(0,0,t[lc])); // SEG  FAULT
-    compclusters.push_back(new GTCluster(0,0,t[rc]));    
-
+    compclusters.push_back(new GTCluster(t[lc])); 
+    compclusters.push_back(new GTCluster(t[rc]));    
     // TODO: Clean array t
   }
 
-  int maxcnt=sc[0]->usagecnt;
+  int maxcnt=candidates[0]->usagecnt;
   float minusage=0.01*maxcnt;
 
-  // for (int i=0;i<sc.size();i++)
-  //   { cout << i << " cr#" << sc[i]->usagecnt << " cluster=" << *sc[i] << " ";      
-  //     if (sc[i]->spcluster[0]<specnames.size()/2 && sc[i]->spcluster[0]>1)
-  //       if (sc[i]->spcluster[0]==1)
-  //         cout << "+";
-  //       cout << endl;
+#ifdef _CLUDEBUG_
+  for (int i=0;i<candidates.size();i++)
+    { 
+      cout << i << " cr#" << candidates[i]->usagecnt << " cluster=" << *candidates[i] << " ";      
+      if (candidates[i]->spcluster[0]<specnames.size()/2 && candidates[i]->spcluster[0]>1)
+        if (candidates[i]->spcluster[0]==1)
+          cout << "+";
+        cout << endl;
+    }
+#endif 
 
-  //     }
+  if (guidetreeclusters)
+  {
+    // add all guide tree cluster (check if OK)
 
-    for (size_t i=0; i<sc.size();i++)
-    {   
-        GTCluster *gc=sc[i];
-        if (gc->spcluster[0]>1 && (gc->spcluster[0]>0.7*specnames.size() || 
-            gc->usagecnt<minusage)) continue;
+    for (auto &candpair: guidetreeclusters->t)
+    {    
+      GTCluster *candcluster = candpair.second;
+      if (candcluster->size()==1) continue;
+      if (candcluster->size()==specnames.size()) continue;
+
+      bool skip = false;
+      // check compatiblity
+      for (auto &comp: compclusters)
+      {
+        if (spsubseteq(candcluster->spcluster, comp->spcluster) && spsubseteq(comp->spcluster, candcluster->spcluster))
+        {
+          skip = true; // equal, already present, skip
+          break;
+        }
+
+        if (!propercompatiblecluster(candcluster, comp))
+            {
+              cerr << "Ooops. Incompatible clusters in a guide tree and/or in preserveroottree opt? " << endl;
+              exit(-1);
+            } 
+      }
+      if (!skip)
+      {
+          // add cluster
+          compclusters.push_back(candcluster); 
+      }
+    }
+  }
+
+
+  for (auto &cand: candidates)
+  {       
+        // randomize     
+        if (cand->spcluster[0]>1 && (cand->spcluster[0]>0.7*specnames.size() || 
+            cand->usagecnt<minusage)) continue;
 
         int ok=1;        
         
-        for (size_t j=0; j<compclusters.size();j++)
+        for (auto &comp: compclusters)
         {
-
-            NODEID *cur=compclusters[j]->spcluster;            
-            if (cur==topspcluster) continue;
-                                    
-            
-            if (spsubseteq(gc->spcluster,cur) && spsubseteq(cur, gc->spcluster)) { ok=0; break; }
-
-            NODEID* sum=joinspclusters(cur,gc->spcluster);  // genrootedquasiconsensus
-            
-            if (spsize(sum)==spsize(gc->spcluster) 
-                || spsize(sum)==spsize(cur) || spsize(sum)==spsize(gc->spcluster)+spsize(cur)) { 
-                deletespcluster(sum);
-                continue; 
-                } // inclusion/disjont
-
-            deletespcluster(sum);
-
-            ok=0;
-            break;      
+            if (!propercompatiblecluster(cand, comp))
+            {
+              ok=0;
+              break;
+            }                                
         }
 
-        if (ok) { compclusters.push_back(gc); 
-            //cout << "Inserting " << *gc << endl;
-            } 
-        //else cout << "Failure" << endl;
+        if (ok)       
+            compclusters.push_back(cand); 
+                 
     }
 
   // Compatible clusters 
@@ -178,54 +224,108 @@ string TreeClusters::genrootedquasiconsensus(RootedTree *preserveroottree)
         deletespcluster(r.c);
     }    
 
-  
   return vs[0].s;
-
 }
 
-
-void TreeClusters::addtree(RootedTree *t)
-{  	
-	t->setspclusters(this);
+void Clusters::adddag(Dag *dag)
+{      
+    dag->getclusters(this);    
 }
 
+GTCluster* Clusters::has(NODEID *s)
+{
+    map<NODEID*, GTCluster*, comparespids>::iterator it = t.find(s);
+    if (it == t.end()) 
+        return NULL;
+    return t[s];
+}
 
-GTCluster* TreeClusters::get(GTCluster *l, GTCluster *r)
-/*
-Returns a cluster from two children clusters l and r.
-*/
+GTCluster* Clusters::add(NODEID *s)
 {
   GTCluster *gc;
-  
-  NODEID *s = joinspclusters(l->spcluster, r->spcluster); // OK
-
-  if (s[0]==1) return t[s]; // leaf cluster
-
-  map<NODEID*, GTCluster*, comparespids>::iterator it = t.find(s);
-
-  if (it == t.end()) {
-    // add new cluster 
-    gc = new GTCluster(l, r, s);
-    t[s] = gc;
-    internal.push_back(gc);
-  }
-  else {
-    //cluster present
-
-    gc = t[s];
-    deletespcluster(s); 
-  }
-
-  gc->usagecnt++;
-  _usagecnt++;
-  return gc;
+  if (s[0]==1)
+    gc = spec2gtcluster[s[1]];
+  else gc = new GTCluster(s);
+  t[s] = gc;  
+  return gc;  
 }
 
-ostream& operator<<(ostream&s, TreeClusters &c)
+
+GTCluster* Clusters::get(NODEID *s)
 {
-  for (size_t i=0; i<c.leaves.size(); i++) s << *c.leaves[i] << endl;  
-  for (size_t i=0; i<c.internal.size(); i++) s << *c.internal[i] << endl;
+    GTCluster *gc = has(s);
+
+    if (!gc)
+    {
+      gc = add(s);
+    }
+
+    gc->usagecnt++;
+    _usagecnt++;
+
+    return gc;
+}
+
+ostream& operator<<(ostream&s, Clusters &c)
+{
+  for (auto& pairObj: c.t)
+  {      
+      //s << std::cout<< *pairObj.first << " -> " << *pairObj.second << std::endl;
+      s << *pairObj.second << endl;
+  }
   return s;
 }
 
+void Clusters::addtree(char *s)
+{
+  int p=0;  
+  _parse(s, p, 0);
+}
 
+
+GTCluster *Clusters::_parse(char *s, int &p, int num)
+{
+  char *basecluster = getTok(s, p, num);
+  char *token; 
+
+  NODEID *spclu = NULL;
+
+  char *st = s+p;
+
+  if (basecluster[0] == '(')
+  {
+
+    while (1)
+    {
+      GTCluster *a = _parse(s, p, num);
+
+      if (!spclu) spclu = a->spcluster;
+      else
+      {
+        // TODO: clean
+        spclu = joinspclusters(spclu, a->spcluster, NULL, false); 
+      }    
+      
+      token = getTok(s, p, num);
+
+      if (token[0] != ',')
+        break;                    
+    }
+
+    if (!has(spclu))
+      return add(spclu); 
+  }
+
+  NODEID spid = getspecies(basecluster, s + p - basecluster);        
+  return get(spec2gtcluster[spid]->spcluster);
+}
+
+bool Clusters::hasall(Clusters* clusters)
+{
+    if (clusters->size()>size()) return false;
+    for (auto& pairObj: clusters->t)
+    {
+        if (!has(pairObj.second->spcluster)) return false;
+    }
+    return true;
+}

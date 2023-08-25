@@ -162,8 +162,10 @@ public:
 	void getreachablefrom(NODEID v, bool *reachable);
 
 	// Mark nodes w such that v is reachble from w (including v)	
-
 	void getreachableto(NODEID v, bool *reachable);	
+
+	// Return cluster = visible leaf labels 
+	NODEID *getcluster(NODEID v);
 
 	// approx DCE(G,N) via DP
 	COSTT approxmindce(RootedTree &genetree, CostFun &costfun);

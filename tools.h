@@ -72,10 +72,13 @@ using namespace std;
 #include <fstream>
 #include <random>
 
+class GTCluster;
+
 extern vector<string> specnames;
 extern vector<int> specorder;
 extern map<string, int> specnames2id;
-extern map<NODEID, NODEID*> spec2spcluster;
+extern vector<GTCluster*> spec2gtcluster;
+
 extern int rsort; // Important in nni - used to generated unique r|u species trees
 extern int gcenter; // Useful for drawing gene trees
 extern int costfromroot;
@@ -94,9 +97,10 @@ int strcount(char *s, char c);
 
 string genrandomtree(NODEID *sp, int len);
 
-NODEID* joinspclusters(NODEID* a, NODEID* b, NODEID *dest=NULL);
+NODEID* joinspclusters(NODEID* a, NODEID* b, NODEID *dest=NULL, bool compresstopcluster=true);
 NODEID* spidcopy(NODEID* a, int size);
 void printspcluster(ostream&s, NODEID *a);
+void pprintspcluster(ostream&s, NODEID *a);
 
 void initlinenuminfo(char *);
 void printlinepos();

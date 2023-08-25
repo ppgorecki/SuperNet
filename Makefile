@@ -1,6 +1,6 @@
 #VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
 VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck 
-CPPFLAGS = -Ofast -fomit-frame-pointer
+CPPFLAGS = -Ofast -fomit-frame-pointer -g
 CC = g++ -Ofast -fomit-frame-pointer
 MAKEFLAGS += -j10 # parallel
 
@@ -120,6 +120,10 @@ valgrind45si: gdb
 
 valgrind45n: gdb	
 	${VALGRIND} --log-file=valgrind45.log supnet -G "gene_trees_45.txt" -z 14 -O gene_trees_45_valgrind.odt -q1 -R10 -ot1 -CDC  -z10 -m1
+
+valgrindgu: 	
+	${VALGRIND} --log-file=valgrindgu.log supnet --guidetree "((a,b,c),(d,e,f))" -q1000 -R2
+
 
 profiler: 
 	g++ -Wall -pg -O3 -o supnet ${SRC}	

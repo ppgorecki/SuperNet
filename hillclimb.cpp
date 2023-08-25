@@ -45,7 +45,7 @@ bool TailMove::next()
 
 	if (moved)
 	{
-		//pefrorm reverse move
+		//perform reverse move
 		move(u,v,p,q);
 		moved = false;
 	}
@@ -229,6 +229,14 @@ bool TailMove::next()
 					}
 				}				
 			} // 3c
+
+
+			if (guidetreeclusters)
+			{
+					
+			}
+
+
 
 		} // limittotreechild or relaxed
 

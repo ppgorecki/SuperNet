@@ -12,11 +12,12 @@ using namespace std;
 
 #include "tools.h"
 #include "bb.h"
+#include "clusters.h"
 
 vector<string> specnames;
 vector<int> specorder;
 map<string, int> specnames2id;
-map<NODEID, NODEID*> spec2spcluster;
+vector<GTCluster*> spec2gtcluster;
 
 int linenum = 0;
 int charnum = 0;
@@ -27,14 +28,22 @@ void printspcluster(ostream&s, NODEID *a) {
   for (int i = 1; i <= a[0]; i++) s << a[i] << " ";
 }
 
+void pprintspcluster(ostream&s, NODEID *a) 
+{
+  if (a==topspcluster)
+    s << "TOP";
+  else
+    for (int i = 1; i <= a[0]; i++) s << specnames[a[i]] << " ";
+}
+
 NODEID topspcluster[2] = {0, 0};
  
 // Join two sets of species
 // Each set is an array where the first item (at index 0) is the size of the set
 // Species ids are sorted
-// Special case: topspcluster where all species names are present
+// Special case: topspcluster where all species names are present if compresstopcluster==true
 
-NODEID* joinspclusters(NODEID* a, NODEID* b, NODEID *dest)
+NODEID* joinspclusters(NODEID* a, NODEID* b, NODEID *dest, bool compresstopcluster)
 {
   if (!a[0]) return a; // topcluster
   if (!b[0]) return b; // topcluster
@@ -54,10 +63,11 @@ NODEID* joinspclusters(NODEID* a, NODEID* b, NODEID *dest)
   while (j <= bs) r[cs++] = b[j++];
 
   if (cs == 2) 
-    return spec2spcluster[r[1]];
+    return spec2gtcluster[r[1]]->spcluster;
 
-  if (cs - 1 == specnames.size())  // all species -> topcluster   
-    return topspcluster;
+  if (compresstopcluster)
+    if (cs - 1 == specnames.size())  // all species -> topcluster   
+      return topspcluster;
 
   NODEID *rx = dest;
   if (!dest) rx = new NODEID[cs];
@@ -194,7 +204,7 @@ int getspecies(char *_s, int len)
   NODEID* speccluster = new NODEID[2];
   speccluster[0] = 1;
   speccluster[1] = num;
-  spec2spcluster[num] = speccluster;
+  spec2gtcluster.push_back(new GTCluster(speccluster));
   return num;
   
 }
@@ -203,7 +213,9 @@ void cleanspecies()
 {
     int i;
     for (NODEID i = 0; i < specnames.size(); i++)
-      delete[] spec2spcluster[i];
+    {      
+      delete spec2gtcluster[i]; 
+    }
 }
 
 
@@ -380,6 +392,7 @@ int usage(int argc, char **argv) {
        " -D DATFILE: the name of odt.dat; see also --odtlabelled and --noodtfiles \n"
        " --noodtfiles: do not generate odt and dat files\n"
        " --odtlabelled: odt and dat file in labelled format\n"
+       " --guidetree STR: defines clusters that have to be present in all networks\n"
 
        " By default HC is limited to tree-child and non time consistent networks. Use --general, --relaxed or/and --timeconsistent to change the search space.\n"
 

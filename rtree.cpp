@@ -4,14 +4,7 @@
 #include "rtree.h"
 #include "costs.h"
 
-void RootedTree::setspclusters(TreeClusters *gtc)
-{
-    if (nn<1) return;
-    gtcclusters = new GTClusterArr[nn];
-    for (NODEID i=0; i<lf; i++) gtcclusters[i] = gtc->leafcluster(lab[i]);
-    for (NODEID i=lf; i<nn; i++) gtcclusters[i] = NULL;
-    for (NODEID i=lf; i<nn; i++) _getgtccluster(i, gtc);    
-}
+
 
 NODEID** RootedTree::getspclusterrepr()
 {
@@ -19,7 +12,7 @@ NODEID** RootedTree::getspclusterrepr()
     NODEID **res=new NODEID*[nn];
 
     for (NODEID i=0; i<lf; i++) 
-    	res[i]=spec2spcluster[lab[i]];
+    	res[i]=spec2gtcluster[lab[i]]->spcluster;
 
     for (NODEID i=lf; i<nn; i++) 
     	res[i]=joinspclusters(res[leftchild[i]],res[rightchild[i]]);
@@ -192,15 +185,6 @@ void RootedTree::_setdepth(NODEID i, int dpt)
     _setdepth(leftchild[i], dpt + 1);
     _setdepth(rightchild[i], dpt + 1);
 }
-
-
-GTCluster* RootedTree::_getgtccluster(NODEID n, TreeClusters *gtc)
-  {
-    if (gtcclusters[n]) return gtcclusters[n];    
-    GTCluster *r1 = _getgtccluster(leftchild[n], gtc);
-    GTCluster *r2 = _getgtccluster(rightchild[n], gtc);
-    return gtcclusters[n] = gtc->get(r1, r2);
-  }
 
 void RootedTree::initdepth() 
 { 

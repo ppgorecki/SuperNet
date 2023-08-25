@@ -1,1 +1,1 @@
-supnet -n "$1" -d | dot -Tpdf > p.pdf && evince p.pdf
+supnet_dtcache -n "$1" --dot | dot -Tpdf > p.pdf && evince p.pdf

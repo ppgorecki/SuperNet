@@ -1267,3 +1267,67 @@ bool Dag::istimeconsistent()
      }
      return isacyclic(adj,nn);
 }
+
+
+void Dag::_getclusters(NODEID v, GTCluster **res, Clusters *clusters)
+{
+  if (res[v]) return;
+
+  NODEID i=MAXNODEID;
+  NODEID *spclu = NULL;
+  int cnt = 0;
+  while (getchild(v,i)) 
+  {
+      _getclusters(i, res, clusters);
+      if (spclu)  
+        spclu = joinspclusters(spclu, res[i]->spcluster, NULL, false);
+      else spclu = res[i]->spcluster;
+      cnt++;      
+  }
+  GTCluster *gc = clusters->has(spclu);
+  
+  if (gc)
+  {
+    // present, clean if joinspclusters was used
+    if (cnt>1) deletespcluster(spclu);      
+  }
+  else
+  {
+      // cnt>1, (otherwise cluster was present)
+      gc = clusters->add(spclu);
+  }
+  res[v] = gc;
+}
+
+void Dag::getclusters(Clusters *clusters)
+{
+  GTCluster *res[nn];
+
+  for (NODEID i=0; i<lf; i++) 
+  {      
+      res[i]=spec2gtcluster[lab[i]];
+      clusters->add(res[i]->spcluster); //todo: optimize
+  }
+
+  for (NODEID i=lf; i<nn; i++) 
+      res[i]=NULL;
+
+  _getclusters(getroot(), res, clusters);  
+}
+
+
+// Returns true if arg clusters are present in network
+bool Dag::hasclusters(Clusters *clusters)
+{ 
+  bool ok=true;
+  Clusters netclusters;  
+  getclusters(&netclusters);
+  return netclusters.hasall(clusters);
+}
+
+void Dag::printclusters(ostream &os)
+{
+  Clusters netclusters;  
+  getclusters(&netclusters);
+  os << netclusters;
+}
