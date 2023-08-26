@@ -114,9 +114,10 @@ supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf
   inline bool _addisomap(NODEID src, NODEID dest, Dag *d, NODEID *isomap, NODEIDPair* cands, int& first, int& last);
   bool _eqdagsbypermutations(Dag *d, NODEID *isomap); 
   bool validisomap(Dag *d, NODEID *isomap);
-  bool _eqdags(Dag *d, NODEID *isomap);
-  
+  bool _eqdags(Dag *d, NODEID *isomap);  
   void _getclusters(NODEID v, GTCluster **res, Clusters *clusters);
+
+  bool _marksubtrees(NODEID v, short *subtree);
 
 public:
 
@@ -256,10 +257,14 @@ public:
   virtual NODEID getroot() { return root; }
   virtual NODEID getlabel(NODEID v) { return lab[v]; }  
   
-  void getclusters(Clusters *clusters);
+  // Insert node clusters into clusters, limit to subtrees if subtreesonly=true
+  void getclusters(Clusters *clusters, bool subtreesonly=false);
   
   // Check if the network has all clusters from given collection
   bool hasclusters(Clusters *clusters);
+
+  // Returns true if arg clusters are present in network as clusters of subtrees
+  bool hastreeclusters(Clusters *clusters);
 
   void printclusters(ostream &os);
   

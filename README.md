@@ -165,7 +165,23 @@ Print 2 quasi consensus trees with preserved split of the root.
 ((a,b),((e,c),d))
 ```
 
-### Guide trees: used in quasi consensus 
+### Guide clusters: used in quasi consensus 
+
+Guide clusters are defined as a list of multifurcated trees separated by `;`. All clusters from the trees must be present in all quasi consensus tree and networks in hill climbing. Note that random networks are not generated using guide clusters (i.e., with `-r NUM`).
+
+```
+> supnet --guideclusters "(a,b,c);(d,e,(f,g))" -q4 --pnetworks
+(((d,e),f),(c,(a,b)))
+(((e,d),f),((a,c),b))
+((e,(f,d)),((b,a),c))
+((d,(e,f)),((a,c),b))
+```
+
+### Guide tree: forcing tree structure in networks
+
+Similarly to guide clusters guide trees are defined as a multifurcated tree. 
+A cluster present in every guide tree must be present as a cluster of a node in a network. Additionally, every such a node is a root of a subtree, i.e., no reticulation is allowed.
+Note that random networks are not not generated using guide trees (i.e., with `-r NUM`).
 
 ```
 > supnet --guidetree "((a,b,c),(d,e,f))" -q4 --pnetworks
@@ -173,6 +189,13 @@ Print 2 quasi consensus trees with preserved split of the root.
 (((e,d),f),((a,c),b))
 ((e,(f,d)),((b,a),c))
 ((d,(e,f)),((a,c),b))
+```
+
+With reticulations; guide trees are separated by `;`.
+```
+> supnet -A10 -q2  --pnetworks --guidetree '(a,b);(d,e,f)' -R3
+((((((h,(j,((e,d),f))),#1))#3,((c)#1,i)))#2,(#3,(g,((b,a),#2))))
+(((((i)#1,c))#2,((((d,e),f))#3,((#2,((a,b),#3)),((h,g),j)))),#1)
 ```
 
 ### Random trees
@@ -201,14 +224,32 @@ Print one random relaxed network with species {a,b,c}  and 5 reticulations.
 
 Print one quasi-consensus network with two reticulations.
 ```
-> supnet -G examples/gtrees.txt -q1 -R2 --pnetwork --pnetworkclusters
-((((b)#1,(d,a)))#2,((#1,c),#2))
+> supnet -G examples/gtrees.txt -q1 -R2 --pnetworks --pnetworkclusters
+(((c)#2,(d,(((#2,a))#1,b))),#1)
+a 
+b 
+c 
+d 
+a c 
+a b c 
+a b c d 
 ```
 
 Print one quasi-consensus network with one reticulations and having guide tree clusters, and print all network clusters.
 ```
-> supnet -q1 -R2 --pnetworks --guidetree '((a,b,c),(d,e,f))' --pnetworkclusters
-((((b)#1,(d,a)))#2,((#1,c),#2))
+> supnet -q1 -R2 --pnetworks --guideclusters '((a,b,c),(d,e,f))' --pnetworkclusters
+(((((f,e),d))#1,((#2,((b)#2,c)),a)),#1)
+a 
+b 
+c 
+d 
+e 
+f 
+b c 
+e f 
+a b c 
+d e f 
+a b c d e f 
 ```
 
 
@@ -438,6 +479,36 @@ Cost:0 Steps:19 Climbs:3 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:
 To show details on DP & BB algorithms use `-v` with 4, 5 and 6. See examples below.
 
 
+HC with guide trees.
+```
+
+> supnet -g "(a,(b,c));((a,(b,g)),(c,(d,(e,(f,h)))));" -R1 --HC -v3 -z 1001 -q2 --guidetree '(a,b);(d,e,(f,g))' -R3
+   i: ((h)#3,(((#2,(((((d,(g,f)),e))#2,(a,b)),#3)))#1,(#1,c))) cost=13
+   i: (((#2,h))#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,(c,#1))))) cost=12
+   =: (((#2,h))#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,(c,#1))))) cost=12
+Cost:12 Steps:1 Climbs:2 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:2 HCTime:0.00027895 Naive:3 Naivetime:1.35899e-05 DTcnt:24
+```
+
+HC with guide clusters.
+```
+> supnet -g "(a,(b,c));((a,(b,g)),(c,(d,(e,f))));" -R1 --HC -v3 -z 1001 -q2 --guideclusters '(a,b,g);(d,e,f)' -R3
+   i: ((#2,(((((e)#1,((d)#3,(f,#3))),#1))#2,(b,(g,a)))),c) cost=7
+   >: ((#2,((((((e)#1,((d)#3,f)),#3),#1))#2,(b,(g,a)))),c) cost=6
+   =: ((#2,(((#3,(((e)#1,((d)#3,f)),#1)))#2,(b,(g,a)))),c) cost=6
+   <: ((#2,((((((e)#1,((d)#3,f)),#1))#2,(b,(g,a))),#3)),c) cost=7
+   <: (((#2,(((((e)#1,((d)#3,f)),#1))#2,(b,(g,a)))),#3),c) cost=7
+   <: ((#2,(((((e)#1,((d)#3,f)),#1))#2,(b,(g,a)))),(c,#3)) cost=7
+   <: ((#2,(((((e)#1,(((d)#3,f),#3)),#1))#2,(b,(g,a)))),c) cost=7
+   <: ((#2,(((((e)#1,((d)#3,f)),#1))#2,((b,(g,a)),#3))),c) cost=7
+   <: ((#2,(((((e)#1,((d)#3,(f,#3))),#1))#2,(b,(g,a)))),c) cost=7
+   <: ((#2,((((((e,#3))#1,((d)#3,f)),#1))#2,(b,(g,a)))),c) cost=7
+   =: ((#2,((((((e)#1,((d)#3,f)),#1),#3))#2,(b,(g,a)))),c) cost=6
+   i: ((#2,(((f,(#1,d)))#2,c)),((e)#1,((b,#3),((g)#3,a)))) cost=4
+   >: ((#2,((((#1,f),d))#2,c)),((e)#1,((b,#3),((g)#3,a)))) cost=3
+   <: ((#2,(((f,(#1,d)))#2,c)),((e)#1,((b,#3),((g)#3,a)))) cost=4
+   <: ((#2,(((#1,(f,d)))#2,c)),((e)#1,((b,#3),((g)#3,a)))) cost=4
+Cost:3 Steps:13 Climbs:4 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:2 HCTime:0.000392914 Naive:15 Naivetime:4.02927e-05 DTcnt:120
+```
 
 
 

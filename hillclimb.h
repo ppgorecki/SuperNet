@@ -63,20 +63,17 @@ class TailMove: public EditOp
 	bool timeconsistent; // if networks have to be time consistent
 
 	bool *vreachable;
-	Clusters *guidetreeclusters;
-
-	// NODEID *ac,*bc,*cc;      // child addresses  (in leftchild/rightchild)
-	// NODEID *ap,*bp,*cp;   // parent addresses (in parent or retparent)  
+	Clusters *guideclusters;	
+	Clusters *guidetree;	
 
 	void move(NODEID u, NODEID v, NODEID s, NODEID t);
 
 public: 
 
-	TailMove(int _networkclass, Clusters *_guidetreeclusters=NULL) : EditOp(), vreachable(NULL), networkclass(_networkclass), guidetreeclusters(guidetreeclusters) {}
+	TailMove(int _networkclass, Clusters *_guideclusters=NULL, Clusters *_guidetree=NULL) : EditOp(), vreachable(NULL), networkclass(_networkclass), guideclusters(_guideclusters), guidetree(_guidetree) {}
 
 	bool next();
 	void reset();
-
 
 };
 

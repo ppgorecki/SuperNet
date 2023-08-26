@@ -76,7 +76,7 @@ public:
 
   GTCluster *_parse(char *s, int &p, int num);
 
-  string genrootedquasiconsensus(RootedTree *preserveroottree, Clusters *guidetreeclusters);
+  string genrootedquasiconsensus(RootedTree *preserveroottree, Clusters *guideclusters, Clusters *guidetree);
 
   friend ostream& operator<<(ostream&s, Clusters &c);
   GTCluster *addleafcluster(NODEID i);

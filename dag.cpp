@@ -1299,7 +1299,27 @@ void Dag::_getclusters(NODEID v, GTCluster **res, Clusters *clusters)
   res[v] = gc;
 }
 
-void Dag::getclusters(Clusters *clusters)
+// 0 - not subtree, 1 - subtree, 2 - unknown
+// set true if a node is the root of a subtree
+bool Dag::_marksubtrees(NODEID v, short *subtree)
+{
+  
+  if (subtree[v]!=2) return subtree[v]==1;
+  bool sb = v<rtstartid;
+  
+  NODEID i=MAXNODEID;
+  while (getchild(v,i)) 
+  {      
+      sb = _marksubtrees(i, subtree) && sb;  // do not optimize!
+  }
+
+  if (sb) subtree[v] = 1;
+  else subtree[v] = 0;
+
+  return sb;
+}
+
+void Dag::getclusters(Clusters *clusters, bool subtreesonly)
 {
   GTCluster *res[nn];
 
@@ -1312,7 +1332,21 @@ void Dag::getclusters(Clusters *clusters)
   for (NODEID i=lf; i<nn; i++) 
       res[i]=NULL;
 
-  _getclusters(getroot(), res, clusters);  
+  if (subtreesonly)
+  {
+      short subtree[nn];    
+      for (NODEID i=0; i<lf; i++) subtree[i] = 1;
+      for (NODEID i=lf; i<nn; i++) subtree[i] = 2;      
+      _marksubtrees(getroot(), subtree);
+
+      for (NODEID v=0; v<nn; v++) 
+        if (subtree[v]==1)
+          _getclusters(v, res, clusters);     
+  }
+  else
+  {
+      _getclusters(getroot(), res, clusters);  
+  }
 }
 
 
@@ -1322,6 +1356,17 @@ bool Dag::hasclusters(Clusters *clusters)
   bool ok=true;
   Clusters netclusters;  
   getclusters(&netclusters);
+  return netclusters.hasall(clusters);
+}
+
+// Returns true if arg clusters are present in network as clusters of subtrees
+bool Dag::hastreeclusters(Clusters *clusters)
+{ 
+  bool ok=true;
+  Clusters netclusters;  
+  getclusters(&netclusters, true);
+  // cout <<  "TC" << *this << endl << netclusters << endl;
+  // cout << "GC" << *clusters << endl;
   return netclusters.hasall(clusters);
 }
 

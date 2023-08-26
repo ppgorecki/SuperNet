@@ -27,8 +27,6 @@ void ContractedNetwork::contractabove(NODEID v)
 }
 
 
-
-
 void ContractedNetwork::propagate_maps(NODEID v)
 {
   	NODEID par = mapup[v]; // tr/rt

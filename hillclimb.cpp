@@ -43,15 +43,18 @@ bool TailMove::next()
 { 
 	// TODO: uniform random sampling; store all candidates and uniformly draw
 
+
 	if (moved)
 	{
 		//perform reverse move
 		move(u,v,p,q);
-		moved = false;
+		moved = false;		
 	}
 
 	while (1)
 	{	
+
+		// Find four candidate nodes 
 		do  
 		{	
 			
@@ -103,11 +106,11 @@ bool TailMove::next()
 
 
 			
-		} while (s==source->size());  // do while
+		} while (s==source->size());  // do while - search for candidate nodes
 
-	// Candidates:
-	// 	u-v fixed 
-	// 	s-t fixed
+	  // Candidates:
+	  // 	u-v fixed 
+	  // 	s-t fixed
 
 		p = source->parent[u];
 		q = *(TreeNodeSiblingChildAddr(v,u));
@@ -116,7 +119,8 @@ bool TailMove::next()
 		cout << " p=" << p << " q=" << q << " || " <<
 			" u=" << u << " v=" << v << " | s=" << s << " t=" << t << "  ";
 #endif
-		// Now check conditions
+	
+		// Check conditions
 
 		if (v>=source->rtstartid && (source->parent[v]==q || source->retparent[v]==q) && s==q) 
 		{ 
@@ -230,18 +234,47 @@ bool TailMove::next()
 				}				
 			} // 3c
 
-
-			if (guidetreeclusters)
-			{
-					
-			}
-
-
-
 		} // limittotreechild or relaxed
 
-		// Finally, move!
+		// move!
 		move(u,v,s,t);
+
+		// check guideclusters condition		
+		if (guideclusters)
+		{
+				
+				if (!source->hasclusters(guideclusters))
+				{											
+#ifdef TAILMOVE_DEBUG			
+						cout << " guideclusters_rejected:" << *source << ":::";
+						source->printclusterssmp(cout);
+						cout << endl;
+#endif						
+						move(u,v,s,t); // revert						
+						continue;
+				}
+		}
+
+		// check guidetree condition		
+		if (guidetree)
+		{
+				
+				if (!source->hastreeclusters(guidetree))
+				{											
+#ifdef TAILMOVE_DEBUG			
+						cout << " guidetree_rejected:" << *source << ":::";
+						source->printclusterssmp(cout);
+						cout << endl;
+#endif						
+						move(u,v,s,t); // revert						
+						continue;
+				}
+		}
+		
+#ifdef TAILMOVE_DEBUG			
+		cout << "ACCEPT" << *source << endl;
+#endif		
+		
 		moved = true;
 
 #ifdef TAILMOVE_DEBUG		

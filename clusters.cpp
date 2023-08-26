@@ -47,7 +47,7 @@ bool propercompatiblecluster(GTCluster *candcluster, GTCluster *basecluster)
 
 // Generate quasi consensus tree
 // If preserveroottree is given, the root split will be taken from the tree
-string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters *guidetreeclusters)
+string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters *guideclusters, Clusters *guidetree)
 {
   
   vector<GTCluster*> candidates, compclusters;  
@@ -94,11 +94,11 @@ string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters 
     }
 #endif 
 
-  if (guidetreeclusters)
+  if (guideclusters)
   {
-    // add all guide tree cluster (check if OK)
+    // add all guide clusters (check if OK)
 
-    for (auto &candpair: guidetreeclusters->t)
+    for (auto &candpair: guideclusters->t)
     {    
       GTCluster *candcluster = candpair.second;
       if (candcluster->size()==1) continue;
@@ -117,6 +117,42 @@ string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters 
         if (!propercompatiblecluster(candcluster, comp))
             {
               cerr << "Ooops. Incompatible clusters in a guide tree and/or in preserveroottree opt? " << endl;
+              exit(-1);
+            } 
+      }
+      if (!skip)
+      {
+          // add cluster
+          compclusters.push_back(candcluster); 
+      }
+    }
+  }
+
+
+  // Ugly repeat!
+  if (guidetree)
+  {
+    // add all guide tree clusters (check if OK)
+
+    for (auto &candpair: guidetree->t)
+    {    
+      GTCluster *candcluster = candpair.second;
+      if (candcluster->size()==1) continue;
+      if (candcluster->size()==specnames.size()) continue;
+
+      bool skip = false;
+      // check compatiblity
+      for (auto &comp: compclusters)
+      {
+        if (spsubseteq(candcluster->spcluster, comp->spcluster) && spsubseteq(comp->spcluster, candcluster->spcluster))
+        {
+          skip = true; // equal, already present, skip
+          break;
+        }
+
+        if (!propercompatiblecluster(candcluster, comp))
+            {
+              cerr << "Ooops. Incompatible clusters in a guide tree/clusters and /or preserveroottree opt? " << endl;
               exit(-1);
             } 
       }
@@ -279,7 +315,12 @@ ostream& operator<<(ostream&s, Clusters &c)
 void Clusters::addtree(char *s)
 {
   int p=0;  
-  _parse(s, p, 0);
+  while (s[p])
+  {
+    _parse(s, p, 0);    
+    if (s[p]==';') p++;
+    if (!s[p]) break;    
+  }
 }
 
 

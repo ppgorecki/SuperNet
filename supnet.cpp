@@ -210,6 +210,7 @@ int main(int argc, char **argv) {
   int hcstopclimb = 0;
   char *matchparam = NULL;
 
+  char *opt_guideclusters = NULL;
   char *opt_guidetree = NULL;
   
   costfun = new CFDeepCoalescence();
@@ -300,14 +301,15 @@ int main(int argc, char **argv) {
       {"testeditnni", no_argument, &flag_testeditnni, 1},
       {"testedittailmove", no_argument, &flag_testeditnni, 2},
 
-      {"guidetree", required_argument, NULL, 'u'},
+      {"guideclusters", required_argument, NULL, 'u'},
+      {"guidetree", required_argument, NULL, 'e'},
 
       {0, 0, 0, 0}
 
   };
 
   const char *optstring =
-      "c:z:b:U:g:s:G:S:N:n:R:t:m:V:X:Y:Z:l:q:r:A:L:D:O:T:v:C:1:Wu:;";
+      "c:z:b:U:g:s:G:S:N:n:R:t:m:V:X:Y:Z:l:q:r:A:L:D:O:T:v:C:1:Wu:e:;";
 
   while ((opt = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) {
     switch (opt) {
@@ -378,6 +380,12 @@ int main(int argc, char **argv) {
     }
 
     case 'u': 
+    {
+      opt_guideclusters = strdup(optarg);
+      break;
+    }
+
+    case 'e': 
     {
       opt_guidetree = strdup(optarg);
       break;
@@ -587,7 +595,7 @@ int main(int argc, char **argv) {
     }
 
     netvec.push_back(addrandreticulations(reticulationcnt_R, n, networkclass,
-                                          timeconsistency, randnetuniform, NULL));
+                                          timeconsistency, randnetuniform, NULL, NULL));
   }
 
   // Print species names
@@ -605,11 +613,18 @@ int main(int argc, char **argv) {
       genetreeclusters->adddag(gtpos);    
   }
 
-  Clusters *guidetreeclusters = NULL;
+  Clusters *guideclusters = NULL;
+  if (opt_guideclusters)
+  {
+    guideclusters = new Clusters();
+    guideclusters->addtree(opt_guideclusters);    
+  }
+
+  Clusters *guidetree = NULL;
   if (opt_guidetree)
   {
-    guidetreeclusters = new Clusters();
-    guidetreeclusters->addtree(opt_guidetree);    
+    guidetree = new Clusters();
+    guidetree->addtree(opt_guidetree);    
   }
 
   // Gen quasi consensus trees and insert into netvec as networks
@@ -630,9 +645,9 @@ int main(int argc, char **argv) {
       }
     }
 
-    if (!gtvec.size() && !guidetreeclusters) 
+    if (!gtvec.size() && !guideclusters && !guidetree) 
     {
-        cout << "Gene trees or a guide tree are required to infer quasi consensus" << endl;
+        cout << "Gene trees (-g/-G), a guide tree (--guidetree) or guide clusters (--guideclusters) are required to infer quasi consensus" << endl;
         return -1;
     }
 
@@ -643,7 +658,9 @@ int main(int argc, char **argv) {
       for (int i = 0; i < quasiconsensuscnt; i++)
         netvec.push_back(randquasiconsnetwork(reticulationcnt_R, networkclass,
                                               timeconsistency, genetreeclusters,
-                                              preserverootst, guidetreeclusters));
+                                              preserverootst, 
+                                              guideclusters,
+                                              guidetree));
     }
   }
 
@@ -658,7 +675,8 @@ int main(int argc, char **argv) {
     while (
         (n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, genetreeclusters,
                          preserverootst, reticulationcnt_R, networkclass,
-                         timeconsistency, randnetuniform, guidetreeclusters)) != NULL)
+                         timeconsistency, randnetuniform, guideclusters, 
+                          guidetree)) != NULL)
 
       dagset.add(n);
 
@@ -897,7 +915,7 @@ int main(int argc, char **argv) {
     if (flag_hcedit_nni)
       op = new NNI();
     else
-      op = new TailMove(networkclass, guidetreeclusters);
+      op = new TailMove(networkclass, guideclusters, guidetree);
 
     NetworkHCStats *globalstats =
         new NetworkHCStats(networkclass, timeconsistency);
@@ -929,7 +947,9 @@ int main(int argc, char **argv) {
                       quasiconsensuscnt, genetreeclusters,
                       preserverootst, reticulationcnt_R, 
                       networkclass,
-                      timeconsistency, randnetuniform, guidetreeclusters);
+                      timeconsistency, randnetuniform, 
+                      guideclusters,
+                      guidetree);
 
       if (!n)
       {
@@ -951,7 +971,8 @@ int main(int argc, char **argv) {
         lastimprovement = hccnt;
       }
 
-      delete n;
+      if (find(netvec.begin(), netvec.end(), n) == netvec.end())       
+        delete n;
     }
 
     globalstats->print(true);
@@ -1121,10 +1142,10 @@ int main(int argc, char **argv) {
       }
       Network *n1 =
           addrandreticulations(reticulationcnt_R, new Network(r1), networkclass,
-                               timeconsistency, randnetuniform, NULL);
+                               timeconsistency, randnetuniform, NULL, NULL);
       Network *n2 =
           addrandreticulations(reticulationcnt_R, new Network(r2), networkclass,
-                               timeconsistency, randnetuniform, NULL);
+                               timeconsistency, randnetuniform, NULL, NULL);
 
       e1 = n1->eqdags(n2);
       e2 = n1->eqdagsbypermutations(n2);

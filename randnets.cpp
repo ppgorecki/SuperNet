@@ -4,7 +4,7 @@
 // How many tries to obrain time consistent network
 #define RANDCNTREPEAT 100 
 
-Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass, int timeconsistency, bool uniform, Clusters *guidetreeclusters)
+Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass, int timeconsistency, bool uniform, Clusters *guideclusters, Clusters *guidetree)
 {   
 
   Network *src = n;
@@ -39,9 +39,27 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass,
           exit(-1);
         }                
 
-        if (guidetreeclusters)
+        if (guideclusters)
         {
-          if (!n->hasclusters(guidetreeclusters))
+          if (!n->hasclusters(guideclusters))
+          {
+              delete n; //revert
+              n = prev;
+              addrandcnt--;
+
+              if (!addrandcnt)
+              {
+                cerr << "Cannot insert reticulation without violating guide clusters :(" << endl;
+                exit(-1);
+              }            
+              continue;
+          }
+        }
+
+
+        if (guidetree)
+        {
+          if (!n->hastreeclusters(guidetree))
           {
               delete n; //revert
               n = prev;
@@ -54,7 +72,6 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass,
               }            
               continue;
           }
-
         }
 
         if (!timeconsistency) 
@@ -123,19 +140,20 @@ Network *randnetwork(int reticulationcnt, int networkclass, int timeconsistency,
       cerr << "Cannot create initial random species tree" << endl;
       exit(-1);
     }        
-    return addrandreticulations(reticulationcnt, new Network(r), networkclass, timeconsistency, uniform, NULL);        
+    return addrandreticulations(reticulationcnt, new Network(r), networkclass, timeconsistency, uniform, NULL, NULL);        
 }
 
-Network *randquasiconsnetwork(int reticulationcnt, int networkclass, int timeconsistency, Clusters *genetreeclusters, RootedTree *preserverootst, Clusters *guidetreeclusters)
+Network *randquasiconsnetwork(int reticulationcnt, int networkclass, int timeconsistency, Clusters *genetreeclusters, RootedTree *preserverootst, 
+  Clusters *guideclusters, Clusters *guidetree)
 {
-    string r = genetreeclusters->genrootedquasiconsensus(preserverootst, guidetreeclusters);
+    string r = genetreeclusters->genrootedquasiconsensus(preserverootst, guideclusters, guidetree);
     if (!r.length())
     {
       cerr << "Cannot create initial quasi consensus species tree" << endl;
       exit(-1);
     }      
 
-    return addrandreticulations(reticulationcnt, new Network(r), networkclass, timeconsistency, false, guidetreeclusters);
+    return addrandreticulations(reticulationcnt, new Network(r), networkclass, timeconsistency, false, guideclusters, guidetree);
 
 }
 
@@ -147,7 +165,8 @@ Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, in
   RootedTree *preserverootst,
   int reticulationcnt, int networkclass, int timeconsistency, 
   bool randnetuniform,
-  Clusters *guidetreeclusters)
+  Clusters *guideclusters,
+  Clusters *guidetree)
 {
   
   i++;
@@ -165,7 +184,7 @@ Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, in
   if (quasiconsensuscnt!=0)  // with -1 infitite 
   { 
       if (quasiconsensuscnt>0) quasiconsensuscnt--;              
-      return randquasiconsnetwork(reticulationcnt, networkclass, timeconsistency, gtc, preserverootst, guidetreeclusters);                     
+      return randquasiconsnetwork(reticulationcnt, networkclass, timeconsistency, gtc, preserverootst, guideclusters, guidetree);                     
   }
 
   return NULL;
