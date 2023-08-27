@@ -11,6 +11,8 @@ void EditOp::init(Network *net)
 extern int verbosehccost;
 extern int verbosealg;
 
+//#define TAILMOVE_DEBUG
+
 void TailMove::reset()
 {
 	u = source->lf-1;
@@ -43,6 +45,9 @@ bool TailMove::next()
 { 
 	// TODO: uniform random sampling; store all candidates and uniformly draw
 
+#ifdef TAILMOVE_DEBUG	
+	int tmcnt = 0 ;
+#endif 
 
 	if (moved)
 	{
@@ -116,7 +121,8 @@ bool TailMove::next()
 		q = *(TreeNodeSiblingChildAddr(v,u));
 
 #ifdef TAILMOVE_DEBUG	
-		cout << " p=" << p << " q=" << q << " || " <<
+
+		cout << ++tmcnt << ". Candidate: p=" << p << " q=" << q << " || " <<
 			" u=" << u << " v=" << v << " | s=" << s << " t=" << t << "  ";
 #endif
 	
@@ -246,11 +252,16 @@ bool TailMove::next()
 				if (!source->hasclusters(guideclusters))
 				{											
 #ifdef TAILMOVE_DEBUG			
-						cout << " guideclusters_rejected:" << *source << ":::";
-						source->printclusterssmp(cout);
+						cout << tmcnt << " guideclusters_rejected:" << *source << ":::";
+						source->printclusters(cout);
 						cout << endl;
 #endif						
-						move(u,v,s,t); // revert						
+						//move(u,v,s,t); // revert						
+						move(u,v,p,q);
+
+#ifdef TAILMOVE_DEBUG			
+						cout << tmcnt <<  "Reverted" << endl;
+#endif
 						continue;
 				}
 		}
@@ -262,23 +273,27 @@ bool TailMove::next()
 				if (!source->hastreeclusters(guidetree))
 				{											
 #ifdef TAILMOVE_DEBUG			
-						cout << " guidetree_rejected:" << *source << ":::";
-						source->printclusterssmp(cout);
-						cout << endl;
+						cout << tmcnt << " guidetree_rejected:" << *source << ":::";
+						// source->printclusters(cout);
+						cout << tmcnt << endl;
 #endif						
-						move(u,v,s,t); // revert						
+						//move(u,v,s,t); // revert	
+						move(u,v,p,q);					
+#ifdef TAILMOVE_DEBUG			
+						cout << "Reverted" << endl;
+#endif						
 						continue;
 				}
 		}
 		
 #ifdef TAILMOVE_DEBUG			
-		cout << "ACCEPT" << *source << endl;
+		cout << tmcnt << "ACCEPT" << *source << endl;
 #endif		
 		
 		moved = true;
 
 #ifdef TAILMOVE_DEBUG		
-		cout << endl << "VER:" << source->verifychildparent() << endl;;
+		cout << endl << tmcnt << "VER:" << source->verifychildparent() << endl;;
 		source->printdeb(cout,2) << endl;
 #endif		
 
@@ -298,8 +313,8 @@ void TailMove::move(NODEID un, NODEID vn, NODEID sn, NODEID tn)
 	*qpar = pn; 
 
 #ifdef TAILMOVE_DEBUG
-	cout << dagcnt << " moved=" << moved << " TAILMOVE: p=" << pn << " q=" << qn << " || " <<
-			" u=" << un << " v=" << vn << " | s=" << sn << " t=" << tn << "  ";
+	cout << " In move: moved=" << moved << " TAILMOVE: p=" << pn << " q=" << qn << " || " <<
+			" u=" << un << " v=" << vn << " | s=" << sn << " t=" << tn << "  " << endl;
 #endif
 
 	// move!
@@ -413,6 +428,30 @@ bool NNI::next()
 }
 
 
+
+double HillClimb::climb2(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, 
+		bool usenaive, 
+		int runnaiveleqrt_t, 
+		int timeconsistent,
+		int hcmaximprovements,
+		int hcstopclimb
+		)
+{
+
+	op.init(net);
+	cout << "StartNet " << *net << endl;
+	double optcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats());
+	if (op.next())
+	{			
+		cout << " HCV: " << *net << endl;
+	}
+	else
+		cout <<" NO NEXT!" << *net << endl;
+
+	return 0;
+}
+
+
 double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, 
 		bool usenaive, 
 		int runnaiveleqrt_t, 
@@ -469,6 +508,7 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 	while (op.next())
 	{			
 
+		
 		if (timeconsistent)			
 		{  
 			bool tc = net->istimeconsistent();

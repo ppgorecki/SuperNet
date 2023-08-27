@@ -964,6 +964,8 @@ int main(int argc, char **argv) {
                              hcrunnaiveleqrt_t, timeconsistency,
                              hcmaximprovements, hcstopclimb);
 
+
+
       nhcstats.finalize();
 
       if (globalstats->merge(nhcstats, printstats)) 
