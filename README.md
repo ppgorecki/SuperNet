@@ -365,9 +365,8 @@ Generate the picture of BB-tree search:
  - `--hcstopinit=NUM`: stop when there is no new optimal network after HC with NUM initial networks
  - `--hcstopclimb=NUM`: stop in HC when there is no improvements after NUM steps
  - `--hcmaximprovements=NUM`: stop after NUM improvements in HC climb
- - `-O BASENAMEFILE, --outfiles`: base name of outputfiles .log and .dat
- - `--noodtfiles`: do not generate .log/.dat files
- - `--odtlabelled`: odt and dat file in labelled format
+ - `-O BASENAMEFILE, --outfiles`: base name of odt outputfiles .log and .dat
+  - `--odtlabelled`: odt and dat file in labelled format
 
  By default HC is limited to tree-child and non time consistent networks. Use `--general`, `--relaxed` or/and `--timeconsistent` to change the search space.
 
@@ -390,11 +389,16 @@ HC(GSet, N):
   while there is a neighbour N' of N:
      cost' := ODTcost(GSet, N')
      if cost' is better than cost: 
+         clean stored networks
          cost := cost'
          N := N'
          continue
-     if cost' = cost: 
+      if cost' = cost: 
          store N'
+   if there is a stored and not visited network N':
+      N := N'
+      go to while loop 
+   return N, cost
 
 ODTcost(GSet, N): 
     if `--hcusenaive` is set or N has less than '-t THRESHOLD` reticulations:
@@ -404,7 +408,6 @@ ODTcost(GSet, N):
 ```
 
 By default each HC step starts from the set of predefined networks (see `-n`, `-N` or random networks); otherwise by using quasi-random networks.
-
 
 Minimalistic hill climbing (HC) run using Tail Moves (default) with a single random network (and one HC run) `-r1` with two reticulations `-R2`. Print cost and save result to odt.log. 
 
@@ -506,8 +509,6 @@ HC with guide clusters.
    >: (((#2,g),#1),(((d)#3,(f,e)),(((a)#1,((b)#2,c)),#3))) cost=0
 Cost:0 Steps:2944 Climbs:16 TopNetworks:53 Class:TreeChild TimeConsistency:0 HCruns:2 HCTime:0.0629137 Naive:2946 Naivetime:0.00739336 DTcnt:23410
 ```
-
-
 
 ## Networks/dags comparing and aggregating
 
@@ -666,9 +667,9 @@ supnet_dtcache -G corona.txt -R7 -q10 --HC --hcrunstats --timeconsistent --relax
 
 Inferring relaxed time-consistent networks, start from 10 networks `-q10`, save networks to first.log.
 ```
-supnet_dtcache -G corona.txt -R7 -q10 --HC -v0 --timeconsistent --relaxed --outfiles first
-supnet_dtcache -G corona.txt -N first.log --odtnaivecost
-supnet_dtcache -G corona.txt -N first.log --HC -v0 --timeconsistent --relaxed
+supnet_dtcache -G corona.txt -R7 -q10 --HC -v1 --timeconsistent --relaxed --outfiles first --hcsavewhenimproved
+supnet_dtcache -G corona.txt -N first.log --hcsavewhenimproved  --outfiles corona
+supnet_dtcache -G corona.txt -N first.log --HC -v1 --timeconsistent --relaxed --hcsavewhenimproved --outfiles corona
 ```
 
 Check network classes in the result:

@@ -386,7 +386,7 @@ int main(int argc, char **argv) {
 
     case 'O': 
     {
-      opt_outfiles = optarg;
+      opt_outfiles = optarg;      
       break;
     }
 

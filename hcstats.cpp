@@ -216,3 +216,53 @@ NetworkHCStats::~NetworkHCStats()
       delete bestdags;
 }
 
+
+
+void NetworkHCStats::setoutfiles(string _outfiles,  bool _odtlabelled)
+{ 
+    datfile = _outfiles+".dat";
+    odtfile = _outfiles+".log";
+    odtlabelled = _odtlabelled;
+}
+
+
+void NetworkHCStats::addglobal(Dag *src, double cost)
+{
+    Dag *_;   
+    if (!bestdags->size() || optcost > cost)
+    {
+      setcost(cost);
+      bestdags->add(*src, &_);        
+      _newoptimal = true;
+      _improvements++;
+      if (flag_hcsavewhenimproved)
+        saveglobal();
+    } else if (optcost == cost)
+    {
+      if (bestdags->add(*src, &_)) _improvements++;           
+      if (flag_hcsavewhenimproved)
+        saveglobal();
+    }
+}
+
+
+void NetworkHCStats::saveglobal(bool printinfo)
+{   
+    if (odtfile.length()) 
+    { 
+      save(odtfile);
+      if (printinfo) 
+      {
+        cout << "Optimal networks saved: " << odtfile << endl;
+      }
+    }
+
+    if (datfile.length()) 
+    { 
+      savedat(datfile, odtlabelled);
+      if (printinfo) 
+      { 
+        cout << "Stats data saved: " << datfile << endl;
+      }
+    }   
+}
