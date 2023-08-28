@@ -312,6 +312,14 @@ Print RF cost [TODO]
 RF is not implemented yet
 ```
 
+## Optimal display tree cost: network(s) vs collections of gene tree: 
+
+For DC cost:
+```
+> supnet -n '((c,#1),((#2,((a)#1,b)),((e)#2,d)))'  -g '(e,((a,b),(d,c)));(d,((c,a),(e,b)));((d,b),((a,c),e))'  --odtcost
+6 ((c,#1),((#2,((a)#1,b)),((e)#2,d)))
+```
+
 ## DP algorithm to compute lower bound of DC between a gene tree and a network by dynamic programming
 
 `--DP`: run DP and print the bound
@@ -668,14 +676,68 @@ supnet_dtcache -G corona.txt -R7 -q10 --HC --hcrunstats --timeconsistent --relax
 Inferring relaxed time-consistent networks, start from 10 networks `-q10`, save networks to first.log.
 ```
 supnet_dtcache -G corona.txt -R7 -q10 --HC -v1 --timeconsistent --relaxed --outfiles first --hcsavewhenimproved
-supnet_dtcache -G corona.txt -N first.log --hcsavewhenimproved  --outfiles corona
-supnet_dtcache -G corona.txt -N first.log --HC -v1 --timeconsistent --relaxed --hcsavewhenimproved --outfiles corona
+supnet_dtcache -G corona.txt -N first.log --hcsavewhenimproved  
+supnet_dtcache -G corona.txt -N first.log --HC -v1 --timeconsistent --relaxed --hcsavewhenimproved
 ```
 
-Check network classes in the result:
+
+### Parallel processing 
+
+TODO: multithreded supnet
+
+Use parallel with 10 jobs to run 20 supnet computations.
+```
+mkdir -p corona
+parallel --jobs 10 --ungroup supnet_dtcache -G corona.txt -R7 -q1 --HC --hcrunstats --outfiles corona/{1} --hcstoptime 1  --hcsavewhenimproved --odtlabelled ::: {1..20}
+```
+
+Download `csvmanip` to merge dat files:
+```
+git clone git@github.com:ppgorecki/csvmanip.git 
+```
+
+Use `csvmanip` to merge dat files into csv:
+```
+> csvmanip/csvmanip.py corona/*.dat
+Id,Source,optcost,time,hctime,mergetime,topnets,class,timeconsistency,improvements,steps,bbruns,startnets,memoryMB,dtcnt,naivetime,naivecnt,bbnaivecnt,bbnaivetime,bbdpcnt,bbdptime,randseed
+1,corona/1.dat,139,1.00023,1.00021,1.90735e-05,5,0,0,48,3298,0,1,72,422272,0.928381,3299,0,0,0,0,1030374630
+2,corona/2.dat,113,1.04761,1.04758,2.24113e-05,1,0,0,52,3122,0,1,129,399744,0.993293,3123,0,0,0,0,1030374632
+3,corona/3.dat,151,1.00013,1.00012,1.57356e-05,1,0,0,38,2751,0,1,100,352256,0.980743,2752,0,0,0,0,1030374633
+4,corona/4.dat,81,1.00017,1.00016,1.19209e-05,1,0,0,74,4714,0,1,77,603520,0.95827,4715,0,0,0,0,1030374634
+5,corona/5.dat,102,1.00017,1.00016,1.21593e-05,3,0,0,68,4068,0,1,60,520832,0.959025,4069,0,0,0,0,1030374634
+6,corona/6.dat,97,1.00028,1.00027,1.19209e-05,1,0,0,46,4107,0,1,94,525824,0.972525,4108,0,0,0,0,1030374636
+7,corona/7.dat,121,1.00034,1.00033,6.91414e-06,17,0,0,42,3289,0,1,95,421120,0.878576,3290,0,0,0,0,1030374637
+8,corona/8.dat,129,1.00025,1.00024,1.62125e-05,2,0,0,46,3143,0,1,86,402432,0.964586,3144,0,0,0,0,1030374639
+9,corona/9.dat,160,1.00054,1.00052,1.71661e-05,1,0,0,34,2640,0,1,105,338048,0.977057,2641,0,0,0,0,1030374641
+10,corona/10.dat,116,1.00017,1.00016,1.23978e-05,1,0,0,58,2871,0,1,101,367616,0.970199,2872,0,0,0,0,1030374642
+11,corona/11.dat,156,1.00029,1.00028,1.14441e-05,1,0,0,40,2692,0,1,91,344704,0.978215,2693,0,0,0,0,1030375740
+12,corona/12.dat,125,1.00007,1.00007,6.19888e-06,25,0,0,42,3236,0,1,64,414336,0.884311,3237,0,0,0,0,1030375742
+13,corona/13.dat,142,1.00032,1.0003,1.85966e-05,1,0,0,32,2688,0,1,94,344192,0.973474,2689,0,0,0,0,1030375752
+14,corona/14.dat,205,1.00016,1.00015,1.50204e-05,1,0,0,54,2661,0,1,101,340736,0.975555,2662,0,0,0,0,1030375762
+15,corona/15.dat,105,1.00003,1.00002,1.38283e-05,4,0,0,64,3483,0,1,110,445952,0.916026,3484,0,0,0,0,1030375768
+16,corona/16.dat,98,1.02999,1.02998,1.35899e-05,3,0,0,38,3626,0,1,128,464256,1.0059,3627,0,0,0,0,1030375776
+17,corona/17.dat,95,1.00003,1.00001,1.69277e-05,32,0,0,58,2649,0,1,58,339200,0.750013,2650,0,0,0,0,1030375795
+18,corona/18.dat,94,1.00014,1.00012,2.02656e-05,2,0,0,44,3113,0,1,123,398592,0.973034,3114,0,0,0,0,1030375804
+19,corona/19.dat,132,1.00026,1.00024,2.09808e-05,1,0,0,36,2902,0,1,102,371584,0.973881,2903,0,0,0,0,1030375813
+20,corona/20.dat,134,1.00008,1.00006,1.50204e-05,8,0,0,52,3830,0,1,86,490368,0.951913,3831,0,0,0,0,1030375844
+```
+
+Print cost + networks with sort:
+```
+> cat corona/*.log | supnet -N- -G corona.txt --odtcost | sort -k1 -n
+81 ((BM4831BGR2008,((((((HKU312,(BtCoV2792005)#2),((SARS,(#6,Rf1)),#5)),Rs3367))#1,(((((BtCoV2732005)#6,(((BatCoVZXC21,BatCoVZC45))#3,(HuWuhan2020,#7))))#4,GuangxiPangolinP2V),#1)),#2)),((#3,(((((HuItalyTE48362020)#7,SARSCoVBJ1824))#5,RaTG13),#4)),GuangdongPangolin12019))
+94 ((#5,(Rs3367,((((#6,(((((HuWuhan2020,HuItalyTE48362020))#2,BatCoVZC45))#5,(((((BtCoV2732005,Rf1))#7,GuangdongPangolin12019))#6,((BatCoVZXC21)#3,(RaTG13,#4))))))#1,(#7,((GuangxiPangolinP2V)#4,(SARSCoVBJ1824,SARS)))),(BtCoV2792005,HKU312)))),(((BM4831BGR2008,#3),#1),#2))
+94 ((#5,(Rs3367,((((#6,((((HuWuhan2020,(HuItalyTE48362020)#2),BatCoVZC45))#5,(((((BtCoV2732005,Rf1))#7,GuangdongPangolin12019))#6,((BatCoVZXC21)#3,(RaTG13,#4))))))#1,(#7,((GuangxiPangolinP2V)#4,(SARSCoVBJ1824,SARS)))),(BtCoV2792005,HKU312)))),(((BM4831BGR2008,#3),#1),#2))
+...
+```
+
+
+### Check network classes in the result:
 ```
 supnet -N odt.log --detectclass
 ```
+
+
 
 ## Development variants
 

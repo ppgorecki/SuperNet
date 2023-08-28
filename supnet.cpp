@@ -213,6 +213,7 @@ int main(int argc, char **argv) {
   int hcmaximprovements = 0;
   int hcstopinit = 0;
   int hcstopclimb = 0;
+  int flag_odtcost = 0;
   char *matchparam = NULL;
 
   char *opt_guideclusters = NULL;
@@ -275,6 +276,7 @@ int main(int argc, char **argv) {
 
       {"odtnaivecost", no_argument, &flag_odt_naive_gtvsnet, 1},
       {"cost", required_argument, NULL, 'C'},
+      {"odtcost", no_argument, &flag_odtcost, 1},
 
       {"BB", no_argument, &flag_bbalgorithm, 1},
       {"bbtreesearch", no_argument, &flag_bbtreesearch, 1},
@@ -867,6 +869,20 @@ int main(int argc, char **argv) {
                                      odtnaivesampling)
            << endl;
     }
+  }
+
+  // Compute ODT cost by naive enumeration of display trees
+  if (flag_odtcost) 
+  {
+    DagSet visiteddags;
+    NetworkHCStats *stats =
+        new NetworkHCStats(networkclass, timeconsistency, visiteddags, randseed, NULL);
+    for (auto &net: netvec) 
+    {
+      double cost = net->odtcost(gtvec, *costfun, flag_hcusenaive, hcrunnaiveleqrt_t, stats->getodtstats());
+      cout << cost << " " << *net << endl;
+    }
+    exit(0);
   }
 
   // Run DP algorithm to compute approx DCE
