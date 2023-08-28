@@ -87,6 +87,7 @@ extern int stprogress; // Print progress for species trees
 extern int ppgraphviz; // Print graphviz output
 extern NODEID topspcluster[2];
 string getstringn(char *s, int len);
+extern int flag_globaldagcache; 
 
 // Count occurences of c in s
 int strcount(char *s, char c);

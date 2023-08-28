@@ -50,6 +50,10 @@ int gspos = 0;
 int verbosehccost = 1; // 0=quiet
 int verbosealg = 3;    // <4 quiet
 
+int flag_globaldagcache = 0; 
+int flag_hcsavewhenimproved = 0;
+float opt_hcstoptime = 0; 
+
 int print_repr_inodtnaive = 0;
 
 typedef vector<RootedTree *> VecRootedTree;
@@ -115,8 +119,8 @@ int main(int argc, char **argv) {
   struct timeval time;
   gettimeofday(&time, NULL);
 
-  srand((time.tv_sec * 1000) + (time.tv_usec / 1000));
-
+  unsigned int randseed = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+  
   initbitmask(); // network
 
   CostFun *costfun = NULL;
@@ -127,6 +131,8 @@ int main(int argc, char **argv) {
   int flag_print_gene_trees = 0;
   int flag_print_networks = 0;
   int flag_print_species_trees = 0;
+
+
 
   int flag_ptreecost = 0;
   int flag_extra_print_detailed = 0;
@@ -165,9 +171,8 @@ int main(int argc, char **argv) {
 
   int randnetuniform = 0;
 
-  string odtfile = "odt.log";
-  string datfile = "odt.dat";
-
+  string opt_outfiles = "odt";
+  
   vector<char *> sgtvec, sstvec, snetvec;
 
   COSTT bbstartscore = 0;
@@ -231,7 +236,7 @@ int main(int argc, char **argv) {
       {"noodtfiles", no_argument, &flag_noodtfiles, 1},
       {"dot", no_argument, &flag_dot, 1}, // former -d
       {"maxdisplaytreecachesize", required_argument, NULL, 'V'},
-      {"randseed", required_argument, NULL, 'z'},
+      {"randseed", required_argument, NULL, 'z'},      
       {"ptreesinodtnaive", no_argument, &print_repr_inodtnaive, 1},
       {"odtlabelled", no_argument, &odtlabelled, 1},
       {"pgenetrees", no_argument, &flag_print_gene_trees, 1},
@@ -253,6 +258,8 @@ int main(int argc, char **argv) {
       {"general", no_argument, &net_general, 1},
       {"timeconsistent", no_argument, &flag_timeconsistent, 1},
       {"notimeconsistent", no_argument, &flag_notimeconsistent, 1},
+
+      {"outfiles", required_argument, NULL, 'O'},
 
       {"detectclass", no_argument, &flag_detectclass, 1},
       {"uniformedgesampling", no_argument, &randnetuniform, 1},
@@ -282,11 +289,13 @@ int main(int argc, char **argv) {
       {"hcrunstats", no_argument, &flag_hcrunstats, 1},
       {"hcrunstatsext", no_argument, &flag_hcrunstatsext, 1},
       {"hcrunstatsalways", no_argument, &flag_hcrunstatsalways, 1},
+      {"hcsavewhenimproved", no_argument, &flag_hcsavewhenimproved, 1},
       
 
       {"hcmaximprovements", required_argument, NULL, 'F'},
       {"hcstopinit", required_argument, NULL, 'Y'},
       {"hcstopclimb", required_argument, NULL, 'Z'},
+      {"hcstoptime", required_argument, NULL, 'P'},
 
       // TODO: implement rules
       {"matchafter", no_argument, &flag_match_after, 1},
@@ -304,12 +313,14 @@ int main(int argc, char **argv) {
       {"guideclusters", required_argument, NULL, 'u'},
       {"guidetree", required_argument, NULL, 'e'},
 
+      {"globaldagcache", no_argument, &flag_globaldagcache, 1 },
+
       {0, 0, 0, 0}
 
   };
 
   const char *optstring =
-      "c:z:b:U:g:s:G:S:N:n:R:t:m:V:X:Y:Z:l:q:r:A:L:D:O:T:v:C:1:Wu:e:;";
+      "c:z:b:U:g:s:G:S:N:n:R:t:m:V:X:Y:Z:l:q:r:A:L:D:O:v:C:1:Wu:e:P:;";
 
   while ((opt = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) {
     switch (opt) {
@@ -318,7 +329,7 @@ int main(int argc, char **argv) {
       break;
 
     case 'z':
-      srand((unsigned int)atoi(optarg));
+      randseed = (unsigned int)atoi(optarg);      
       break;
 
     case '1':
@@ -327,6 +338,10 @@ int main(int argc, char **argv) {
 
     case 'U':
       odtnaivesampling = atof(optarg);
+      break;
+
+    case 'P':
+      opt_hcstoptime = atof(optarg);
       break;
 
     case 'g':
@@ -366,6 +381,12 @@ int main(int argc, char **argv) {
 
     case 'G': {
       readtrees(optarg, sgtvec);
+      break;
+    }
+
+    case 'O': 
+    {
+      opt_outfiles = optarg;
       break;
     }
 
@@ -475,14 +496,6 @@ int main(int argc, char **argv) {
       }
       break;
 
-    case 'O':
-      odtfile = optarg;
-      break;
-
-    case 'T':
-      datfile = optarg;
-      break;
-
     case 'v':
 
       // ugly
@@ -533,6 +546,8 @@ int main(int argc, char **argv) {
 
   } // for
 
+  srand(randseed);
+
   // Set network classes
   if (net_general)
   {
@@ -547,8 +562,7 @@ int main(int argc, char **argv) {
   if (flag_noodtfiles) 
   {
     // do not generate odt/dat files
-    odtfile = "";
-    datfile = "";
+    opt_outfiles = "";    
   }
 
   // Apply time consistent flags
@@ -672,13 +686,14 @@ int main(int argc, char **argv) {
     Network *n;
     long int i = -1;
 
+    Dag *src;
     while (
         (n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, genetreeclusters,
                          preserverootst, reticulationcnt_R, networkclass,
                          timeconsistency, randnetuniform, guideclusters, 
                           guidetree)) != NULL)
 
-      dagset.add(n);
+      dagset.add(n, &src);
 
     cout << dagset;
     cerr << "unique=" << dagset.size() << " all=" << netvec.size() << endl;
@@ -917,8 +932,15 @@ int main(int argc, char **argv) {
     else
       op = new TailMove(networkclass, guideclusters, guidetree);
 
+    DagSet visiteddags;
+
     NetworkHCStats *globalstats =
-        new NetworkHCStats(networkclass, timeconsistency);
+        new NetworkHCStats(networkclass, timeconsistency, visiteddags, randseed, NULL);
+
+    if (opt_outfiles.length()) 
+    {
+      globalstats->setoutfiles(opt_outfiles, odtlabelled);
+    }
 
     long int hccnt = -1;
     int lastimprovement = 0;
@@ -935,6 +957,7 @@ int main(int argc, char **argv) {
     else if (flag_hcrunstatsext) printstats = 2;
     else if (flag_hcrunstatsalways) printstats = 3;
 
+    int cnt = 0;
     while (1) 
     {
       // stopping criterion
@@ -953,10 +976,17 @@ int main(int argc, char **argv) {
 
       if (!n)
       {
+        if (!cnt)
+        {
+          cerr << "No network defined. Use -q, -r, --guidetree or --guideclusters to generate some starting networks." << endl;
+          exit(-1);
+        }
         break;
       }
 
-      NetworkHCStats nhcstats(networkclass, timeconsistency);
+      cnt++;
+
+      NetworkHCStats nhcstats(networkclass, timeconsistency, visiteddags, randseed, globalstats);
       nhcstats.start();
 
       // climb
@@ -968,31 +998,22 @@ int main(int argc, char **argv) {
 
       nhcstats.finalize();
 
-      if (globalstats->merge(nhcstats, printstats)) 
+      if (globalstats->merge(nhcstats, printstats, false)) 
       {
         lastimprovement = hccnt;
       }
 
       if (find(netvec.begin(), netvec.end(), n) == netvec.end())       
         delete n;
-    }
+    } 
 
     globalstats->print(true);
     delete op;
 
-    if (odtfile.length()) 
+    if (opt_outfiles.length()) 
     {
-      // save odt file
-      globalstats->save(odtfile);
-
-      // save dat file
-      globalstats->savedat(datfile, odtlabelled);
-
-      if (verbosealg >= 4) 
-      {
-        cout << "Optimal networks saved: " << odtfile << endl;
-        cout << "Stats data save to: " << datfile << endl;
-      }
+      // save odt/dat file(s)
+      globalstats->saveglobal(verbosealg >= 4);            
     }
   }
 

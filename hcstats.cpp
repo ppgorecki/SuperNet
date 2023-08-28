@@ -44,7 +44,7 @@ void NetworkHCStats::print(bool global)
 // printstats = 2 - improvements and new nets
 // printstats = 3 - always
 
-int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats) 
+int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats, bool fullmerge) 
 {
 	double mtime = gettime();
 	int res = 0;
@@ -56,43 +56,68 @@ int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats)
 
   odtstats.merge(nhc.getodtstats());
 
-  // cout << "merge " << optcost << " " << dagset->size() << endl;
 #define PNET  { cout << startingnets << ". ";  nhc.print();  printed=1; }
 
   bool printed = false;
 
-  if (!dagset->size() || nhc.optcost < optcost)
+  if (fullmerge)
   {
-    delete dagset;
-    optcost = nhc.optcost;
-    dagset = nhc.dagset;
-    nhc.dagset = NULL;
-    if (printstats)   
-    {    	
-      PNET;
-      cout << " New optimal cost: " << nhc.optcost << endl;             
-    }
-    res = 1;
-  }
-  else 
-  	if (nhc.optcost == optcost)
-    {      
-      int insnets = dagset->merge(*nhc.dagset);
 
-      if ((insnets && printstats==2) || printstats==3)
-      {
-      	PNET;
-        cout << " New optimal networks:" << insnets << " " << "Total:" << dagset->size() << endl;
+    if (!bestdags->size() || nhc.optcost < optcost)
+    {
+      delete bestdags;
+      optcost = nhc.optcost;
+      bestdags = nhc.bestdags;
+      nhc.bestdags = NULL;
+      if (printstats)   
+      {    	
+        PNET;
+        cout << " New optimal cost: " << nhc.optcost << endl;             
       }
-      if (insnets) res=2;  // new opt nets.            
-
+      res = 1;
     }
     else 
-    	if (printstats == 3)
-	      PNET;
+    	if (nhc.optcost == optcost)
+      {      
+        int insnets = bestdags->merge(*nhc.bestdags);
+
+        if ((insnets && printstats==2) || printstats==3)
+        {
+        	PNET;
+          cout << " New optimal networks:" << insnets << " " << "Total:" << bestdags->size() << endl;
+        }
+        if (insnets) res=2;  // new opt nets.            
+
+      }
+      else 
+      	if (printstats == 3)
+  	      PNET;
+
+  }
+  else
+  {
+    if (_newoptimal)
+    {    
+      if (printstats) 
+      {     
+        PNET;
+        cout << " New optimal cost: " << nhc.optcost << endl;             
+      }      
+    }
+    else {
+
+        if ((_improvements && printstats==2) || printstats==3)
+        {
+          PNET;
+          cout << " New optimal networks:" << _improvements << " " << "Total:" << bestdags->size() << endl;
+        }
+        if (_improvements) res=2;  // new opt nets.   
+    }
+
+  }
 
   mergetime += gettime()-mtime;
-	topnetworks = dagset->size();
+	topnetworks = bestdags->size();
 
 	nhc.improvements = 0;
   nhc.steps = 0;  
@@ -165,15 +190,18 @@ void NetworkHCStats::savedat(string file, bool labelled)
     if (labelled) odtf << "bbdptime=";
     odtf << odtstats.bbstats.dptime << endl; 
 
+    if (labelled) odtf << "randseed=";
+    odtf << randseed << endl; 
+
     odtf.close();
 }
 
-NetworkHCStats::NetworkHCStats(int _networkclass, int _timeconsistency) 
+NetworkHCStats::NetworkHCStats(int _networkclass, int _timeconsistency, DagSet &_visiteddags, unsigned int _randseed, NetworkHCStats *_globalstats) : visiteddags(_visiteddags), randseed(_randseed), globalstats(_globalstats)
 { 
     networkclass= _networkclass;
     timeconsistency = _timeconsistency;
 
-    dagset = new DagSet();
+    bestdags = new DagSet();
     improvements = 0; 
     hctime = 0;
     steps = 0;
@@ -184,7 +212,7 @@ NetworkHCStats::NetworkHCStats(int _networkclass, int _timeconsistency)
 
 NetworkHCStats::~NetworkHCStats()
 { 
-    if (dagset)
-      delete dagset;
+    if (bestdags)
+      delete bestdags;
 }
 

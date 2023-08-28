@@ -10,6 +10,8 @@
 #define BB_EXACT 32
 #define BB_PARENTCUT 64
 
+extern int flag_globaldagcache;
+extern int flag_hcsavewhenimproved;
 
 struct bbnode {
     int rtnumber;
@@ -103,7 +105,7 @@ typedef struct ODTStats
 class NetworkHCStats
 {
 
-	DagSet *dagset;
+	DagSet *bestdags;
 
 	double optcost;
 	long improvements;
@@ -113,36 +115,127 @@ class NetworkHCStats
 	long startingnets;
 	int topnetworks; 
 	int timeconsistency;
+	unsigned int randseed;
 
 	int networkclass;
 		
 	ODTStats odtstats;
 
+	DagSet &visiteddags;
+
+	vector<Dag*> eqdags;
+
+	NetworkHCStats *globalstats;
+	int _improvements;
+	bool _newoptimal;
+	string odtfile = "";
+  	string datfile = "";
+  	bool odtlabelled = false;
+
+
+
 public:
  
-	NetworkHCStats(int networkclass, int timeconsistency);
+	NetworkHCStats(int networkclass, int timeconsistency, DagSet &visiteddags, unsigned int randseed, NetworkHCStats *_globalstats=NULL);
+
 	~NetworkHCStats();
+
+
+	void setoutfiles(string _outfiles,  bool _odtlabelled) 
+	{ 
+		datfile = _outfiles+".dat";
+		odtfile = _outfiles+".log";
+		odtlabelled = _odtlabelled;
+	}
 
 	void step() { steps++; }
 
-	int add(Dag &n) { 		
-		dagset->add(n);		
-		topnetworks = dagset->size();
+	int addeq(Dag &n) 
+	{ 		
+		Dag *src;
+		if (bestdags->add(n, &src))	
+		{						
+			// new eq
+			eqdags.push_back(src);
+		}		
+		topnetworks = bestdags->size();
+
+		if (globalstats) 
+			globalstats->addglobal(src, optcost);
 		return 1; 		
 	}
 
-	void setcost(double cost) { 
+	bool inbestdags(Dag &n)
+	{		
+		return bestdags->contains(n);
+	}
+
+	int addnewbest(Dag &n, double cost) 
+	{ 
+		setcost(cost);		
+		Dag *src;
+		bestdags->add(n, &src);		
+		topnetworks = bestdags->size();
+
+		if (globalstats) 
+			globalstats->addglobal(src, optcost);
+		return 1; 		
+	}
+
+	void saveglobal(bool printinfo = false)
+	{		
+		if (odtfile.length()) 
+		{ 
+			save(odtfile);
+			if (printinfo) 
+			{
+				cout << "Optimal networks saved: " << odtfile << endl;
+			}
+		}
+
+		if (datfile.length()) 
+		{ 
+			savedat(datfile, odtlabelled);
+			if (printinfo) 
+				cout << "Stats data saved: " << datfile << endl;
+		}		
+	}
+
+
+	void addglobal(Dag *src, double cost)
+	{
+		Dag *_;		
+		if (!bestdags->size() || optcost > cost)
+		{
+			setcost(cost);
+			bestdags->add(*src, &_);				
+			_newoptimal = true;
+			_improvements++;
+			if (flag_hcsavewhenimproved)
+				saveglobal();
+		} else if (optcost == cost)
+		{
+			if (bestdags->add(*src, &_)) _improvements++;						
+			if (flag_hcsavewhenimproved)
+				saveglobal();
+		}
+	}
+
+	// Set new optimal cost
+	// Clear best dags cache
+	void setcost(double cost) 
+	{ 		
 		improvements++;
-		dagset->clear(); 
+		eqdags.clear();
+		bestdags->clear(); 
 		optcost = cost;
 	}
 
 	void save(string file)
 	{
-		dagset->save(file);
+		bestdags->save(file);
 	}
 	
-
 	void finalize()
 	{
 		hctime = gettime()-hctime;
@@ -151,6 +244,16 @@ public:
 	void start()
 	{
 		hctime = gettime();
+		if (globalstats)
+		{
+			globalstats->globalstart();
+		}
+	}
+
+	void globalstart()
+	{		
+		_improvements = 0;
+		_newoptimal = false;
 	}
 
 	ODTStats &getodtstats() { return odtstats; }
@@ -162,7 +265,25 @@ public:
 	void print(bool global=false);
 
 	// Merge HC results
-	int merge(NetworkHCStats &nhc, int printstats);
+	int merge(NetworkHCStats &nhc, int printstats, bool fullmerge);
+
+	bool alreadyvisited(Dag &n)
+	{
+		Dag *src;
+		return visiteddags.add(&n, &src);
+	}
+
+	bool haseqdags()
+	{				
+		return eqdags.size()>0;
+	}
+
+	Dag *popeqdag()
+	{			
+		Dag *dag = eqdags.back();		
+		eqdags.pop_back();
+		return dag;
+	}
 	
 
 }; 

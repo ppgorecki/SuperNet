@@ -103,14 +103,6 @@ public:
 		int hcmaximprovements = 0,
 		int hcstopclimb = 0);
 
-	double climb2(EditOp &op, Network *net, CostFun &costfun, 
-		NetworkHCStats &nhcstats, 
-		bool usenaive, 
-		int runnaiveleqrt_t, 
-		int timeconsistent,
-		int hcmaximprovements = 0,
-		int hcstopclimb = 0);
-
 };
 
 #endif

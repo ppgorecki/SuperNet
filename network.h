@@ -107,7 +107,7 @@ public:
 		initdid();
 	}
 
-	Network(Network &net, int shallowcopy) : Dag(net,shallowcopy) { initdid(); }
+	Network(Dag &dag, bool shallowcopy): Dag(dag, shallowcopy) { initdid(); }
 
 	NODEID tchild_contract(uint8_t mark[], NODEID leftc[], NODEID rightc[]);
 

@@ -34,7 +34,7 @@ protected:
   
   double weight;     // Dag weight (unused)
   bool exactspecies; // True iff leaf ids == species ids
-  long int count;    // for counting networks
+  long int usagecount;    // for counting networks
 
   bool shallow; // whether the pointer arrays are allocated elsewhere (do not clean if true)
 
@@ -248,7 +248,7 @@ public:
   friend class DagSet;
   friend class DP_DCE;
 
-  long int getcount() { return count; }
+  long int getusagecount() { return usagecount; }
 
   virtual NODEID getparent(NODEID v) { return parent[v]; }
   virtual NODEID getleftchild(NODEID v) { return leftchild[v]; }

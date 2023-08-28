@@ -7,17 +7,18 @@
 
 
 // TODO: better implementation using hash arrays
+// TODO: usagecount improve
 
 class DagSet
 {
 	std::vector<Dag*> *v;
-	bool usecounts = 0;
-	bool maplabels = 0;
+	bool usecounts = 0;  // --uniquedags (see)
+	bool dagshapes = 0;
 
 public:
-	DagSet(bool counts=false, bool dagshapes=false) 
+	DagSet(bool counts=false, bool _dagshapes=false) 
 	{
-		maplabels = !dagshapes;
+		dagshapes = _dagshapes;
 		usecounts = counts;
 		v = new std::vector<Dag*>;
 	}
@@ -26,39 +27,45 @@ public:
 	Dag* contains(Dag &n) 
 	{		
 		for (size_t i=0; i<v->size(); i++)
-			if ((*v)[i]->eqdags(&n,maplabels)) return (*v)[i];
+			if ((*v)[i]->eqdags(&n, !dagshapes)) return (*v)[i];
 		return NULL;
 	}
 
 	void insert(Dag *d)
 	{
-		d->count=1;
+		d->usagecount++;
 		v->push_back(d);
 	}
 
 	// insert a copy dag; 
-	int add(Dag &n)
+	int add(Dag &n, Dag **retsrc)
 	{
 		Dag *src = contains(n);
 		if (src) 
 		{ 
-			if (usecounts) src->count++;
+			*retsrc = src;
+			if (usecounts) src->usagecount++;
 			return 0;			
 		}		
-		insert(new Dag(n));
+		Dag *d = new Dag(n);
+		*retsrc = d;
+		d->usagecount = 0;
+		insert(d);
 		return 1;
 	}
 
 
 	// insert a dag (pointer)
-	int add(Dag *n)
+	int add(Dag *n, Dag **retsrc)
 	{
 		Dag *src = contains(*n);
 		if (src) 
 		{ 
-			if (usecounts) src->count++;
+			*retsrc = src;
+			if (usecounts) src->usagecount++;
 			return 0;			
 		}
+		*retsrc = n;
 		insert(n);
 		return 1;
 	}
@@ -94,7 +101,8 @@ public:
 	    for( size_t i = 0; i < s.v->size(); i++ )
 	    {
 	    	Dag *d = (*(s.v))[i];
-	    	if (add(d)) cnt++;
+	    	Dag *src;
+	    	if (add(d, &src)) cnt++;
 		}
 	   	return cnt;
 	}
@@ -107,7 +115,7 @@ public:
 			Dag *d = (*ds.v)[i];
 
 			d->verifychildparent();
-			if (ds.usecounts) os << d->getcount() << "\t";
+			if (ds.usecounts) os << d->getusagecount() << "\t";
 	     	os << *d << endl;
 	    }
 		return os;

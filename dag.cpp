@@ -940,7 +940,7 @@ Dag::Dag(const Dag &d, bool shallowcopy)
     lf = d.lf;
     rt = d.rt;
     nn = d.nn;
-    count = d.count; // TODO: check
+    usagecount = d.usagecount; // TODO: check
     rtstartid = d.rtstartid;
   }
   else
@@ -1039,9 +1039,7 @@ SPID* Dag::compressedrepr(SPID *r)
           }
           else          
           {
-              mm[v]=speciescnt+mm[c]; // reticulation forest id              
-              
-
+              mm[v]=speciescnt+mm[c]; // reticulation forest id                            
           }
           
           continue;

@@ -281,7 +281,7 @@ class TreeSpace
 		{
 			if (repr2node.size()>maxdisplaytreecachesize)			
 			{
-			 	cout << "CLEAR" << get_memory_size() << "MB nodes=" << repr2node.size() << endl;
+			 	// cout << "CLEAR" << get_memory_size() << "MB nodes=" << repr2node.size() << endl;
 			 	clearcache();			 	
 			}
 		}

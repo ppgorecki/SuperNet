@@ -85,8 +85,13 @@ Print all display trees with their ids '--pdisplaytreesext'.
 
 Display tree usage stats after HC run:
 ```  
-> supnet --HC -g '(a,(b,c));(b,(a,c))'; supnet -N odt.log --pdisplaytrees | sort | uniq -c | sort -k1 -n
-Cost:0 Steps:0 Climbs:0 TopNetworks:0 Class:TreeChild TimeConsistency:0 HCruns:0 HCTime:0
+> supnet --HC -g '(a,(b,c));(b,(a,c))' -R1 -q1; supnet -N odt.log --pdisplaytrees | sort | uniq -c | sort -k1 -n
+   i: (c,((b)#1,(a,#1))) cost=2
+   >: ((c,#1),((b)#1,a)) cost=1
+   >: (#1,((c,(b)#1),a)) cost=0
+Cost:0 Steps:17 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:8.9407e-05 Naive:18 Naivetime:9.05991e-06 DTcnt:36
+      1 ((c,a),b)
+      1 ((c,b),a)
 ```
 
 ### Visualization of networks using dot format and graphviz
@@ -130,17 +135,17 @@ These values are reported in `[Cc]lass` and `TimeConsistency` field in output an
 
 Detecting classes:
 ```
-> supnet -r10 -R2 -A5 --general --detectclass  -z121
-0 0 0 (#1,(((c)#2,((b,d))#1),(#2,(e,a))))
-1 0 1 ((((e)#1)#2,a),(c,(#2,(b,(#1,d)))))
-0 1 1 (#1,((((c,e))#1,(((d)#2,b),a)),#2))
-1 0 1 (((#2,((a)#1,e)),(c,b)),((#1)#2,d))
-0 1 1 ((#2,b),((a)#1,(((c,#1))#2,(e,d))))
-0 0 1 (((a)#2,((#2)#1,(e,((c,d),b)))),#1)
-1 0 0 (((c)#2,(b)#1),((e,(#1,#2)),(a,d)))
-0 0 0 ((((((d)#2,a))#1,c),(#1,#2)),(e,b))
-0 1 1 (((#1,d))#2,(c,((b)#1,(a,(#2,e)))))
-0 1 1 ((c,((((b)#2,a))#1,d)),(#2,(#1,e)))
+> supnet -r10 -R2 -A5 --general --detectclass  --randseed 13
+0 0 0 ((c,((d)#2,((b)#1,(a,(#2,#1))))),e)
+0 1 1 ((((((c,((d)#1,b)),#1))#2,a),e),#2)
+0 1 1 (((#1,((e)#1,a)),b),((c)#2,(d,#2)))
+0 0 0 (((a)#1,#2),((((d,#1))#2,c),(b,e)))
+0 1 1 ((c)#1,(#1,((e)#2,(((#2,d),a),b))))
+1 1 1 ((c,#1),((#2,((a)#1,b)),((e)#2,d)))
+0 1 1 (((#1,(((c)#2,a),#2)),d),((b)#1,e))
+0 0 0 ((((e)#2,(#2)#1),((d,c),(b,#1))),a)
+0 1 1 (#1,((((d,((c)#2,a)))#1,(e,b)),#2))
+0 1 1 (((((#2,((b)#2,a)),d))#1,(c,#1)),e)
 ```
 
 ## Random trees and networks and quasi consensus generators
@@ -161,8 +166,8 @@ By default, the generator produces tree-child networks without time-consistency 
 Print 2 quasi consensus trees with preserved split of the root.
 ```
 > supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -q2 --preserveroot --pnetworks
-((a,b),(e,(d,c)))
-(((e,d),c),(b,a))
+((e,(d,c)),(b,a))
+((b,a),(d,(e,c)))
 ```
 
 ### Guide clusters: used in quasi consensus 
@@ -171,10 +176,10 @@ Guide clusters are defined as a list of multifurcated trees separated by `;`. Al
 
 ```
 > supnet --guideclusters "(a,b,c);(d,e,(f,g))" -q4 --pnetworks
-(((c,a),b),(((g,f),d),e))
-((d,((f,g),e)),(a,(b,c)))
-(((b,a),c),(((f,g),d),e))
-((a,(c,b)),(d,(e,(f,g))))
+(((f,g),(e,d)),((a,b),c))
+(((e,(g,f)),d),((a,c),b))
+((d,(e,(f,g))),((a,b),c))
+(((g,f),(d,e)),((a,c),b))
 ```
 
 ### Guide tree: forcing tree structure in networks
@@ -185,17 +190,17 @@ Note that random networks are not not generated using guide trees (i.e., with `-
 
 ```
 > supnet --guidetree "((a,b,c),(d,e,f))" -q4 --pnetworks
-((f,(e,d)),(b,(c,a)))
-((f,(d,e)),((a,b),c))
-(((f,e),d),(b,(c,a)))
-(((b,a),c),((e,f),d))
+(((f,e),d),((a,b),c))
+((f,(d,e)),(c,(b,a)))
+((c,(b,a)),(e,(f,d)))
+((c,(a,b)),((d,e),f))
 ```
 
 With reticulations; guide trees are separated by `;`.
 ```
 > supnet -A10 -q2  --pnetworks --guidetree '(a,b);(d,e,f)' -R3
-(((#2,(i,(f,(d,e)))))#1,(#3,((g)#3,((((j)#2,(b,a)),c),(h,#1)))))
-(((i,(#3,((c)#1,((g)#3,h)))),(((#1,((e,f),d)))#2,j)),((b,a),#2))
+((((f,(e,d)),#3),(((c,h))#2,((j)#1,(i,(((a,b))#3,(#1,g)))))),#2)
+((#1,(((d,f),e),j)),(#2,(((((h,c))#1,g))#2,((((a,b))#3,i),#3))))
 ```
 
 ### Random trees
@@ -203,15 +208,15 @@ With reticulations; guide trees are separated by `;`.
 Print two random networks with no reticulations (i.e., species trees) using species {a,b,c,d,e} (`-A5`). 
 ```
 >  supnet -A5 -r2 --pnetworks
-((d,(b,a)),(c,e))
-((b,(d,c)),(e,a))
+(a,((d,e),(c,b)))
+(((a,c),(d,e)),b)
 ```
 
 Print two quasi-consensus trees.
 ```
 > supnet -g '(a,((b,c),d));(a,(b,d))' -q2 --pnetworks
-((c,d),(b,a))
-((d,(b,c)),a)
+(d,((c,a),b))
+((d,c),(b,a))
 ```
 
 ### Random networks 
@@ -219,26 +224,26 @@ Print two quasi-consensus trees.
 Print one random relaxed network with species {a,b,c}  and 5 reticulations.
 ```
 >  supnet -A3 -R5 -r1 --pnetworks --relaxed
-((#2,(((#1)#3)#5,((#4)#2,(#5,((((c)#4,a))#1,b))))),#3)
+(((#4)#2)#5,((#3)#4,((#5,(a,((#2)#1,((c)#3,b)))),#1)))
 ```
 
 Print one quasi-consensus network with two reticulations.
 ```
 > supnet -G examples/gtrees.txt -q1 -R2 --pnetworks --pnetworkclusters
-((c)#2,(((d)#1,(a,(b,#2))),#1))
+((c)#1,((d)#2,((#1,(a,#2)),b)))
 a 
 b 
 c 
 d 
-b c 
-a b c 
+a d 
+a c d 
 a b c d 
 ```
 
 Print one quasi-consensus network with one reticulations and having guide tree clusters, and print all network clusters.
 ```
 > supnet -q1 -R2 --pnetworks --guideclusters '((a,b,c),(d,e,f))' --pnetworkclusters
-((e)#2,((((a,c))#1,((d,f),#2)),(#1,b)))
+(((f,((d)#1,e)),#1),(b,(#2,((a)#2,c))))
 a 
 b 
 c 
@@ -246,10 +251,9 @@ d
 e 
 f 
 a c 
-d f 
+d e 
 a b c 
 d e f 
-a c d e f 
 a b c d e f 
 ```
 
@@ -263,13 +267,13 @@ Use `-z SEED` or `--randseed SEED` to set seed for random generator (srand).
 Insert 2 reticulations into a network; tree-child network in output (default).
 ```  
 > supnet -R2 -n '(a,((d)#1,(b,(c,#1))))' --pnetworks
-(#2,((b)#3,((d)#1,(#3,((a)#2,(c,#1))))))
+(#3,((a)#3,(((c,#1))#2,((d)#1,(b,#2)))))
 ```
 
 Insert 8 reticulations into a network; general network `--general`
 ```  
 > supnet -R8 -n '(a,((d)#1,(b,(c,#1))))' --pnetworks --general 
-(#6,(#9,(((((b)#5,(((((a)#9,#5))#8,#4))#3),d))#1,(#3,((((#2)#4)#7,(#7,c)),(((#8)#2)#6,#1))))))
+(((((#8)#3,(d)#1),(#3,#9)))#7,(((#2)#6,(((#6,#1))#9,(((((c)#2,#4))#8,((a)#5,(b)#4)),#5))),#7))
 ```
 
 ## Cost functions 
@@ -356,15 +360,14 @@ Generate the picture of BB-tree search:
  - `--hcrunstats`: print improvements stats after each HC runs
  - `--hcrunstatsext`: print improvements stats after locating optimal networks after each HC run
  - `--hcrunstatsalways`: print stats after each HC run
- - ` --noodtfiles`: do not save odt.log and odt.dat with optimal networks
- - ` --hcusenaive`: use only ODT naive algorithm in HCH (no BB)
-  - `--hcstopinit=NUM`: stop when there is no new optimal network after HC with NUM initial networks
- - ` --hcstopclimb=NUM`: stop in HC when there is no improvements after NUM steps
- - ` --hcmaximprovements=NUM`: stop after NUM improvements in HC climb
- - ` -O ODTFILE`: the name of odt.log 
- - ` -D DATFILE`: the name of odt.dat; see also --odtlabelled and --noodtfiles 
- - ` --noodtfiles`: do not generate odt and dat files
- - ` --odtlabelled`: odt and dat file in labelled format
+ - `--noodtfiles`: do not save odt.log and odt.dat with optimal networks
+ - `--hcusenaive`: use only ODT naive algorithm in HCH (no BB)
+ - `--hcstopinit=NUM`: stop when there is no new optimal network after HC with NUM initial networks
+ - `--hcstopclimb=NUM`: stop in HC when there is no improvements after NUM steps
+ - `--hcmaximprovements=NUM`: stop after NUM improvements in HC climb
+ - `-O BASENAMEFILE, --outfiles`: base name of outputfiles .log and .dat
+ - `--noodtfiles`: do not generate .log/.dat files
+ - `--odtlabelled`: odt and dat file in labelled format
 
  By default HC is limited to tree-child and non time consistent networks. Use `--general`, `--relaxed` or/and `--timeconsistent` to change the search space.
 
@@ -406,12 +409,12 @@ By default each HC step starts from the set of predefined networks (see `-n`, `-
 Minimalistic hill climbing (HC) run using Tail Moves (default) with a single random network (and one HC run) `-r1` with two reticulations `-R2`. Print cost and save result to odt.log. 
 
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -r1 -R2 --HC
-   i: (((b)#1,c),(#2,(#1,((a)#2,d)))) cost=4
-   >: (((b)#1,c),(#2,(((#1,a))#2,d))) cost=3
-   >: ((((b)#1,c),(((#1,a))#2,d)),#2) cost=1
-   >: (((b)#1,(c,(((#1,a))#2,d))),#2) cost=0
-Cost:0 Steps:66 Climbs:4 TopNetworks:4 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000244379 Naive:67 Naivetime:6.03199e-05 DTcnt:252
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -r1 -R2 --HC --randseed 13
+   i: ((#1,d),(((((a)#2,c),#2))#1,b)) cost=4
+   >: (((#1,d),#2),((((a)#2,c))#1,b)) cost=2
+   >: (#2,((#1,d),((((a)#2,c))#1,b))) cost=1
+   >: (#2,((#1,d),((a)#2,((c)#1,b)))) cost=0
+Cost:0 Steps:703 Climbs:8 TopNetworks:20 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.00435758 Naive:704 Naivetime:0.000680923 DTcnt:2795
 ```
 
 See more examples in the last section.
@@ -430,53 +433,45 @@ See more examples in the last section.
 
 Print only improvements in HC `-v1`:
 ```  
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R1 --HC -v1 -z 1001
-   i: ((d)#1,(c,((#1,b),a))) cost=5
-   >: ((d)#1,((#1,c),(b,a))) cost=3
-   >: ((b,(d)#1),((#1,c),a)) cost=2
-Cost:2 Steps:51 Climbs:3 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.00019002 Naive:52 Naivetime:3.6478e-05 DTcnt:104
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R1 --HC -v1 --randseed 13
+   i: ((#1,d),(((c,a))#1,b)) cost=5
+   >: (((c,#1),d),((a)#1,b)) cost=2
+Cost:2 Steps:96 Climbs:4 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000315189 Naive:97 Naivetime:6.34193e-05 DTcnt:194
 ```
 
 Print improvements and equal cost networks `-v2`:
 ```  
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R1 --HC -v2 -z 1001
-   i: ((d)#1,(c,((#1,b),a))) cost=5
-   >: ((d)#1,((#1,c),(b,a))) cost=3
-   =: (((d)#1,c),(#1,(b,a))) cost=3
-   =: (((d,c))#1,(#1,(b,a))) cost=3
-   =: ((d)#1,((b,(#1,c)),a)) cost=3
-   >: ((b,(d)#1),((#1,c),a)) cost=2
-   =: (((#1,c),(b,(d)#1)),a) cost=2
-   =: (((b,(d)#1),a),(#1,c)) cost=2
-   =: (((b,(d)#1),(#1,c)),a) cost=2
-   =: ((#1,c),((b,(d)#1),a)) cost=2
-Cost:2 Steps:51 Climbs:3 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000172615 Naive:52 Naivetime:3.6478e-05 DTcnt:104
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R1 --HC -v2 --randseed 13
+   i: ((#1,d),(((c,a))#1,b)) cost=5
+   >: (((c,#1),d),((a)#1,b)) cost=2
+   =: ((a)#1,(((c,#1),d),b)) cost=2
+   =: ((a)#1,((c,d),(b,#1))) cost=2
+Cost:2 Steps:96 Climbs:4 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000326633 Naive:97 Naivetime:6.29425e-05 DTcnt:194
 ```
 
 Print every visited network `-v3`:
 ```  
-> supnet -g "(a,(b,c)); ((a,b),c);" -r1 -R1 --HC -v3 -z 1001
-   i: (((c)#1,(#1,a)),b) cost=2
-   >: (((c)#1,a),(#1,b)) cost=1
-   <: ((#1,((c)#1,a)),b) cost=2
-   <: (((c)#1,(#1,a)),b) cost=2
-   =: ((((c)#1,a),b),#1) cost=1
-   >: ((((c)#1,b),a),#1) cost=0
-   <: (((c)#1,(b,a)),#1) cost=1
-   <: ((b,((c)#1,a)),#1) cost=1
-   <: ((((c)#1,a),b),#1) cost=1
-   <: (((c)#1,a),(#1,b)) cost=1
-   <: (((c)#1,(a,b)),#1) cost=1
-   <: ((((c,b))#1,a),#1) cost=1
-   <: (((c)#1,(b,#1)),a) cost=1
-   <: ((((c)#1,b),#1),a) cost=1
-   <: (((c)#1,b),(a,#1)) cost=1
-   <: (a,(((c)#1,b),#1)) cost=1
-   <: ((((c)#1,a),b),#1) cost=1
-   <: (((c)#1,(b,a)),#1) cost=1
-   <: (((c)#1,b),(#1,a)) cost=1
-   <: ((((c,a))#1,b),#1) cost=2
-Cost:0 Steps:19 Climbs:3 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:9.25064e-05 Naive:20 Naivetime:1.0252e-05 DTcnt:40
+> supnet -g "(a,(b,c)); ((a,b),c);" -r1 -R1 --HC -v3 --randseed 13
+   i: ((((a)#1,c),#1),b) cost=2
+   >: (#1,(((a)#1,c),b)) cost=1
+   <: ((((a)#1,c),#1),b) cost=2
+   =: ((#1,b),((a)#1,c)) cost=1
+   >: (#1,(((a)#1,b),c)) cost=0
+   <: (#1,((a)#1,(b,c))) cost=1
+   <: (#1,(b,((a)#1,c))) cost=1
+   <: ((#1,b),((a)#1,c)) cost=1
+   <: (#1,(((a)#1,c),b)) cost=1
+   <: (#1,((a)#1,(c,b))) cost=1
+   <: (#1,(((a,b))#1,c)) cost=1
+   <: (((a)#1,(#1,b)),c) cost=1
+   <: ((#1,((a)#1,b)),c) cost=1
+   <: (((a)#1,b),(#1,c)) cost=1
+   <: ((((a)#1,b),#1),c) cost=1
+   <: (#1,(((a)#1,c),b)) cost=1
+   <: (#1,((a)#1,(b,c))) cost=1
+   <: ((#1,c),((a)#1,b)) cost=1
+   <: (#1,(((a,c))#1,b)) cost=2
+Cost:0 Steps:18 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000101805 Naive:19 Naivetime:9.77516e-06 DTcnt:38
 ```
 
 To show details on DP & BB algorithms use `-v` with 4, 5 and 6. See examples below.
@@ -485,258 +480,31 @@ To show details on DP & BB algorithms use `-v` with 4, 5 and 6. See examples bel
 HC with guide trees.
 ```
 
-> supnet -g "(a,(b,c));((a,(b,g)),(c,(d,(e,(f,h)))));" -R1 --HC -v3 -z 1001 -q2 --guidetree '(a,b);(d,e,(f,g))' -R3
-   i: ((h)#3,(((#2,(((((d,(g,f)),e))#2,(a,b)),#3)))#1,(#1,c))) cost=13
-   >: ((h)#3,(((#2,(((((g,f),(d,e)))#2,(a,b)),#3)))#1,(#1,c))) cost=12
-   <: ((h)#3,(((#2,(((((d,(g,f)),e))#2,(a,b)),#3)))#1,(#1,c))) cost=13
-   <: ((h)#3,(((#2,((((d,((g,f),e)))#2,(a,b)),#3)))#1,(#1,c))) cost=13
-   <: ((h)#3,(((#2,((((((g,f),e),d))#2,(a,b)),#3)))#1,(#1,c))) cost=13
-   <: ((h)#3,(((#2,((((((g,f),d),e))#2,(a,b)),#3)))#1,(#1,c))) cost=13
-   <: ((h)#3,(((#2,((((((g,f),d),e))#2,(a,b)),#3)))#1,(#1,c))) cost=13
-   <: ((h)#3,(((#2,((((d,((g,f),e)))#2,(a,b)),#3)))#1,(#1,c))) cost=13
-   <: ((h)#3,((((((((g,f),(d,e)))#2,(a,b)),#2),#3))#1,(#1,c))) cost=13
-   <: ((h)#3,(((#2,((((g,f),(d,e)))#2,(a,b))))#1,(#1,(c,#3)))) cost=13
-   <: ((h)#3,(((#2,((((g,f),(d,e)))#2,(a,b))))#1,((#1,c),#3))) cost=13
-   =: ((h)#3,(((#2,((((g,f),(d,e)))#2,((a,b),#3))))#1,(#1,c))) cost=12
-   <: ((h)#3,((((#2,((((g,f),(d,e)))#2,(a,b))))#1,(#1,c)),#3)) cost=16
-   <: ((h)#3,((((#2,((((g,f),(d,e)))#2,(a,b))),#3))#1,(#1,c))) cost=13
-   >: ((h)#3,(((#2,(((((g,f),(d,e)),#3))#2,(a,b))))#1,(#1,c))) cost=11
-   <: ((h)#3,(((#2,(((((d,(g,f)),e),#3))#2,(a,b))))#1,(#1,c))) cost=12
-   <: ((h)#3,(((#2,((((d,((g,f),e)),#3))#2,(a,b))))#1,(#1,c))) cost=12
-   <: ((h)#3,(((#2,((((((g,f),e),d),#3))#2,(a,b))))#1,(#1,c))) cost=12
-   <: ((h)#3,(((#2,((((((g,f),d),e),#3))#2,(a,b))))#1,(#1,c))) cost=12
-   <: ((h)#3,(((#2,((((((g,f),d),e),#3))#2,(a,b))))#1,(#1,c))) cost=12
-   <: ((h)#3,(((#2,((((d,((g,f),e)),#3))#2,(a,b))))#1,(#1,c))) cost=12
-   <: ((h)#3,(((#2,(((((g,f),(d,e)))#2,(a,b)),#3)))#1,(#1,c))) cost=12
-   <: ((h)#3,(((#2,((((g,f),(d,e)))#2,(a,b))))#1,(#1,(c,#3)))) cost=13
-   <: ((h)#3,(((#2,((((g,f),(d,e)))#2,(a,b))))#1,((#1,c),#3))) cost=13
-   <: ((h)#3,(((#2,((((g,f),(d,e)))#2,((a,b),#3))))#1,(#1,c))) cost=12
-   <: ((h)#3,((((#2,((((g,f),(d,e)))#2,(a,b))))#1,(#1,c)),#3)) cost=16
-   <: ((h)#3,((((#2,((((g,f),(d,e)))#2,(a,b))),#3))#1,(#1,c))) cost=13
-   >: ((h)#3,(((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#1,(#2,c)))) cost=10
-   <: ((h)#3,(((((((d,(g,f)),e),#3))#2,(a,b)))#1,(#1,(#2,c)))) cost=11
-   <: ((h)#3,((((((d,((g,f),e)),#3))#2,(a,b)))#1,(#1,(#2,c)))) cost=11
-   <: ((h)#3,((((((((g,f),e),d),#3))#2,(a,b)))#1,(#1,(#2,c)))) cost=11
-   <: ((h)#3,((((((((g,f),d),e),#3))#2,(a,b)))#1,(#1,(#2,c)))) cost=11
-   <: ((h)#3,((((((((g,f),d),e),#3))#2,(a,b)))#1,(#1,(#2,c)))) cost=11
-   <: ((h)#3,((((((d,((g,f),e)),#3))#2,(a,b)))#1,(#1,(#2,c)))) cost=11
-   =: ((h)#3,((((((g,f),(d,e)))#2,(a,b)))#1,(#1,(#2,(c,#3))))) cost=10
-   <: ((h)#3,((((((g,f),(d,e)))#2,(a,b)))#1,(#1,((#2,c),#3)))) cost=12
-   <: ((h)#3,((((((g,f),(d,e)))#2,(a,b)))#1,((#1,(#2,c)),#3))) cost=12
-   <: ((h)#3,((((((g,f),(d,e)))#2,((a,b),#3)))#1,(#1,(#2,c)))) cost=11
-   <: ((h)#3,(((((((g,f),(d,e)))#2,(a,b)))#1,(#1,(#2,c))),#3)) cost=15
-   <: ((h)#3,(((((((g,f),(d,e)))#2,(a,b)),#3))#1,(#1,(#2,c)))) cost=12
-   >: ((h)#3,(((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#2,(#1,c)))) cost=9
-   <: ((h)#3,(((((((d,(g,f)),e),#3))#2,(a,b)))#1,(#2,(#1,c)))) cost=10
-   <: ((h)#3,((((((d,((g,f),e)),#3))#2,(a,b)))#1,(#2,(#1,c)))) cost=10
-   <: ((h)#3,((((((((g,f),e),d),#3))#2,(a,b)))#1,(#2,(#1,c)))) cost=10
-   <: ((h)#3,((((((((g,f),d),e),#3))#2,(a,b)))#1,(#2,(#1,c)))) cost=10
-   <: ((h)#3,((((((((g,f),d),e),#3))#2,(a,b)))#1,(#2,(#1,c)))) cost=10
-   <: ((h)#3,((((((d,((g,f),e)),#3))#2,(a,b)))#1,(#2,(#1,c)))) cost=10
-   =: ((h)#3,((((((g,f),(d,e)))#2,(a,b)))#1,(#2,((#1,c),#3)))) cost=9
-   =: ((h)#3,((((((g,f),(d,e)))#2,(a,b)))#1,(#2,(#1,(c,#3))))) cost=9
-   <: ((h)#3,((((((g,f),(d,e)))#2,(a,b)))#1,((#2,(#1,c)),#3))) cost=11
-   <: ((h)#3,((((((g,f),(d,e)))#2,((a,b),#3)))#1,(#2,(#1,c)))) cost=10
-   <: ((h)#3,(((((((g,f),(d,e)))#2,(a,b)))#1,(#2,(#1,c))),#3)) cost=13
-   <: ((h)#3,(((((((g,f),(d,e)))#2,(a,b)),#3))#1,(#2,(#1,c)))) cost=11
-   <: ((h)#3,(((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#1,(#2,c)))) cost=10
-   <: ((h)#3,(((((((g,f),(d,e)),#3))#2,(#2,(a,b))))#1,(#1,c))) cost=11
-   =: ((h)#3,(#2,(((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#1,c)))) cost=9
-   <: ((h)#3,(((#2,(((((g,f),(d,e)),#3))#2,(a,b))))#1,(#1,c))) cost=11
-   =: ((h)#3,((((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#1,c)),#2)) cost=9
-   <: ((h)#3,(((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#1,(#2,c)))) cost=10
-   <: ((h)#3,(#1,(((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#2,c)))) cost=10
-   <: ((h)#3,(((((((g,f),(d,e)),#3))#2,(a,b)))#1,((#2,c),#1))) cost=10
-   =: ((h)#3,(#2,(((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#1,c)))) cost=9
-   =: ((h)#3,(#2,(#1,(((((((g,f),(d,e)),#3))#2,(a,b)))#1,c)))) cost=9
-   =: (((h)#3,(#2,(#1,c))),((((((g,f),(d,e)),#3))#2,(a,b)))#1) cost=9
-   =: ((h)#3,(((a,b))#1,(#2,(((((g,f),(d,e)),#3))#2,(#1,c))))) cost=9
-   =: ((h)#3,(((a,b))#1,(#2,(#1,(((((g,f),(d,e)),#3))#2,c))))) cost=9
-   =: ((h)#3,(((a,b))#1,(((((g,f),(d,e)),#3))#2,(#2,(#1,c))))) cost=9
-   =: ((h)#3,(((((g,f),(d,e)),#3))#2,(((a,b))#1,(#2,(#1,c))))) cost=9
-   =: (((((((h)#3,((g,f),(d,e))),#3))#2,(a,b)))#1,(#2,(#1,c))) cost=9
-   =: (((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#2,((h)#3,(#1,c)))) cost=9
-   =: (((((((g,f),(d,e)),#3))#2,(a,b)))#1,(#2,(#1,((h)#3,c)))) cost=9
-   =: (((((((g,f),(d,e)),#3))#2,(a,b)))#1,((h)#3,(#2,(#1,c)))) cost=9
-   =: (((((((g,f),(d,e)),#3))#2,((h)#3,(a,b))))#1,(#2,(#1,c))) cost=9
-   =: ((((h)#3,(((((g,f),(d,e)),#3))#2,(a,b))))#1,(#2,(#1,c))) cost=9
-   =: ((((((h)#3,(((g,f),(d,e)),#3)))#2,(a,b)))#1,(#2,(#1,c))) cost=9
-   i: (((#2,h))#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,(c,#1))))) cost=12
-   =: ((h)#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,((#2,c),#1))))) cost=12
-   =: ((h)#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,(#2,(c,#1)))))) cost=12
-   =: ((h)#3,(((d,(e,(g,f))))#1,(#2,(((a,b))#2,(#3,(c,#1)))))) cost=12
-   =: ((h)#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#2,(#3,(c,#1)))))) cost=12
-   >: ((h)#3,(#2,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,(c,#1)))))) cost=10
-   <: ((h)#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,((#2,c),#1))))) cost=12
-   <: ((h)#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,(#2,(c,#1)))))) cost=12
-   <: ((h)#3,(((d,(e,(g,f))))#1,(#2,(((a,b))#2,(#3,(c,#1)))))) cost=12
-   <: ((h)#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#2,(#3,(c,#1)))))) cost=12
-   <: ((h)#3,(((#2,(d,(e,(g,f)))))#1,(((a,b))#2,(#3,(c,#1))))) cost=12
-   <: (((#2,h))#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,(c,#1))))) cost=12
-   =: (((h)#3,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,(c,#1))))),#2) cost=10
-   >: ((h)#3,(#2,((((e,d),(g,f)))#1,(((a,b))#2,(#3,(c,#1)))))) cost=9
-   <: ((h)#3,((((e,d),(g,f)))#1,(((a,b))#2,(#3,((#2,c),#1))))) cost=11
-   <: ((h)#3,((((e,d),(g,f)))#1,(((a,b))#2,(#3,(#2,(c,#1)))))) cost=11
-   <: ((h)#3,((((e,d),(g,f)))#1,(#2,(((a,b))#2,(#3,(c,#1)))))) cost=11
-   <: ((h)#3,((((e,d),(g,f)))#1,(((a,b))#2,(#2,(#3,(c,#1)))))) cost=11
-   <: ((h)#3,(((#2,((e,d),(g,f))))#1,(((a,b))#2,(#3,(c,#1))))) cost=11
-   <: (((#2,h))#3,((((e,d),(g,f)))#1,(((a,b))#2,(#3,(c,#1))))) cost=11
-   =: (((h)#3,((((e,d),(g,f)))#1,(((a,b))#2,(#3,(c,#1))))),#2) cost=9
-   <: ((h)#3,(#2,(((d,(e,(g,f))))#1,(((a,b))#2,(#3,(c,#1)))))) cost=10
-   <: ((h)#3,(#2,(((e,(d,(g,f))))#1,(((a,b))#2,(#3,(c,#1)))))) cost=10
-   <: ((h)#3,(#2,(((e,((g,f),d)))#1,(((a,b))#2,(#3,(c,#1)))))) cost=10
-   <: ((h)#3,(#2,((((e,(g,f)),d))#1,(((a,b))#2,(#3,(c,#1)))))) cost=10
-   <: ((h)#3,(#2,((((e,(g,f)),d))#1,(((a,b))#2,(#3,(c,#1)))))) cost=10
-   <: ((h)#3,(#2,(((e,(d,(g,f))))#1,(((a,b))#2,(#3,(c,#1)))))) cost=10
-   =: ((h)#3,(#2,((((e,d),(g,f)))#1,(((a,b))#2,((c,#3),#1))))) cost=9
-   =: ((h)#3,(#2,(((((e,d),(g,f)))#1,(((a,b))#2,(#3,c))),#1))) cost=9
-   =: ((h)#3,(#2,((((e,d),(g,f)))#1,((((a,b))#2,(#3,c)),#1)))) cost=9
-   =: ((h)#3,(#2,((((e,d),(g,f)))#1,(((a,b))#2,((#3,c),#1))))) cost=9
-   =: ((h)#3,((#2,((((e,d),(g,f)))#1,(((a,b))#2,(#3,c)))),#1)) cost=9
-   =: ((h)#3,(#2,((((e,d),(g,f)))#1,((((a,b),#1))#2,(#3,c))))) cost=9
-   =: (((h,#1))#3,(#2,((((e,d),(g,f)))#1,(((a,b))#2,(#3,c))))) cost=9
-   <: ((h)#3,(#2,(#3,((((e,d),(g,f)))#1,(((a,b))#2,(c,#1)))))) cost=12
-   =: ((h)#3,(#2,((((e,d),(g,f)))#1,(((a,b))#2,((#3,c),#1))))) cost=9
-   =: ((h)#3,(#2,((((e,d),(g,f)))#1,(#3,(((a,b))#2,(c,#1)))))) cost=9
-   <: ((h)#3,(#3,(#2,((((e,d),(g,f)))#1,(((a,b))#2,(c,#1)))))) cost=13
-   =: ((h)#3,(#2,(((#3,((e,d),(g,f))))#1,(((a,b))#2,(c,#1))))) cost=9
-   <: ((h)#3,(#2,((((e,d),(g,f)))#1,(((#3,(a,b)))#2,(c,#1))))) cost=12
-   =: ((h)#3,(#2,((((e,d),(g,f)))#1,((((a,b))#2,(c,#1)),#3)))) cost=9
-   <: ((h)#3,(#2,(((a,b))#2,(#3,(((((e,d),(g,f)))#1,c),#1))))) cost=13
-   <: ((h)#3,(#2,(((a,b))#2,(#3,((((e,d),(g,f)))#1,(c,#1)))))) cost=13
-   <: ((h)#3,(#2,(((a,b))#2,((((e,d),(g,f)))#1,(#3,(c,#1)))))) cost=10
-   <: ((h)#3,((((e,d),(g,f)))#1,(#2,(((a,b))#2,(#3,(c,#1)))))) cost=11
-   <: ((h)#3,(#2,((((((e,d),(g,f)))#1,(a,b)))#2,(#3,(c,#1))))) cost=12
-   =: ((((((e,d),(g,f)))#1,h))#3,(#2,(((a,b))#2,(#3,(c,#1))))) cost=9
-   <: ((h)#3,((#2,(((a,b))#2,(#3,(c,#1)))),(((e,d),(g,f)))#1)) cost=11
-   <: ((h)#3,(#2,(((a,b))#2,((((e,d),(g,f)))#1,(#3,(c,#1)))))) cost=10
-   =: ((h)#3,(#2,((((e,d),(g,f)))#1,(#3,((((a,b))#2,c),#1))))) cost=9
-   =: ((h)#3,(#2,((((e,d),(g,f)))#1,(#3,(((a,b))#2,(c,#1)))))) cost=9
-   <: ((h)#3,(((a,b))#2,(#2,((((e,d),(g,f)))#1,(#3,(c,#1)))))) cost=10
-   <: ((h)#3,(#2,(((((a,b))#2,((e,d),(g,f))))#1,(#3,(c,#1))))) cost=10
-   <: (((((a,b))#2,h))#3,(#2,((((e,d),(g,f)))#1,(#3,(c,#1))))) cost=10
-   <: ((h)#3,(#2,(((((e,d),(g,f)))#1,(#3,(c,#1))),((a,b))#2))) cost=10
-   =: (#2,((h)#3,((((e,d),(g,f)))#1,(((a,b))#2,(#3,(c,#1)))))) cost=9
-   <: (#2,((((e,d),(g,f)))#1,(((a,b))#2,(#3,(((h)#3,c),#1))))) cost=10
-   <: (#2,((((e,d),(g,f)))#1,(((a,b))#2,(#3,((h)#3,(c,#1)))))) cost=10
-   =: (#2,((((e,d),(g,f)))#1,((h)#3,(((a,b))#2,(#3,(c,#1)))))) cost=9
-   <: (#2,((((e,d),(g,f)))#1,(((a,b))#2,((h)#3,(#3,(c,#1)))))) cost=10
-   =: (#2,((((h)#3,((e,d),(g,f))))#1,(((a,b))#2,(#3,(c,#1))))) cost=9
-   <: (#2,((((e,d),(g,f)))#1,((((h)#3,(a,b)))#2,(#3,(c,#1))))) cost=10
-Cost:9 Steps:135 Climbs:8 TopNetworks:24 Class:TreeChild TimeConsistency:0 HCruns:2 HCTime:0.00216603 Naive:137 Naivetime:0.00036931 DTcnt:1096
+> supnet -g "(a,(b,c));((a,(b,g)),(c,(d,(e,(f,h)))));" -R1 --HC -v1 -q2 --guidetree '(a,b);(d,e,(f,g))' -R3 --randseed 13
+   i: ((c)#2,((((a,b))#3,(((#3,(((f,g),e),d)))#1,(#1,h))),#2)) cost=12
+   >: ((c)#2,((((a,b))#3,(((#3,((f,g),(e,d))))#1,(#1,h))),#2)) cost=11
+   >: ((c)#2,(#3,((((a,b))#3,((((f,g),(e,d)))#1,(#1,h))),#2))) cost=10
+   >: (((#3,c))#2,((((a,b))#3,((((f,g),(e,d)))#1,(#1,h))),#2)) cost=9
+   i: ((((b,a))#3,(((((g,f),(e,d)))#1,((c)#2,(h,#2))),#3)),#1) cost=10
+   >: (((((b,a),#2))#3,(((((g,f),(e,d)))#1,((c)#2,h)),#3)),#1) cost=9
+Cost:9 Steps:2151 Climbs:10 TopNetworks:103 Class:TreeChild TimeConsistency:0 HCruns:2 HCTime:0.105543 Naive:2153 Naivetime:0.00626135 DTcnt:17224
 ```
 
 HC with guide clusters.
 ```
-> supnet -g "(a,(b,c));((a,(b,g)),(c,(d,(e,f))));" -R1 --HC -v2 -z 1001 -q2 --guideclusters '(a,b,g);(d,e,f)' -R3
-   i: ((#2,(((((e)#1,((d)#3,(f,#3))),#1))#2,(b,(g,a)))),c) cost=7
-   >: ((#2,((((((e)#1,((d)#3,f)),#3),#1))#2,(b,(g,a)))),c) cost=6
-   =: ((#2,(((#3,(((e)#1,((d)#3,f)),#1)))#2,(b,(g,a)))),c) cost=6
-   =: ((#2,((((((e)#1,((d)#3,f)),#1),#3))#2,(b,(g,a)))),c) cost=6
-   =: ((#2,((((((e)#1,((d)#3,f)),#1),#3))#2,(b,(g,a)))),c) cost=6
-   =: ((#2,((((((e)#1,((d)#3,f)),#3))#2,(b,(g,a))),#1)),c) cost=6
-   =: (((#2,(((((e)#1,((d)#3,f)),#3))#2,(b,(g,a)))),#1),c) cost=6
-   =: ((#2,(((((e)#1,((d)#3,f)),#3))#2,(b,(g,a)))),(c,#1)) cost=6
-   =: ((#2,(((((e)#1,(((d)#3,f),#1)),#3))#2,(b,(g,a)))),c) cost=6
-   =: ((#2,(((((e)#1,((d)#3,f)),#3))#2,((b,(g,a)),#1))),c) cost=6
-   =: ((#2,(((((e)#1,((d)#3,(f,#1))),#3))#2,(b,(g,a)))),c) cost=6
-   =: ((#2,(((((e)#1,(((d,#1))#3,f)),#3))#2,(b,(g,a)))),c) cost=6
-   >: ((#2,((((((e)#1,((d)#3,f)),#3),#1))#2,((g,b),a))),c) cost=5
-   =: ((#2,(((#3,(((e)#1,((d)#3,f)),#1)))#2,((g,b),a))),c) cost=5
-   =: ((#2,((((((e)#1,((d)#3,f)),#1),#3))#2,((g,b),a))),c) cost=5
-   =: ((#2,((((((e)#1,((d)#3,f)),#1),#3))#2,((g,b),a))),c) cost=5
-   =: ((#2,((((((e)#1,((d)#3,f)),#3))#2,((g,b),a)),#1)),c) cost=5
-   =: (((#2,(((((e)#1,((d)#3,f)),#3))#2,((g,b),a))),#1),c) cost=5
-   =: ((#2,(((((e)#1,((d)#3,f)),#3))#2,((g,b),a))),(c,#1)) cost=5
-   =: ((#2,(((((e)#1,(((d)#3,f),#1)),#3))#2,((g,b),a))),c) cost=5
-   =: ((#2,(((((e)#1,((d)#3,f)),#3))#2,(((g,b),a),#1))),c) cost=5
-   =: ((#2,(((((e)#1,((d)#3,(f,#1))),#3))#2,((g,b),a))),c) cost=5
-   =: ((#2,(((((e)#1,(((d,#1))#3,f)),#3))#2,((g,b),a))),c) cost=5
-   >: (((((((e)#1,((d)#3,f)),#3),#1))#2,((g,b),a)),(#2,c)) cost=3
-   =: ((((#3,(((e)#1,((d)#3,f)),#1)))#2,((g,b),a)),(#2,c)) cost=3
-   =: (((((((e)#1,((d)#3,f)),#1),#3))#2,((g,b),a)),(#2,c)) cost=3
-   =: (((((((e)#1,((d)#3,f)),#1),#3))#2,((g,b),a)),(#2,c)) cost=3
-   =: ((((((e)#1,((d)#3,f)),#3))#2,((g,b),a)),(#2,(c,#1))) cost=3
-   =: (((((((e)#1,((d)#3,f)),#3))#2,((g,b),a)),#1),(#2,c)) cost=3
-   =: ((((((e)#1,((d)#3,f)),#3))#2,((g,b),a)),((#2,c),#1)) cost=3
-   =: ((((((e)#1,(((d)#3,f),#1)),#3))#2,((g,b),a)),(#2,c)) cost=3
-   =: ((((((e)#1,((d)#3,f)),#3))#2,(((g,b),a),#1)),(#2,c)) cost=3
-   =: ((((((e)#1,((d)#3,(f,#1))),#3))#2,((g,b),a)),(#2,c)) cost=3
-   =: ((((((e)#1,(((d,#1))#3,f)),#3))#2,((g,b),a)),(#2,c)) cost=3
-   =: ((((((((e)#1,((d)#3,f)),#3),c),#1))#2,((g,b),a)),#2) cost=3
-   =: (((((((e)#1,((d)#3,f)),#3),(#1,c)))#2,((g,b),a)),#2) cost=3
-   =: ((((((((e)#1,((d)#3,f)),#3),#1))#2,((g,b),a)),c),#2) cost=3
-   >: ((((((((e)#1,((d)#3,f)),#3),#1))#2,c),((g,b),a)),#2) cost=2
-   =: (((((#3,(((e)#1,((d)#3,f)),#1)))#2,c),((g,b),a)),#2) cost=2
-   =: ((((((((e)#1,((d)#3,f)),#1),#3))#2,c),((g,b),a)),#2) cost=2
-   =: ((((((((e)#1,((d)#3,f)),#1),#3))#2,c),((g,b),a)),#2) cost=2
-   =: (((((((e)#1,((d)#3,f)),#3))#2,(c,#1)),((g,b),a)),#2) cost=2
-   =: ((((((((e)#1,((d)#3,f)),#3))#2,c),((g,b),a)),#1),#2) cost=2
-   =: (((((((e)#1,(((d)#3,f),#1)),#3))#2,c),((g,b),a)),#2) cost=2
-   =: ((((((((e)#1,((d)#3,f)),#3))#2,c),#1),((g,b),a)),#2) cost=2
-   =: (((((((e)#1,((d)#3,f)),#3))#2,c),(((g,b),a),#1)),#2) cost=2
-   =: (((((((e)#1,((d)#3,(f,#1))),#3))#2,c),((g,b),a)),#2) cost=2
-   =: (((((((e)#1,(((d,#1))#3,f)),#3))#2,c),((g,b),a)),#2) cost=2
-   =: ((((((((d)#3,((e)#1,f)),#3),#1))#2,c),((g,b),a)),#2) cost=2
-   =: ((((((((d)#3,((e)#1,f)),#3),#1))#2,c),((g,b),a)),#2) cost=2
-   =: (((((((d)#3,(((e)#1,f),#3)),#1))#2,c),((g,b),a)),#2) cost=2
-   =: ((((((((e)#1,f),#3),#1))#2,((d)#3,c)),((g,b),a)),#2) cost=2
-   =: (((d)#3,(((((((e)#1,f),#3),#1))#2,c),((g,b),a))),#2) cost=2
-   =: ((((d)#3,((((((e)#1,f),#3),#1))#2,c)),((g,b),a)),#2) cost=2
-   =: ((((((((e)#1,f),#3),#1))#2,c),((d)#3,((g,b),a))),#2) cost=2
-   =: ((((((((((d)#3,e))#1,f),#3),#1))#2,c),((g,b),a)),#2) cost=2
-   =: ((((((d)#3,((((e)#1,f),#3),#1)))#2,c),((g,b),a)),#2) cost=2
-   =: (((((((((e)#1,f),(d)#3),#3),#1))#2,c),((g,b),a)),#2) cost=2
-   i: ((#2,(((f,(#1,d)))#2,c)),((e)#1,((b,#3),((g)#3,a)))) cost=4
-   >: ((#2,((((#1,f),d))#2,c)),((e)#1,((b,#3),((g)#3,a)))) cost=3
-   =: ((#2,(((#1,d))#2,c)),(((e,f))#1,((b,#3),((g)#3,a)))) cost=3
-   =: ((((#1,f),#2),((d)#2,c)),((e)#1,((b,#3),((g)#3,a)))) cost=3
-   =: ((#2,(((#1,f),(d)#2),c)),((e)#1,((b,#3),((g)#3,a)))) cost=3
-   =: (((#2,d),(((#1,f))#2,c)),((e)#1,((b,#3),((g)#3,a)))) cost=3
-   =: ((#2,((((#1,f))#2,d),c)),((e)#1,((b,#3),((g)#3,a)))) cost=3
-   =: (((((#1,f),d))#2,c),(#2,((e)#1,((b,#3),((g)#3,a))))) cost=3
-   =: (((((#1,f),d))#2,c),((e)#1,(#2,((b,#3),((g)#3,a))))) cost=3
-   >: (#2,(((e)#1,((b,#3),((g)#3,a))),((((#1,f),d))#2,c))) cost=2
-   =: (#2,((((e,f))#1,((b,#3),((g)#3,a))),(((#1,d))#2,c))) cost=2
-   =: (#2,(((e)#1,((((#1,f),d))#2,c)),((b,#3),((g)#3,a)))) cost=2
-   =: (#2,((e)#1,(((b,#3),((g)#3,a)),((((#1,f),d))#2,c)))) cost=2
-   =: (#2,(((e)#1,(#3,((b,(g)#3),a))),((((#1,f),d))#2,c))) cost=2
-   =: (#2,(((e)#1,(#3,(((b,g))#3,a))),((((#1,f),d))#2,c))) cost=2
-   =: (#2,((((e)#1,(b,((g)#3,a))),((((#1,f),d))#2,c)),#3)) cost=2
-   =: (#2,(((e)#1,(b,((g)#3,a))),(((((#1,f),d),#3))#2,c))) cost=2
-   =: (#2,(((e)#1,(((b,#3),(g)#3),a)),((((#1,f),d))#2,c))) cost=2
-   =: (#2,(((e)#1,((g)#3,((b,#3),a))),((((#1,f),d))#2,c))) cost=2
-   =: (#2,(((b,#3),((g)#3,a)),((((#1,((e)#1,f)),d))#2,c))) cost=2
-   =: (#2,(((b,#3),((g)#3,a)),(((((e)#1,(#1,f)),d))#2,c))) cost=2
-   =: (#2,(((b,#3),((g)#3,a)),((((#1,f),((e)#1,d)))#2,c))) cost=2
-   =: (#2,(((b,#3),((g)#3,a)),((e)#1,((((#1,f),d))#2,c)))) cost=2
-   =: (#2,((e)#1,(((b,#3),((g)#3,a)),((((#1,f),d))#2,c)))) cost=2
-   =: (#2,(((b,#3),((g)#3,a)),((((#1,f),d))#2,((e)#1,c)))) cost=2
-   =: (#2,(((b,#3),((g)#3,a)),((((e)#1,((#1,f),d)))#2,c))) cost=2
-   =: (#2,((e)#1,(((((#1,f),d))#2,c),((b,#3),((g)#3,a))))) cost=2
-   =: (#2,(((e)#1,((((#1,f),d))#2,c)),((b,#3),((g)#3,a)))) cost=2
-   =: (#2,(((g)#3,((e)#1,((b,#3),a))),((((#1,f),d))#2,c))) cost=2
-   =: (#2,(((e)#1,((b,#3),a)),((g)#3,((((#1,f),d))#2,c)))) cost=2
-   =: (#2,(((e)#1,((((g)#3,b),#3),a)),((((#1,f),d))#2,c))) cost=2
-   =: (#2,(((e)#1,(((g)#3,(b,#3)),a)),((((#1,f),d))#2,c))) cost=2
-   >: (#2,((g)#3,(((e)#1,((b,#3),a)),((((#1,f),d))#2,c)))) cost=1
-   =: (#2,((g)#3,((((e,f))#1,((b,#3),a)),(((#1,d))#2,c)))) cost=1
-   =: (#2,((g)#3,(((e)#1,((((#1,f),d))#2,c)),((b,#3),a)))) cost=1
-   =: (#2,((g)#3,((e)#1,(((b,#3),a),((((#1,f),d))#2,c))))) cost=1
-   =: ((g)#3,(#2,(((e)#1,((b,#3),a)),((((#1,f),d))#2,c)))) cost=1
-   =: (#2,((g)#3,(((b,#3),a),((((#1,((e)#1,f)),d))#2,c)))) cost=1
-   =: (#2,((g)#3,(((b,#3),a),(((((e)#1,(#1,f)),d))#2,c)))) cost=1
-   =: (#2,((g)#3,(((b,#3),a),((((#1,f),((e)#1,d)))#2,c)))) cost=1
-   =: (#2,((g)#3,(((b,#3),a),((e)#1,((((#1,f),d))#2,c))))) cost=1
-   =: (#2,((e)#1,((g)#3,(((b,#3),a),((((#1,f),d))#2,c))))) cost=1
-   =: (#2,((g)#3,(((b,#3),a),((((#1,f),d))#2,((e)#1,c))))) cost=1
-   =: (#2,((g)#3,((e)#1,(((b,#3),a),((((#1,f),d))#2,c))))) cost=1
-   =: (#2,((g)#3,(((b,#3),a),((((e)#1,((#1,f),d)))#2,c)))) cost=1
-   =: (#2,((g)#3,((e)#1,(((((#1,f),d))#2,c),((b,#3),a))))) cost=1
-   =: (#2,((g)#3,(((e)#1,((((#1,f),d))#2,c)),((b,#3),a)))) cost=1
-   =: (#2,(((e)#1,((b,#3),a)),((((g)#3,((#1,f),d)))#2,c))) cost=1
-   =: ((#2,(((e)#1,((b,#3),a)),((((#1,f),d))#2,c))),(g)#3) cost=1
-Cost:1 Steps:299 Climbs:9 TopNetworks:11 Class:TreeChild TimeConsistency:0 HCruns:2 HCTime:0.00311685 Naive:301 Naivetime:0.000717163 DTcnt:2408
+> supnet -g "(a,(b,c));((a,(b,g)),(c,(d,(e,f))));" -R1 --HC -v1 -q2 --guideclusters '(a,b,g);(d,e,f)' -R3 --randseed 13
+   i: ((((#3,g))#1,((((b)#3,a),#1),(#2,(e,f)))),((d)#2,c)) cost=4
+   >: ((((#3,g))#1,((((b)#3,a),#1),#2)),(((d)#2,(e,f)),c)) cost=3
+   >: (((#3,g))#1,(((((b)#3,a),#1),(((d)#2,(e,f)),c)),#2)) cost=2
+   >: (((#3,g))#1,(((((b)#3,a),#1),(((d,(e,f)))#2,c)),#2)) cost=1
+   >: (((#3,g))#1,(((a,#1),((b)#3,(((d,(e,f)))#2,c))),#2)) cost=0
+   i: (#1,((d)#3,((((#2,b),(#3,(f,e))))#1,(((a,g))#2,c)))) cost=5
+   >: (#1,((d)#3,((((#2,(b,g)),(#3,(f,e))))#1,((a)#2,c)))) cost=4
+   >: (#1,((d)#3,((((#2,g),(#3,(f,e))))#1,(((b,a))#2,c)))) cost=3
+   >: (#1,(((d)#3,(f,e)),((((#2,g),#3))#1,(((b,a))#2,c)))) cost=2
+   >: (#1,(((d)#3,(f,e)),(((((#2,g),a),#3))#1,((b)#2,c)))) cost=1
+   >: (((#2,g),#1),(((d)#3,(f,e)),(((a)#1,((b)#2,c)),#3))) cost=0
+Cost:0 Steps:2944 Climbs:16 TopNetworks:53 Class:TreeChild TimeConsistency:0 HCruns:2 HCTime:0.0629137 Naive:2946 Naivetime:0.00739336 DTcnt:23410
 ```
 
 
@@ -752,8 +520,8 @@ Cost:1 Steps:299 Climbs:9 TopNetworks:11 Class:TreeChild TimeConsistency:0 HCrun
 Print unique networks from 100 randomly generated. 
 
 ```  
-> supnet -A2 -R1 -r100 --pnetworks | supnet --uniquedags -N-
-((a)#1,(b,#1))
+> supnet -A2 -R1 -r100 --pnetworks  --randseed 13 | supnet --uniquedags -N-
+((a)#1,(#1,b))
 (#1,((b)#1,a))
 unique=2 all=100
 ```
@@ -765,63 +533,60 @@ Pairwise comparison of random general networks. Here,
 Use `--dagshapes`, to compare shapes.
 
 ```  
-> supnet -r4 -R1 -A2  --pnetworks --general --comparedags
-((b)#1,(#1,a))
+> supnet -r4 -R1 -A2  --pnetworks --general --comparedags --randseed 13
+((a)#1,(#1,b))
+(((a)#1,b),#1)
 (#1,((b)#1,a))
 ((b)#1,(#1,a))
-(((a)#1,b),#1)
 
-((b)#1,(#1,a))	(#1,((b)#1,a))	1
-((b)#1,(#1,a))	((b)#1,(#1,a))	1
-((b)#1,(#1,a))	(((a)#1,b),#1)	0
+((a)#1,(#1,b))	(((a)#1,b),#1)	1
+((a)#1,(#1,b))	(#1,((b)#1,a))	0
+((a)#1,(#1,b))	((b)#1,(#1,a))	0
+
+(((a)#1,b),#1)	(#1,((b)#1,a))	0
+(((a)#1,b),#1)	((b)#1,(#1,a))	0
 
 (#1,((b)#1,a))	((b)#1,(#1,a))	1
-(#1,((b)#1,a))	(((a)#1,b),#1)	0
-
-((b)#1,(#1,a))	(((a)#1,b),#1)	0
 
 ```
 
 Print unique random networks with counts
 ```  
-> supnet -r100000 -R1 -A2 --uniquedagscnts
-50135	(((a)#1,b),#1)
-49865	(((b)#1,a),#1)
+> supnet -r100000 -R1 -A2 --uniquedagscnts --randseed 13
+49899	((a)#1,(#1,b))
+50101	(#1,((b)#1,a))
 unique=2 all=0
 ```
 
 Print unique random networks with counts using uniform draw
 ```  
-> supnet -r100000 -R1 -A2 --uniquedagscnts --uniformedgesampling
-49996	((b)#1,(#1,a))
-50004	(((a)#1,b),#1)
+> supnet -r100000 -R1 -A2 --uniquedagscnts --uniformedgesampling --randseed 13
+50211	(((b)#1,a),#1)
+49789	(((a)#1,b),#1)
 unique=2 all=0
 ```
 
 Print unique random shapes of networks with counts
 ```  
-> supnet -r100000 -R1 -A3 --dagshapes --uniquedagscnts
-11801	((a)#1,(#1,(b,c)))
-13307	(((b)#1,c),(a,#1))
-33084	(b,(((a)#1,c),#1))
-30139	((c,((b)#1,a)),#1)
-11669	(((c,a))#1,(b,#1))
+> supnet -r100000 -R1 -A3 --dagshapes --uniquedagscnts --randseed 13
+33530	((((a)#1,c),#1),b)
+29997	((((b)#1,c),a),#1)
+11760	((((b,c))#1,a),#1)
+11528	((a)#1,(#1,(c,b)))
+13185	((#1,c),((b)#1,a))
 unique=5 all=0
 ```
 
 Print unique random shapes of networks with counts using uniform draw
 ```  
 > supnet -r100000 -R1 -A3 --dagshapes --uniformedgesampling --uniquedagscnts
-14244	((((c,b))#1,a),#1)
-14349	((b)#1,(#1,(c,a)))
-28559	(b,((c)#1,(a,#1)))
-28520	((c,((b)#1,a)),#1)
-14328	(((c)#1,b),(#1,a))
+14198	((((b,a))#1,c),#1)
+28763	((b)#1,(a,(#1,c)))
+14163	(((a)#1,c),(b,#1))
+28406	((((a)#1,c),#1),b)
+14470	(#1,((c)#1,(a,b)))
 unique=5 all=0
 ```
-
-
-
 
 ## Other options, print, debug, test, etc.
 
@@ -884,11 +649,15 @@ Networks:
 ## Coronavirus dataset processing
 
 Infering tree-child networks without time-consistency, start from 10 networks `-q10`.
+Use: `--hcsavewhenimproved` to save odt files after each improvement
+and  `--hcstoptime 30` to stop a single HC if there is no improvement after 30 seconds.
 
 ```
 make supnet_dtcache
-supnet_dtcache -G corona.txt -R7 -q10 --HC --hcrunstats 
+supnet_dtcache -G corona.txt -R7 -q10 --HC --hcrunstats --outfiles corona --hcstoptime 30 --randseed 13 --hcsavewhenimproved
 ```
+Results in `corona.log` and `corona.dat`.
+
 
 Inferring relaxed time-consistent networks, start from 10 networks `-q10`.
 ```
@@ -897,7 +666,7 @@ supnet_dtcache -G corona.txt -R7 -q10 --HC --hcrunstats --timeconsistent --relax
 
 Inferring relaxed time-consistent networks, start from 10 networks `-q10`, save networks to first.log.
 ```
-supnet_dtcache -G corona.txt -R7 -q10 --HC -v0 --timeconsistent --relaxed -O first.log
+supnet_dtcache -G corona.txt -R7 -q10 --HC -v0 --timeconsistent --relaxed --outfiles first
 supnet_dtcache -G corona.txt -N first.log --odtnaivecost
 supnet_dtcache -G corona.txt -N first.log --HC -v0 --timeconsistent --relaxed
 ```
@@ -925,12 +694,6 @@ The number of HC steps in improvements
 supnet --hcstopclimb=10 ...
 ```
 
-
-
-
-
-
-
 # Examples 
 
 
@@ -938,54 +701,50 @@ supnet --hcstopclimb=10 ...
 
 Do not print detailed stats for individual HC runs.
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC -v0 -z 1003
-Cost:3 Steps:814 Climbs:35 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00228548 Naive:822 Naivetime:0.000658035 DTcnt:1644
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC -v0 --randseed 13
+Cost:3 Steps:2066 Climbs:43 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00680876 Naive:2074 Naivetime:0.00165772 DTcnt:4148
 ```
 
 Print stats after completed HC run for each initial network when only when new optimal network is found.
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC --hcrunstats -v0 -z 1003
-1. Cost:5 Steps:67 Climbs:4 TopNetworks:9 Class:TreeChild TimeConsistency:0
- New optimal cost: 5
-3. Cost:4 Steps:144 Climbs:6 TopNetworks:6 Class:TreeChild TimeConsistency:0
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC --hcrunstats -v0 --randseed 13
+1. Cost:4 Steps:266 Climbs:3 TopNetworks:5 Class:TreeChild TimeConsistency:0
  New optimal cost: 4
-7. Cost:3 Steps:129 Climbs:4 TopNetworks:1 Class:TreeChild TimeConsistency:0
+5. Cost:3 Steps:182 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0
  New optimal cost: 3
-Cost:3 Steps:814 Climbs:35 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00295329 Naive:822 Naivetime:0.000973225 DTcnt:1644
+Cost:3 Steps:2066 Climbs:43 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00700283 Naive:2074 Naivetime:0.00165749 DTcnt:4148
 ```
 
 Print stats after completed HC run for each initial network when a new optimal network including equal networks is found.
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC --hcrunstatsext -v0 -z 1003
-1. Cost:5 Steps:67 Climbs:4 TopNetworks:9 Class:TreeChild TimeConsistency:0
- New optimal cost: 5
-3. Cost:4 Steps:144 Climbs:6 TopNetworks:6 Class:TreeChild TimeConsistency:0
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC --hcrunstatsext -v0 --randseed 13
+1. Cost:4 Steps:266 Climbs:3 TopNetworks:5 Class:TreeChild TimeConsistency:0
  New optimal cost: 4
-5. Cost:4 Steps:88 Climbs:5 TopNetworks:3 Class:TreeChild TimeConsistency:0
- New optimal networks:3 Total:9
-7. Cost:3 Steps:129 Climbs:4 TopNetworks:1 Class:TreeChild TimeConsistency:0
+5. Cost:3 Steps:182 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0
  New optimal cost: 3
-Cost:3 Steps:814 Climbs:35 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.0023663 Naive:822 Naivetime:0.000672579 DTcnt:1644
+Cost:3 Steps:2066 Climbs:43 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00709414 Naive:2074 Naivetime:0.00165248 DTcnt:4148
 ```
 
 Print stats after completed HC run.
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC --hcrunstatsalways -v0 -z 1003
-1. Cost:5 Steps:67 Climbs:4 TopNetworks:9 Class:TreeChild TimeConsistency:0
- New optimal cost: 5
-2. Cost:9 Steps:55 Climbs:2 TopNetworks:12 Class:TreeChild TimeConsistency:0
-3. Cost:4 Steps:144 Climbs:6 TopNetworks:6 Class:TreeChild TimeConsistency:0
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC --hcrunstatsalways -v0 --randseed 13
+1. Cost:4 Steps:266 Climbs:3 TopNetworks:5 Class:TreeChild TimeConsistency:0
  New optimal cost: 4
-4. Cost:4 Steps:183 Climbs:8 TopNetworks:6 Class:TreeChild TimeConsistency:0
- New optimal networks:0 Total:6
-5. Cost:4 Steps:88 Climbs:5 TopNetworks:3 Class:TreeChild TimeConsistency:0
- New optimal networks:3 Total:9
-6. Cost:4 Steps:66 Climbs:2 TopNetworks:3 Class:TreeChild TimeConsistency:0
- New optimal networks:0 Total:9
-7. Cost:3 Steps:129 Climbs:4 TopNetworks:1 Class:TreeChild TimeConsistency:0
+2. Cost:6 Steps:160 Climbs:4 TopNetworks:2 Class:TreeChild TimeConsistency:0
+ New optimal networks:0 Total:5
+3. Cost:4 Steps:247 Climbs:1 TopNetworks:5 Class:TreeChild TimeConsistency:0
+ New optimal networks:0 Total:5
+4. Cost:4 Steps:255 Climbs:3 TopNetworks:5 Class:TreeChild TimeConsistency:0
+ New optimal networks:0 Total:5
+5. Cost:3 Steps:182 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0
  New optimal cost: 3
-8. Cost:6 Steps:82 Climbs:4 TopNetworks:2 Class:TreeChild TimeConsistency:0
-Cost:3 Steps:814 Climbs:35 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00233197 Naive:822 Naivetime:0.000682116 DTcnt:1644
+6. Cost:3 Steps:371 Climbs:9 TopNetworks:1 Class:TreeChild TimeConsistency:0
+ New optimal networks:0 Total:1
+7. Cost:4 Steps:292 Climbs:7 TopNetworks:5 Class:TreeChild TimeConsistency:0
+ New optimal networks:0 Total:1
+8. Cost:4 Steps:293 Climbs:6 TopNetworks:3 Class:TreeChild TimeConsistency:0
+ New optimal networks:0 Total:1
+Cost:3 Steps:2066 Climbs:43 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00736785 Naive:2074 Naivetime:0.00177097 DTcnt:4148
 ```
 
 #### Run naive odt computation threshold `-t THRESHOLD`
@@ -995,7 +754,7 @@ Run naive odt computation, when the number of reticulations in a network is `< T
 Higher `-t NUM`, more naive algorithm computations.
 
 ```
-> supnet -g "(a,(b,(c,d)))" -n "(#1,((b,((d,c))#1),a))" -t2 --HC -v35
+> supnet -g "(a,(b,(c,d)))" -n "(#1,((b,((d,c))#1),a))" -t2 --HC -v35 --randseed 13
 HC start: hcusenaive=0 runnaiveleqrt=13 tailmove=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
    i: (#1,((b,((d,c))#1),a)) cost=0
@@ -1015,59 +774,31 @@ ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
    <: (#1,(((b,c),(d)#1),a)) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
    =: (#1,((b,((d)#1,c)),a)) cost=0
+...
+   <: (#1,(b,(a,(d,(c)#1)))) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(((b,(d)#1),c),a)) cost=1
+   <: ((#1,(d,(c)#1)),(b,a)) cost=1
+ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
+   <: (#1,((b,a),(d,(c)#1))) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=2
-   <: (#1,((b,(d)#1),(a,c))) cost=2
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: ((#1,c),((b,(d)#1),a)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=3
-   <: (#1,(((b,(d)#1),a),c)) cost=3
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,((((b,d),c))#1,a)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(((d,(b,c)))#1,a)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(((d,c))#1,(b,a))) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: ((b,#1),(((d,c))#1,a)) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(b,(((d,c))#1,a))) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: (#1,(((b,(d,c)))#1,a)) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(b,(a,((d,c))#1))) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,((b,a),((d,c))#1)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: (((b,((d,c))#1),#1),a) cost=0
+   <: (#1,(b,((d,a),(c)#1))) cost=2
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=2
-   <: (#1,(b,(((d,a),c))#1)) cost=2
+   <: (#1,(b,(d,((c)#1,a)))) cost=2
+ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
+   <: (#1,((b,a),(d,(c)#1))) cost=1
+ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
+   <: (#1,(b,((d,(c)#1),a))) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=2
-   <: (#1,(b,((d,(c,a)))#1)) cost=2
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,((b,a),((d,c))#1)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(b,(((d,c))#1,a))) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: ((#1,a),(b,((d,c))#1)) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(b,(((d,c),a))#1)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: (((#1,b),((d,c))#1),a) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: ((#1,(b,((d,c))#1)),a) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: ((b,((d,c))#1),(#1,a)) cost=0
-HC run completed: (#1,((b,((d,c))#1),a)) cost=0
-Cost:0 Steps:30 Climbs:1 TopNetworks:6 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000178814 Naive:31 Naivetime:1.45435e-05 DTcnt:57
+   <: (#1,(b,(d,((c,a))#1))) cost=2
+HC run completed: (#1,((b,(d,(c)#1)),a)) cost=0
+Cost:0 Steps:410 Climbs:2 TopNetworks:19 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.0021975 Naive:411 Naivetime:0.000174046 DTcnt:809
 Optimal networks saved: odt.log
-Stats data save to: odt.dat
+Stats data saved: odt.dat
 ```
 
 Lower `-t`, more BB & DP computations
 ```
-> supnet -g "(a,(b,(c,d)))" -n "(#1,((b,((d,c))#1),a))" -t1 --HC -v35
+> supnet -g "(a,(b,(c,d)))" -n "(#1,((b,((d,c))#1),a))" -t1 --HC -v35 --randseed 13
 HC start: hcusenaive=0 runnaiveleqrt=13 tailmove=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
    i: (#1,((b,((d,c))#1),a)) cost=0
@@ -1087,148 +818,92 @@ ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
    <: (#1,(((b,c),(d)#1),a)) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
    =: (#1,((b,((d)#1,c)),a)) cost=0
+...
+   <: (#1,(b,(a,(d,(c)#1)))) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(((b,(d)#1),c),a)) cost=1
+   <: ((#1,(d,(c)#1)),(b,a)) cost=1
+ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
+   <: (#1,((b,a),(d,(c)#1))) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=2
-   <: (#1,((b,(d)#1),(a,c))) cost=2
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: ((#1,c),((b,(d)#1),a)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=3
-   <: (#1,(((b,(d)#1),a),c)) cost=3
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,((((b,d),c))#1,a)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(((d,(b,c)))#1,a)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(((d,c))#1,(b,a))) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: ((b,#1),(((d,c))#1,a)) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(b,(((d,c))#1,a))) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: (#1,(((b,(d,c)))#1,a)) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(b,(a,((d,c))#1))) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,((b,a),((d,c))#1)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: (((b,((d,c))#1),#1),a) cost=0
+   <: (#1,(b,((d,a),(c)#1))) cost=2
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=2
-   <: (#1,(b,(((d,a),c))#1)) cost=2
+   <: (#1,(b,(d,((c)#1,a)))) cost=2
+ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
+   <: (#1,((b,a),(d,(c)#1))) cost=1
+ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
+   <: (#1,(b,((d,(c)#1),a))) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=2
-   <: (#1,(b,((d,(c,a)))#1)) cost=2
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,((b,a),((d,c))#1)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(b,(((d,c))#1,a))) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: ((#1,a),(b,((d,c))#1)) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
-   <: (#1,(b,(((d,c),a))#1)) cost=1
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: (((#1,b),((d,c))#1),a) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: ((#1,(b,((d,c))#1)),a) cost=0
-ODT-cost-naive 1 tree(s);rt=1(-t) cost=0
-   =: ((b,((d,c))#1),(#1,a)) cost=0
-HC run completed: (#1,((b,((d,c))#1),a)) cost=0
-Cost:0 Steps:30 Climbs:1 TopNetworks:6 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000139236 Naive:31 Naivetime:1.33514e-05 DTcnt:57
+   <: (#1,(b,(d,((c,a))#1))) cost=2
+HC run completed: (#1,((b,(d,(c)#1)),a)) cost=0
+Cost:0 Steps:410 Climbs:2 TopNetworks:19 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.00220919 Naive:411 Naivetime:0.000168085 DTcnt:809
 Optimal networks saved: odt.log
-Stats data save to: odt.dat
+Stats data saved: odt.dat
 ```
 
 ### NNI vs Tail Moves
 
 HC via Tail Moves (default)
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R1 --HC -v3 -z 1003
-   i: ((#1,d),(((c)#1,b),a)) cost=3
-   <: (d,((#1,((c)#1,b)),a)) cost=7
-   <: (d,(((c)#1,b),(#1,a))) cost=6
-   <: (d,(#1,(((c)#1,b),a))) cost=6
-   <: (d,(((c)#1,(#1,b)),a)) cost=7
-   <: (#1,((((c)#1,b),d),a)) cost=4
-   <: (#1,(((c)#1,b),(a,d))) cost=6
-   <: (#1,((((c)#1,b),a),d)) cost=6
-   >: (#1,((((c)#1,d),b),a)) cost=2
-   <: (#1,(((c)#1,(d,b)),a)) cost=4
-   <: (#1,((d,b),((c)#1,a))) cost=4
-   <: (#1,((c)#1,((d,b),a))) cost=6
-   <: (#1,((d,((c)#1,b)),a)) cost=4
-   <: (#1,((((c)#1,b),d),a)) cost=4
-   <: (#1,(((c)#1,b),(a,d))) cost=6
-   <: ((#1,d),(((c)#1,b),a)) cost=3
-   <: (#1,((((c)#1,b),a),d)) cost=6
-   <: (#1,(((c)#1,(b,d)),a)) cost=4
-   =: (#1,((((c,d))#1,b),a)) cost=2
-   =: (((((c)#1,d),b),#1),a) cost=2
-   <: (#1,((((c)#1,a),d),b)) cost=5
-   <: (#1,(((c)#1,(d,a)),b)) cost=6
-   >: ((#1,a),(((c)#1,d),b)) cost=1
-   <: ((#1,((c)#1,a)),(d,b)) cost=4
-   <: (((c)#1,(#1,a)),(d,b)) cost=4
-   <: ((#1,a),((c)#1,(d,b))) cost=3
-   <: ((#1,a),(d,((c)#1,b))) cost=3
-   <: (((#1,d),a),((c)#1,b)) cost=4
-   <: ((#1,(a,d)),((c)#1,b)) cost=6
-   <: (((#1,a),d),((c)#1,b)) cost=5
-   <: ((#1,a),(((c)#1,b),d)) cost=3
-   <: ((#1,a),((c)#1,(b,d))) cost=3
-   <: ((#1,a),(((c,d))#1,b)) cost=3
-   <: (a,(((c)#1,(#1,d)),b)) cost=3
-   <: (a,(#1,(((c)#1,d),b))) cost=2
-   <: (a,((#1,((c)#1,d)),b)) cost=3
-   <: (a,(((c)#1,d),(#1,b))) cost=3
-   <: (#1,((((c)#1,a),d),b)) cost=5
-   <: (#1,(((c)#1,(d,a)),b)) cost=6
-   <: (#1,((((c)#1,d),b),a)) cost=2
-   <: (#1,((((c)#1,d),a),b)) cost=4
-   <: (#1,(((c)#1,d),(b,a))) cost=3
-   <: (#1,((((c,a))#1,d),b)) cost=4
-   <: ((((#1,a),(c)#1),d),b) cost=5
-   <: (((c)#1,((#1,a),d)),b) cost=5
-   <: (((#1,a),((c)#1,d)),b) cost=3
-   <: (((c)#1,d),((#1,a),b)) cost=2
-   <: ((#1,(((c)#1,d),b)),a) cost=2
-   <: (#1,(a,(((c)#1,d),b))) cost=2
-   <: (((((c)#1,d),#1),a),b) cost=4
-   <: ((#1,(((c)#1,d),a)),b) cost=4
-   <: ((((c)#1,d),(#1,a)),b) cost=3
-   <: ((#1,a),(((c)#1,b),d)) cost=3
-   <: ((#1,a),((c)#1,(d,b))) cost=3
-   <: (((#1,b),a),((c)#1,d)) cost=3
-   <: ((#1,(a,b)),((c)#1,d)) cost=3
-   <: (((#1,a),b),((c)#1,d)) cost=2
-   <: ((#1,a),(((c,b))#1,d)) cost=5
-Cost:1 Steps:57 Climbs:3 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.00024581 Naive:58 Naivetime:4.02927e-05 DTcnt:116
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R1 --HC -v3 --randseed 13
+   i: ((#1,d),(((c,a))#1,b)) cost=5
+   >: (((c,#1),d),((a)#1,b)) cost=2
+   <: ((#1,(c,d)),((a)#1,b)) cost=3
+   <: ((c,(#1,d)),((a)#1,b)) cost=3
+   <: ((#1,d),(c,((a)#1,b))) cost=5
+   <: ((#1,d),((c,(a)#1),b)) cost=5
+   <: ((#1,d),((a)#1,(c,b))) cost=6
+   <: ((#1,d),(((c,a))#1,b)) cost=5
+   <: ((c,(d,#1)),((a)#1,b)) cost=3
+   <: (((c,d),#1),((a)#1,b)) cost=3
+   <: ((c,d),(((a)#1,b),#1)) cost=3
+   <: ((c,d),((a)#1,(b,#1))) cost=3
+   <: (d,((c,#1),((a)#1,b))) cost=5
+   <: (d,(((c,#1),(a)#1),b)) cost=6
+   <: (d,((a)#1,((c,#1),b))) cost=6
+   <: (((c,d),#1),((a)#1,b)) cost=3
+   <: ((c,(#1,d)),((a)#1,b)) cost=3
+   <: ((c,#1),(((a)#1,b),d)) cost=3
+   <: ((c,#1),(((a)#1,d),b)) cost=4
+...
+   <: (((c,a))#1,(d,(b,#1))) cost=4
+   <: ((a)#1,(c,((b,d),#1))) cost=4
+   <: ((a)#1,(c,(b,(#1,d)))) cost=4
+   <: ((a)#1,(c,((b,#1),d))) cost=3
+   <: (((a)#1,d),(c,(b,#1))) cost=5
+   <: ((a)#1,((c,(b,#1)),d)) cost=4
+   <: (((a,d))#1,(c,(b,#1))) cost=6
+   <: ((a)#1,(((c,d),b),#1)) cost=3
+   <: ((a)#1,(b,((c,d),#1))) cost=3
+   <: (((c,d),(a)#1),(b,#1)) cost=3
+   <: ((((c,d),a))#1,(b,#1)) cost=4
+   <: ((a)#1,((c,(b,#1)),d)) cost=4
+   <: ((a)#1,(c,(d,(b,#1)))) cost=3
+   <: (((a)#1,(b,#1)),(c,d)) cost=3
+   <: ((c,d),(((a)#1,b),#1)) cost=3
+   <: ((c,((a)#1,d)),(b,#1)) cost=3
+   <: (((a)#1,(c,d)),(b,#1)) cost=3
+   <: ((c,d),((a)#1,(b,#1))) cost=3
+Cost:2 Steps:96 Climbs:4 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000408649 Naive:97 Naivetime:6.4373e-05 DTcnt:194
 ```
 
 HC via NNI moves 
 
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R1 --HC --hcnnimove -v3 -z 1003
-   i: ((#1,d),(((c)#1,b),a)) cost=3
-   <: ((d,(((c)#1,b),a)),#1) cost=6
-   <: (((((c)#1,b),a),#1),d) cost=6
-   <: (((c)#1,b),(a,(#1,d))) cost=4
-   =: (a,((#1,d),((c)#1,b))) cost=3
-   =: ((#1,d),((b,a),(c)#1)) cost=3
-   >: ((#1,d),((a,(c)#1),b)) cost=2
-   <: ((d,((a,(c)#1),b)),#1) cost=5
-   <: ((((a,(c)#1),b),#1),d) cost=5
-   >: ((a,(c)#1),(b,(#1,d))) cost=1
-   <: ((a,(c)#1),(#1,(d,b))) cost=3
-   <: ((a,(c)#1),(d,(b,#1))) cost=3
-   <: (b,((#1,d),(a,(c)#1))) cost=3
-   <: ((#1,d),((a,(c)#1),b)) cost=2
-   <: (((c)#1,(b,(#1,d))),a) cost=2
-   <: (((b,(#1,d)),a),(c)#1) cost=2
-Cost:1 Steps:15 Climbs:3 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:9.15527e-05 Naive:16 Naivetime:1.35899e-05 DTcnt:32
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R1 --HC --hcnnimove -v3 --randseed 13
+   i: ((#1,d),(((c,a))#1,b)) cost=5
+   >: ((d,(((c,a))#1,b)),#1) cost=4
+   <: (((((c,a))#1,b),#1),d) cost=6
+   <: ((#1,d),(((c,a))#1,b)) cost=5
+   =: ((((c,a))#1,(b,d)),#1) cost=4
+   =: ((b,(d,((c,a))#1)),#1) cost=4
+   <: (((d,((c,a))#1),#1),b) cost=5
+   <: ((#1,b),(d,((c,a))#1)) cost=5
+Cost:4 Steps:7 Climbs:4 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:7.31945e-05 Naive:8 Naivetime:7.86781e-06 DTcnt:16
 ```
 
 #### Default tree-child networks and Tail Moves:
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R3 --HC -v2 -z 12
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R3 --HC -v2 --randseed 12
    i: ((#3,((c)#3,((((d)#1,(b,#1)))#2,a))),#2) cost=4
    >: (((c)#3,((((d)#1,((#3,b),#1)))#2,a)),#2) cost=3
    =: (((c)#3,((((d)#1,(#3,(b,#1))))#2,a)),#2) cost=3
@@ -1236,13 +911,9 @@ Cost:1 Steps:15 Climbs:3 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:
    >: ((((c)#3,(((((#3,d))#1,b))#2,a)),#1),#2) cost=0
    =: (#1,(((c)#3,(((((#3,d))#1,b))#2,a)),#2)) cost=0
    =: (((c)#3,((((((#3,d))#1,b))#2,a),#1)),#2) cost=0
-   =: ((((c)#3,(((((#3,d))#1,b))#2,a)),#2),#1) cost=0
    =: (((((((#3,d))#1,b))#2,((c)#3,a)),#1),#2) cost=0
-   =: (((((c)#3,a),((((#3,d))#1,b))#2),#1),#2) cost=0
-   =: (((c)#3,((((((#3,d))#1,b))#2,a),#1)),#2) cost=0
-   =: (((((((#3,d))#1,b))#2,((c)#3,a)),#1),#2) cost=0
-   =: (((c)#3,(#1,(((((#3,d))#1,b))#2,a))),#2) cost=0
-Cost:0 Steps:41 Climbs:4 TopNetworks:4 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000226736 Naive:42 Naivetime:8.05855e-05 DTcnt:318
+   =: (#1,((((((#3,d))#1,b))#2,((c)#3,a)),#2)) cost=0
+Cost:0 Steps:121 Climbs:8 TopNetworks:5 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000751972 Naive:122 Naivetime:0.000237942 DTcnt:966
 ```
 
 ```
@@ -1251,49 +922,27 @@ Cost:0 Steps:41 Climbs:4 TopNetworks:4 Class:TreeChild TimeConsistency:0 HCruns:
 (#1,(((c)#3,(((((#3,d))#1,b))#2,a)),#2))
 (((c)#3,((((((#3,d))#1,b))#2,a),#1)),#2)
 (((((((#3,d))#1,b))#2,((c)#3,a)),#1),#2)
+(#1,((((((#3,d))#1,b))#2,((c)#3,a)),#2))
 ```
 
 #### Relaxed networks. 
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R3 --HC -v2 -z 12 --relaxed
-   i: ((#3,((c)#3,(((d)#1)#2,a))),(#2,(b,#1))) cost=4
-   >: (((c)#3,(((d)#1)#2,a)),(#2,((#3,b),#1))) cost=3
-   =: (((c)#3,(((d)#1)#2,a)),(#3,(#2,(b,#1)))) cost=3
-   =: (((c)#3,(((d)#1)#2,a)),(#2,(#3,(b,#1)))) cost=3
-   >: (((c)#3,((((#3,d))#1)#2,a)),(#2,(b,#1))) cost=1
-   =: (((c)#3,(((#3)#1)#2,a)),(#2,(b,(#1,d)))) cost=1
-   =: (((c)#3,(((#3)#1)#2,a)),((#2,d),(b,#1))) cost=1
-   =: (((c)#3,((((#3)#1,d))#2,a)),(#2,(b,#1))) cost=1
-   =: (((c)#3,((((#3,d))#1)#2,a)),((b,#2),#1)) cost=1
-   =: ((((c)#3,((((#3,d))#1)#2,a)),#1),(#2,b)) cost=1
-   =: (((c)#3,((((#3,d))#1)#2,a)),((#2,b),#1)) cost=1
-   =: (((c)#3,((((#3,d))#1)#2,(a,#1))),(#2,b)) cost=1
-   =: (((c)#3,(((((#3,d))#1)#2,a),#1)),(#2,b)) cost=1
-   =: ((((c)#3,((((#3,d))#1)#2,a)),#2),(b,#1)) cost=1
-   >: (#2,(((c)#3,((((#3,d))#1)#2,a)),(b,#1))) cost=0
-   =: (#2,(((c)#3,(((b,((#3,d))#1))#2,a)),#1)) cost=0
-   =: (#2,(((c)#3,a),(((((#3,d))#1)#2,b),#1))) cost=0
-   =: (#2,(((((#3,d))#1)#2,((c)#3,a)),(b,#1))) cost=0
-   =: (#2,(((c)#3,a),((((#3,d))#1)#2,(b,#1)))) cost=0
-   =: (#2,((((#3,d))#1)#2,(((c)#3,a),(b,#1)))) cost=0
-   =: (#2,((((c)#3,a),(((#3,d))#1)#2),(b,#1))) cost=0
-   =: (#2,(((((#3,d))#1)#2,((c)#3,a)),(b,#1))) cost=0
-Cost:0 Steps:98 Climbs:4 TopNetworks:6 Class:Relaxed TimeConsistency:0 HCruns:1 HCTime:0.000524521 Naive:99 Naivetime:0.000219107 DTcnt:769
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R3 --HC -v1 --randseed 13 --relaxed
+   i: ((#1)#3,((#3,d),(((((a)#2,c),#2))#1,b))) cost=4
+   >: ((#1)#3,(((((a)#2,c),#3),d),((#2)#1,b))) cost=1
+   >: (((c,#1))#3,((a)#2,((#3,d),((#2)#1,b)))) cost=0
+Cost:0 Steps:233 Climbs:6 TopNetworks:2 Class:Relaxed TimeConsistency:0 HCruns:1 HCTime:0.00120163 Naive:234 Naivetime:0.000477314 DTcnt:1866
 ```
 
 ```
 > cat odt.log
-(#2,(((c)#3,((((#3,d))#1)#2,a)),(b,#1)))
-(#2,(((c)#3,(((b,((#3,d))#1))#2,a)),#1))
-(#2,(((c)#3,a),(((((#3,d))#1)#2,b),#1)))
-(#2,(((((#3,d))#1)#2,((c)#3,a)),(b,#1)))
-(#2,(((c)#3,a),((((#3,d))#1)#2,(b,#1))))
-(#2,((((#3,d))#1)#2,(((c)#3,a),(b,#1))))
+(((c,#1))#3,((a)#2,((#3,d),((#2)#1,b))))
+((((c,#1))#3,((#3,d),((#2)#1,b))),(a)#2)
 ```
 
 #### General networks run (`--general`)
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R3 --HC -v2 -z 12 --general
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R3 --HC -v2 --randseed 12 --general
    i: ((#2,((#3)#2,a)),((d)#1,(b,((c)#3,#1)))) cost=1
    =: (((#3)#2,a),((d)#1,((#2,b),((c)#3,#1)))) cost=1
    =: (((#3)#2,a),((d)#1,(b,(#2,((c)#3,#1))))) cost=1
@@ -1308,67 +957,74 @@ Cost:0 Steps:98 Climbs:4 TopNetworks:6 Class:Relaxed TimeConsistency:0 HCruns:1 
    =: (#2,((d)#1,((b,((c)#3,#1)),((#3)#2,a)))) cost=1
    =: ((#2,((#3)#2,a)),(b,((d)#1,((c)#3,#1)))) cost=1
    =: ((#2,((#3)#2,a)),((b,(d)#1),((c)#3,#1))) cost=1
-   =: ((#2,((#3)#2,a)),(((d)#1,b),((c)#3,#1))) cost=1
-   =: ((#2,((#3)#2,a)),(((d)#1,((c)#3,#1)),b)) cost=1
    =: (((#2,((#3)#2,a)),(d)#1),(b,((c)#3,#1))) cost=1
    =: ((d)#1,((#2,((#3)#2,a)),(b,((c)#3,#1)))) cost=1
-   =: ((#2,((d)#1,(b,((c)#3,#1)))),((#3)#2,a)) cost=1
-   =: (#2,(((#3)#2,a),((d)#1,(b,((c)#3,#1))))) cost=1
    =: ((((d)#1,#2),((#3)#2,a)),(b,((c)#3,#1))) cost=1
    =: ((#2,((d)#1,((#3)#2,a))),(b,((c)#3,#1))) cost=1
-   =: ((#2,((#3)#2,a)),(((d)#1,b),((c)#3,#1))) cost=1
-   =: ((#2,((#3)#2,a)),(b,((d)#1,((c)#3,#1)))) cost=1
-   =: (((d)#1,(#2,((#3)#2,a))),(b,((c)#3,#1))) cost=1
    =: ((#2,(((d)#1,(#3)#2),a)),(b,((c)#3,#1))) cost=1
-   =: ((#2,((#3)#2,((d)#1,a))),(b,((c)#3,#1))) cost=1
-   =: ((#2,((#3)#2,a)),(b,(((d)#1,(c)#3),#1))) cost=1
-   =: ((#2,((((d)#1,#3))#2,a)),(b,((c)#3,#1))) cost=1
-   =: ((#2,((#3)#2,a)),(b,((((d)#1,c))#3,#1))) cost=1
-   =: (((#2,(b,((c)#3,#1))),((#3)#2,a)),(d)#1) cost=1
-   =: ((#2,(((#3)#2,a),(b,((c)#3,#1)))),(d)#1) cost=1
-   =: (((#2,((#3)#2,a)),(b,((c)#3,#1))),(d)#1) cost=1
-   =: ((#2,a),((d)#1,(((#3)#2,b),((c)#3,#1)))) cost=1
-   =: ((#2,a),((d)#1,(b,((#3)#2,((c)#3,#1))))) cost=1
-   =: ((#2,a),((#3)#2,((d)#1,(b,((c)#3,#1))))) cost=1
-   =: ((#2,a),(((#3)#2,(d)#1),(b,((c)#3,#1)))) cost=1
-   =: ((#2,a),((d)#1,((#3)#2,(b,((c)#3,#1))))) cost=1
-   =: ((#2,a),((d)#1,(b,(((#3)#2,(c)#3),#1)))) cost=1
-   =: ((#2,a),((d)#1,(b,((c)#3,((#3)#2,#1))))) cost=1
-   =: ((#2,a),((((#3)#2,d))#1,(b,((c)#3,#1)))) cost=1
-   =: ((#2,((#3)#2,a)),(((c)#3,(d)#1),(b,#1))) cost=1
-   =: ((#2,((#3)#2,a)),((((c)#3,d))#1,(b,#1))) cost=1
-   =: ((#2,((#3)#2,a)),((d)#1,(b,((c,#1))#3))) cost=1
-Cost:1 Steps:92 Climbs:1 TopNetworks:26 Class:General TimeConsistency:0 HCruns:1 HCTime:0.0006001 Naive:93 Naivetime:0.000190258 DTcnt:744
+...
+   =: ((((((b,#1))#2,a),(((c)#3,d))#1),#3),#2) cost=0
+   =: (((((b,((c)#3,#1)))#2,a),((d)#1,#3)),#2) cost=0
+   =: (((b,((d)#1,#2)),((#3)#2,a)),((c)#3,#1)) cost=0
+   =: (((b,((d)#1,#2)),((#3)#2,a)),((c,#1))#3) cost=0
+   =: ((((b,(d)#1),#2),((#3)#2,a)),((c,#1))#3) cost=0
+   =: ((((d)#1,(b,#2)),((#3)#2,a)),((c,#1))#3) cost=0
+   =: ((((b,((d,#2))#1),((#3)#2,a)),#1),(c)#3) cost=0
+   =: ((#2,((c)#3,d)),(a,(((b)#2,#1),(#3)#1))) cost=0
+   =: (((#2,((c)#3,d)),(#3)#1),(a,((b)#2,#1))) cost=0
+   =: ((#3)#1,((#2,((c)#3,d)),(a,((b)#2,#1)))) cost=0
+   =: ((#3)#1,((#2,((c)#3,d)),((a,(b)#2),#1))) cost=0
+   =: ((#3)#1,((#2,((c)#3,d)),((b)#2,(a,#1)))) cost=0
+   =: ((((b)#2,((c)#3,d)))#1,((#2,a),(#1,#3))) cost=0
+   =: ((c)#3,(((b)#2,(a,#1)),(((#3)#1,d),#2))) cost=0
+   =: ((c)#3,((a,((b)#2,#1)),(((#3)#1,d),#2))) cost=0
+   =: ((c)#3,(((a,(b)#2),#1),(((#3)#1,d),#2))) cost=0
+   =: (#3,(((#2,d))#1,((((c,#1))#3,(b)#2),a))) cost=0
+   =: ((((#3,d))#1,(((b)#2,#1),((c)#3,a))),#2) cost=0
+Cost:0 Steps:52673 Climbs:4 TopNetworks:680 Class:General TimeConsistency:0 HCruns:1 HCTime:3.88446 Naive:52674 Naivetime:0.120052 DTcnt:420111
 ```
 
 ```
 > cat odt.log
-((#2,((#3)#2,a)),((d)#1,(b,((c)#3,#1))))
-(((#3)#2,a),((d)#1,((#2,b),((c)#3,#1))))
-(((#3)#2,a),((d)#1,(b,(#2,((c)#3,#1)))))
-(((#3)#2,a),(#2,((d)#1,(b,((c)#3,#1)))))
-(((#3)#2,a),((#2,(d)#1),(b,((c)#3,#1))))
-(((#3)#2,a),((d)#1,(#2,(b,((c)#3,#1)))))
-(((#3)#2,a),((d)#1,(b,((#2,(c)#3),#1))))
-(((#3)#2,a),((d)#1,(b,((c)#3,(#2,#1)))))
-(((#3)#2,a),(((#2,d))#1,(b,((c)#3,#1))))
-(#2,(((d)#1,(b,((c)#3,#1))),((#3)#2,a)))
-(#2,(((d)#1,((#3)#2,a)),(b,((c)#3,#1))))
-(#2,((d)#1,((b,((c)#3,#1)),((#3)#2,a))))
-((#2,((#3)#2,a)),(b,((d)#1,((c)#3,#1))))
-((#2,((#3)#2,a)),((b,(d)#1),((c)#3,#1)))
-(((#2,((#3)#2,a)),(d)#1),(b,((c)#3,#1)))
-((d)#1,((#2,((#3)#2,a)),(b,((c)#3,#1))))
-((((d)#1,#2),((#3)#2,a)),(b,((c)#3,#1)))
-((#2,((d)#1,((#3)#2,a))),(b,((c)#3,#1)))
-((#2,(((d)#1,(#3)#2),a)),(b,((c)#3,#1)))
-((#2,((#3)#2,((d)#1,a))),(b,((c)#3,#1)))
-((#2,((((d)#1,#3))#2,a)),(b,((c)#3,#1)))
-((#2,((#3)#2,a)),(b,((((d)#1,c))#3,#1)))
-(((#2,(b,((c)#3,#1))),((#3)#2,a)),(d)#1)
-((#2,(((#3)#2,a),(b,((c)#3,#1)))),(d)#1)
-((#2,((#3)#2,a)),((((c)#3,d))#1,(b,#1)))
-((#2,((#3)#2,a)),((d)#1,(b,((c,#1))#3)))
+(#2,(((d)#1,(b,((c,#1))#3)),((#3)#2,a)))
+(#2,((b,((d)#1,((c,#1))#3)),((#3)#2,a)))
+(#2,(((b,(d)#1),((c,#1))#3),((#3)#2,a)))
+(#2,(((c,#1))#3,((((b,(d)#1),#3))#2,a)))
+(#2,(((c,#1))#3,((((d)#1,(b,#3)))#2,a)))
+(#2,(((c,#1))#3,(((b,((d)#1,#3)))#2,a)))
+((#2,(d)#1),(((c,#1))#3,(((b,#3))#2,a)))
+((#2,#3),(((c,#1))#3,(((b,(d)#1))#2,a)))
+(#2,(((c,#1))#3,((((b,(d)#1))#2,#3),a)))
+((((c,#1))#3,#2),((((b,(d)#1))#2,#3),a))
+((#2,((((b,(d)#1))#2,#3),a)),((c,#1))#3)
+((#2,(d)#1),(((c,#1))#3,(((b)#2,#3),a)))
+(((((c,#1))#3,#2),(d)#1),(((b)#2,#3),a))
+((#2,(((c,#1))#3,(d)#1)),(((b)#2,#3),a))
+((((c,#1))#3,(#2,(d)#1)),(((b)#2,#3),a))
+(((#2,(d)#1),(((b)#2,#3),a)),((c,#1))#3)
+(((#2,d))#1,(((c,#1))#3,(((b)#2,#3),a)))
+(((#2,#3),(d)#1),(((c,#1))#3,((b)#2,a)))
+((#2,((d)#1,#3)),(((c,#1))#3,((b)#2,a)))
+...
+(((((b,#1))#2,a),((((c)#3,d))#1,#3)),#2)
+((((((b,#1))#2,a),(((c)#3,d))#1),#3),#2)
+(((((b,((c)#3,#1)))#2,a),((d)#1,#3)),#2)
+(((b,((d)#1,#2)),((#3)#2,a)),((c)#3,#1))
+(((b,((d)#1,#2)),((#3)#2,a)),((c,#1))#3)
+((((b,(d)#1),#2),((#3)#2,a)),((c,#1))#3)
+((((d)#1,(b,#2)),((#3)#2,a)),((c,#1))#3)
+((((b,((d,#2))#1),((#3)#2,a)),#1),(c)#3)
+((#2,((c)#3,d)),(a,(((b)#2,#1),(#3)#1)))
+(((#2,((c)#3,d)),(#3)#1),(a,((b)#2,#1)))
+((#3)#1,((#2,((c)#3,d)),(a,((b)#2,#1))))
+((#3)#1,((#2,((c)#3,d)),((a,(b)#2),#1)))
+((#3)#1,((#2,((c)#3,d)),((b)#2,(a,#1))))
+((((b)#2,((c)#3,d)))#1,((#2,a),(#1,#3)))
+((c)#3,(((b)#2,(a,#1)),(((#3)#1,d),#2)))
+((c)#3,((a,((b)#2,#1)),(((#3)#1,d),#2)))
+((c)#3,(((a,(b)#2),#1),(((#3)#1,d),#2)))
+(#3,(((#2,d))#1,((((c,#1))#3,(b)#2),a)))
+((((#3,d))#1,(((b)#2,#1),((c)#3,a))),#2)
 ```
 
 Note that using a broader network class does not guarantee a better cost.
@@ -1377,7 +1033,7 @@ Note that using a broader network class does not guarantee a better cost.
 #### General and time consistent networks `--general --timeconsistent`
 
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R3 --HC -v2 -z 12 --general --timeconsistent
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R3 --HC -v2 --randseed 12 --general --timeconsistent
    i: ((c,((#2)#1,((#3)#2,((d)#3,a)))),(b,#1)) cost=4
    >: (((#2)#1,((#3)#2,((d)#3,a))),(b,(c,#1))) cost=3
    >: (((c,(#2)#1),((#3)#2,((d)#3,a))),(b,#1)) cost=2
@@ -1385,116 +1041,215 @@ Note that using a broader network class does not guarantee a better cost.
    =: (((#2)#1,((#3)#2,((c,(d)#3),a))),(b,#1)) cost=2
    =: (((c,(#2)#1),(b,#1)),((#3)#2,((d)#3,a))) cost=2
    =: ((c,(#2)#1),(((#3)#2,((d)#3,a)),(b,#1))) cost=2
-   =: (((#3)#2,((d)#3,a)),((c,(#2)#1),(b,#1))) cost=2
-   =: ((c,(#2)#1),((b,#1),((#3)#2,((d)#3,a)))) cost=2
    =: (((((#3)#2,c),(#2)#1),((d)#3,a)),(b,#1)) cost=2
    =: (((c,(#2)#1),((d)#3,a)),(((#3)#2,b),#1)) cost=2
    =: (((((d)#3,c),(#2)#1),((#3)#2,a)),(b,#1)) cost=2
    =: (((c,(#2)#1),((#3)#2,a)),(((d)#3,b),#1)) cost=2
-Cost:2 Steps:33 Climbs:3 TopNetworks:9 Class:General TimeConsistency:1 HCruns:1 HCTime:0.000247478 Naive:34 Naivetime:6.84261e-05 DTcnt:272
+   =: (((#2)#1,((#3)#2,a)),(((d)#3,b),(c,#1))) cost=2
+   =: (((#2)#1,((c,(#3)#2),a)),(((d)#3,b),#1)) cost=2
+   >: ((((c,#2))#1,((#3)#2,a)),(((d)#3,b),#1)) cost=1
+   =: (((#2)#1,(((c,#3))#2,a)),(((d)#3,b),#1)) cost=1
+   =: ((((c,#2))#1,a),(((#3)#2,((d)#3,b)),#1)) cost=1
+   =: (((#2)#1,a),((((c,#3))#2,((d)#3,b)),#1)) cost=1
+   =: (((c)#1,a),(((#3)#2,((d)#3,b)),(#1,#2))) cost=1
+   =: ((((((d)#3,c),#2))#1,a),(((#3)#2,b),#1)) cost=1
+...
+   =: (((#3)#2,(((c)#1,(d)#3),b)),((#1,a),#2)) cost=1
+   =: (((c)#1,(d)#3),((((#1,#3))#2,b),(a,#2))) cost=1
+   =: ((((c)#1,(d)#3),#2),((((#1,#3))#2,b),a)) cost=1
+   =: (((((#1,#3))#2,b),((c)#1,(d)#3)),(a,#2)) cost=1
+   =: ((((c)#1,(d)#3),(a,#2)),(((#1,#3))#2,b)) cost=1
+   =: ((((#1,#3))#2,b),((((c)#1,(d)#3),a),#2)) cost=1
+   =: ((((#1,#3))#2,b),(a,(((c)#1,(d)#3),#2))) cost=1
+   =: (((((c)#1,(d)#3),((#1,#3))#2),b),(a,#2)) cost=1
+   =: ((((#1,#3))#2,(((c)#1,(d)#3),b)),(a,#2)) cost=1
+   =: (((c)#1,(d)#3),(((#1)#2,(b,#3)),(a,#2))) cost=1
+   =: ((((#1)#2,(b,#3)),((c)#1,(d)#3)),(a,#2)) cost=1
+   =: (((((c)#1,(d)#3),(#1)#2),(b,#3)),(a,#2)) cost=1
+   =: (((#1)#2,(((c)#1,(d)#3),(b,#3))),(a,#2)) cost=1
+   =: (((#1)#2,((c)#1,(d)#3)),((b,#3),(a,#2))) cost=1
+   =: ((((a,#1))#2,((c)#1,(d)#3)),((b,#3),#2)) cost=1
+   =: (((#1)#2,(d)#3),((b,#3),(((c)#1,a),#2))) cost=1
+   =: (((#1)#2,(d)#3),((((c)#1,b),#3),(a,#2))) cost=1
+   >: (((#1)#2,(((c)#1,d))#3),((b,#3),(a,#2))) cost=0
+Cost:0 Steps:176 Climbs:10 TopNetworks:1 Class:General TimeConsistency:1 HCruns:1 HCTime:0.00196719 Naive:177 Naivetime:0.00036931 DTcnt:1414
 ```
 
+### Global cache of networks in HC runs
 
-### Detecting network class 
-
-TODO
+If `--globaldagcache` is set then networks already visited will be omitted in HC.
+This feature is not optimized. For large sets of networks, it may be slower that non-cache option.
 
 ### odt.dat in labelled format `--odtlabelled`
 
 ```
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -r1 -R2 -z100 --HC --odtlabelled -v0
-Cost:0 Steps:62 Climbs:3 TopNetworks:5 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000198603 Naive:63 Naivetime:5.76973e-05 DTcnt:244
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -r1 -R2 --randseed 13 --HC --odtlabelled -v0
+Cost:0 Steps:703 Climbs:8 TopNetworks:20 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.00411057 Naive:704 Naivetime:0.000678778 DTcnt:2795
 ```
 
 ```
 > cat odt.dat
 optcost=0
-time=0.000198603
-hctime=0.000198603
-mergetime=0
-topnets=5
+time=0.00411081
+hctime=0.00411057
+mergetime=2.38419e-07
+topnets=20
 class=0
 timeconsistency=0
-improvements=3
-steps=62
+improvements=8
+steps=703
 bbruns=0
 startnets=1
 memoryMB=6
-dtcnt=244
-naivetime=5.76973e-05
-naivecnt=63
+dtcnt=2795
+naivetime=0.000678778
+naivecnt=704
 bbnaivecnt=0
 bbnaivetime=0
 bbdpcnt=0
 bbdptime=0
+randseed=13
 ```
 
 ### More examples
 
 Larger instance; tree-child search:
 ```  
-> supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 --HC --hcrunstats
-   i: (#3,(((d)#7,(((#6,(((((j)#5,i),#5))#1,(#4,g))),#7),((((((((a)#8,e))#3,b))#6,(#1,h)))#2,(#8,((c)#4,f))))),#2)) cost=45
-   >: (#3,(((d)#7,(((#6,((((#4,((j)#5,i)),#5))#1,g)),#7),((((((((a)#8,e))#3,b))#6,(#1,h)))#2,(#8,((c)#4,f))))),#2)) cost=44
-   >: (#3,(((d)#7,(((#6,(((((j)#5,i),#5))#1,g)),#7),((((((((a)#8,e))#3,b))#6,(#1,(#4,h))))#2,(#8,((c)#4,f))))),#2)) cost=43
-   >: (#3,((((#6,(((((j)#5,i),#5))#1,g)),(d)#7),(#7,((((((((a)#8,e))#3,b))#6,(#1,(#4,h))))#2,(#8,((c)#4,f))))),#2)) cost=42
-   >: (#3,(((#6,(((((j)#5,i),#5))#1,g)),(#7,((((((((a)#8,e))#3,(b,(d)#7)))#6,(#1,(#4,h))))#2,(#8,((c)#4,f))))),#2)) cost=40
-   >: (#3,(((#6,(((((j)#5,i),#5))#1,g)),(#7,((((((((a)#8,(e,(d)#7)))#3,b))#6,(#1,(#4,h))))#2,(#8,((c)#4,f))))),#2)) cost=39
-   >: (#3,(((#6,(((((j)#5,i),#5))#1,g)),(#7,((((((((a)#8,(e,(d)#7)))#3,b))#6,(#1,(#4,(#8,h)))))#2,((c)#4,f)))),#2)) cost=37
-   >: (#3,(((#6,(((((j)#5,i),#5))#1,g)),(#7,(((((((((a,(d)#7))#8,e))#3,b))#6,(#1,(#4,(#8,h)))))#2,((c)#4,f)))),#2)) cost=36
-   >: (#3,((#6,(#7,((((((((((a,(d)#7))#8,e),(((((j)#5,i),#5))#1,g)))#3,b))#6,(#1,(#4,(#8,h)))))#2,((c)#4,f)))),#2)) cost=35
-   >: (#3,((#6,((((((((((a,(d)#7))#8,e),(((((j)#5,i),#5))#1,g)))#3,(#7,b)))#6,(#1,(#4,(#8,h)))))#2,((c)#4,f))),#2)) cost=33
-   >: (#3,((#6,(((((((((((a,(d)#7))#8,e),#5),((((j)#5,i))#1,g)))#3,(#7,b)))#6,(#1,(#4,(#8,h)))))#2,((c)#4,f))),#2)) cost=28
-   >: (#3,((#1,(#6,(((((((((((a,(d)#7))#8,e),#5),((((j)#5,i))#1,g)))#3,(#7,b)))#6,(#4,(#8,h))))#2,((c)#4,f)))),#2)) cost=26
-   >: ((#1,(#6,(((((((((((a,(d)#7))#8,e),#5),((((j)#5,i))#1,g)))#3,(#7,b)))#6,(#4,(#3,(#8,h)))))#2,((c)#4,f)))),#2) cost=25
-   >: ((#1,(#6,((((((((((a)#8,e),#5),(((((j,(d)#7))#5,i))#1,g)))#3,(#7,b)))#6,(#4,(#3,(#8,h)))))#2,((c)#4,f)))),#2) cost=24
-   >: ((#1,(#6,((c)#4,((((((((((a)#8,e),#5),(((((j,(d)#7))#5,i))#1,g)))#3,(#7,b)))#6,(#4,(#3,(#8,h)))))#2,f)))),#2) cost=23
-   >: ((#1,(#6,((c)#4,((((((((e,#5),(((((j,(d)#7))#5,i))#1,g)))#3,(#7,((a)#8,b))))#6,(#4,(#3,(#8,h)))))#2,f)))),#2) cost=22
-   >: ((#1,(#6,((c)#4,((((((((e,#5),(((((j,(d)#7))#5,i))#1,g)))#3,((a)#8,(#7,b))))#6,(#4,(#3,(#8,h)))))#2,f)))),#2) cost=21
-1. Cost:21 Steps:2648 Climbs:17 TopNetworks:5 Class:TreeChild TimeConsistency:0
- New optimal cost: 21
-Cost:21 Steps:2648 Climbs:17 TopNetworks:5 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.826412 Naive:2649 Naivetime:0.818878 DTcnt:678144
+> supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 --HC --hcrunstats --randseed 13
+   i: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,((((((i)#4,(#7,(#2,g))))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=49
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,(((((((#2,i))#4,(#7,g)))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=48
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((((((#2,i))#4,g))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=47
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((#4,(((((#2,i))#4,g))#1,(b,(#1,((j)#8,f))))),#5),#6)) cost=46
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((#4,(((((#2,i))#4,g))#1,((#1,b),((j)#8,f)))),#5),#6)) cost=45
+   >: ((((((d)#3,(((((#3,b),((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((#4,(((((#2,i))#4,g))#1,(#1,((j)#8,f)))),#5),#6)) cost=43
+   >: ((((((d)#3,(((((#3,b),((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,((#1,((#4,(((((#2,i))#4,g))#1,((j)#8,f))),#5)),#6)) cost=42
+   >: (((((((d,b))#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,((#1,((#4,(((((#2,i))#4,g))#1,((j)#8,f))),#5)),#6)) cost=41
+   >: (((((((d,b))#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,((#1,((#4,((((i)#4,(#2,g)))#1,((j)#8,f))),#5)),#6)) cost=39
+   >: (((((((d,b))#3,(((#3,((a)#7,h)))#6,c)))#5,(#7,e)))#2,((#1,((#4,((((i)#4,(#2,(g,#8))))#1,((j)#8,f))),#5)),#6)) cost=35
+   >: (((((((d,b))#3,((((a)#7,h))#6,c)))#5,(#7,(#3,e))))#2,((#1,((#4,((((i)#4,(#2,(g,#8))))#1,((j)#8,f))),#5)),#6)) cost=33
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,c)))#5,(#3,e)))#2,((#1,((#4,((((i)#4,(#2,(g,#8))))#1,((j)#8,f))),#5)),#6)) cost=32
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,c)))#5,(#3,e)))#2,((#1,(#4,(((((i)#4,(#2,(g,#8))))#1,((j)#8,f)),#5))),#6)) cost=31
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,e)))#2,((#1,(((((i)#4,(#2,(g,#8))))#1,((j)#8,f)),#5)),#6)) cost=30
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,(e,#6))))#2,(#1,(((((i)#4,(#2,(g,#8))))#1,((j)#8,f)),#5))) cost=29
+   >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,(e,#6))))#2,(#1,((((#7,((i)#4,(#2,(g,#8)))))#1,((j)#8,f)),#5))) cost=28
+   >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,(#1,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5))) cost=27
+   >: ((((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5)),#1) cost=25
+   >: (((((((((a)#7,h))#6,(#4,c)))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,(((d,b))#3,((j)#8,f))),#5)),#1) cost=24
+   >: (((((((((a)#7,h))#6,(#4,c)))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,(((((j)#8,d),b))#3,f)),#5)),#1) cost=23
+   >: ((((e,#6))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,(((((((((a)#7,h))#6,(#4,c)))#5,((j)#8,d)),b))#3,f)),#5)),#1) cost=22
+   >: (((((#7,((((((a)#7,h))#6,(#4,c)))#5,((j)#8,(((e,#6))#2,d)))),b))#3,((((#3,(#2,((i)#4,(g,#8)))))#1,f),#5)),#1) cost=20
+   >: (((((#7,(((#4,c))#5,((j)#8,d))),b))#3,((((((e)#2,a))#7,h))#6,((((#3,((#2,(((i)#4,g),#8)),#6)))#1,f),#5))),#1) cost=19
+   >: (((((((e)#2,a))#7,h))#6,(((((i)#4,(#3,((#2,(g,#8)),#6))))#1,((#7,(((j)#8,d),(b)#3)),(((#4,c))#5,f))),#5)),#1) cost=18
+   >: (((((((e)#2,a))#7,h))#6,((#4,((((i)#4,(#3,((#2,(g,#8)),#6))))#1,((#7,(((j)#8,d),(b)#3)),((c)#5,f)))),#5)),#1) cost=17
+   >: (((#4,(((#7,((((((((a)#7,h))#6,i))#4,e))#2,(d,(b)#3))),(j)#8),(((#3,((#2,(g,#8)),#6)))#1,((c)#5,f)))),#5),#1) cost=16
+1. Cost:16 Steps:46020 Climbs:26 TopNetworks:60 Class:TreeChild TimeConsistency:0
+ New optimal cost: 16
+Cost:16 Steps:46020 Climbs:52 TopNetworks:60 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:20.5688 Naive:46021 Naivetime:14.9772 DTcnt:11781376
 ```
 
 Recommended with large HC-runs using quasi-consensus rand networks
 ```  
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -q1000 -R3 --HC -v1 | tail -20
-   i: ((c)#1,((((b)#2,a))#3,(((d,#2),#3),#1))) cost=1
-   >: ((c)#1,((((b)#2,a))#3,(((d,#3),#1),#2))) cost=0
-   i: (#3,(#2,((a)#2,(((#1,d))#3,((b)#1,c))))) cost=3
-   >: (#3,(#2,(#1,((a)#2,((d)#3,((b)#1,c)))))) cost=1
-   >: (#3,(#2,(#1,((((b)#1,a))#2,((d)#3,c))))) cost=0
-   i: (((((((a)#3,((b)#1,c)))#2,d),#2),#3),#1) cost=2
-   >: (#3,((((((a)#3,((b)#1,c)))#2,d),#2),#1)) cost=1
-   >: (#3,((((((((b)#1,a))#3,c))#2,d),#2),#1)) cost=0
-   i: (((((#2,((b)#2,c)))#1,((a)#3,d)),#1),#3) cost=3
-   >: (((#2,((((b)#2,c))#1,((a)#3,d))),#1),#3) cost=1
-   >: (((#2,((c)#1,((((b)#2,a))#3,d))),#1),#3) cost=0
-   i: ((((b)#3,a))#1,(#3,((((d,#1))#2,c),#2))) cost=0
-   i: (((#3,(c,#2)))#1,(((((d)#2,a))#3,b),#1)) cost=1
-   >: (((c,#2))#1,(#3,(((((d)#2,a))#3,b),#1))) cost=0
-   i: ((((((c)#2,b))#1,d))#3,((#1,(#3,a)),#2)) cost=2
-   >: ((((((c)#2,b))#1,(d,#2)))#3,(#1,(#3,a))) cost=0
-   i: (#3,((#1,((((d)#1,((c)#3,a)))#2,b)),#2)) cost=3
-   >: (#3,(((((d)#1,(((#1,c))#3,a)))#2,b),#2)) cost=1
-   >: ((((((d)#1,(((#1,c))#3,a)))#2,b),#3),#2) cost=0
-Cost:0 Steps:43480 Climbs:2515 TopNetworks:254 Class:TreeChild TimeConsistency:0 HCruns:1000 HCTime:0.202363 Naive:44480 Naivetime:0.0661473 DTcnt:297758
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -q1000 -R3 --HC -v1 --randseed 13 | tail -20
+   >: (((((c)#2,b))#1,((((a,#1))#3,d),#2)),#3) cost=0
+   i: ((((#2,((d)#3,((b)#2,c))))#1,(#1,a)),#3) cost=1
+   >: ((((#2,((d)#3,c)))#1,(#1,((b)#2,a))),#3) cost=0
+   i: ((#1,(#3,((c)#2,((d)#3,((b)#1,a))))),#2) cost=3
+   >: ((#1,(((#3,c))#2,((d)#3,((b)#1,a)))),#2) cost=1
+   >: ((((#1,(#3,c)))#2,((d)#3,((b)#1,a))),#2) cost=0
+   i: (((a)#3,(#1,((((c)#1,b))#2,(#2,d)))),#3) cost=3
+   >: ((#2,((a)#3,(#1,((((c)#1,b))#2,d)))),#3) cost=1
+   >: ((#2,((((((c)#1,b))#2,a))#3,(#1,d))),#3) cost=0
+   i: (#3,((b)#1,((((c)#3,(d,#1)))#2,(a,#2)))) cost=2
+   >: (#3,((b)#1,((((d,(c)#3),#1))#2,(a,#2)))) cost=1
+   >: (#3,(((b)#1,((((d,(c)#3),#1))#2,a)),#2)) cost=0
+   i: (#1,((#3,((d)#2,((((a)#3,c))#1,b))),#2)) cost=2
+   >: (#1,(#3,((d)#2,((((a)#3,(c,#2)))#1,b)))) cost=0
+   i: ((((((((d)#3,a))#2,(#2,c)))#1,b),#1),#3) cost=4
+   >: (((#2,((((((d)#3,a))#2,c))#1,b)),#1),#3) cost=3
+   >: ((#2,((((((d)#3,a))#2,(c,#3)))#1,b)),#1) cost=0
+   i: ((#1,(#2,((((((c)#2,a))#1,d))#3,b))),#3) cost=3
+   >: ((#1,((((((c)#2,a))#1,(#2,d)))#3,b)),#3) cost=0
+Cost:0 Steps:470980 Climbs:2623 TopNetworks:254 Class:TreeChild TimeConsistency:0 HCruns:1000 HCTime:8.92229 Naive:471980 Naivetime:0.851009 DTcnt:3687318
 ```
 
-Using stopping criterion (--hcstopinit=1000) with quasi-consensus rand networks.
+### Using stopping criterion (--hcstopinit=1000) with quasi-consensus rand networks.
 
 ```  
-> supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -q-1 -R3 --HC --hcrunstats --hcstopinit=1000 | tail -10
-   >: (#3,((((a)#1,(c,#2)))#3,((d)#2,(b,#1)))) cost=1
-   >: (#3,(((((a)#1,(c,#2)))#3,((d)#2,b)),#1)) cost=0
-   i: ((b)#1,((((c)#2,(#1,d)))#3,((a,#2),#3))) cost=2
-   >: ((b)#1,((((c)#2,(#1,(d,#2))))#3,(a,#3))) cost=1
-   >: ((((c)#2,(#1,(d,#2))))#3,(((b)#1,a),#3)) cost=0
-   i: ((c)#3,((#1,(((((b,#3))#2,d))#1,a)),#2)) cost=3
-   >: ((c)#3,(#1,((((((b,#3))#2,d))#1,a),#2))) cost=2
-   >: ((c)#3,(#1,(((((b)#2,(d,#3)))#1,a),#2))) cost=0
-   i: (#1,(#3,((c)#2,((((b)#3,a))#1,(#2,d))))) cost=0
-Cost:0 Steps:53990 Climbs:3109 TopNetworks:254 Class:TreeChild TimeConsistency:0 HCruns:1239 HCTime:0.258896 Naive:55229 Naivetime:0.0847917 DTcnt:372251
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -q-1 -R3 --HC --hcrunstats --hcstopinit=1000 --randseed 13 | tail -10
+   >: ((d)#2,(#3,((((a)#1,(c,#2)))#3,(#1,b)))) cost=1
+   >: ((d)#2,(#3,(#1,((((a)#1,(c,#2)))#3,b)))) cost=0
+   i: (#3,(((#1,((c)#2,((d)#1,a))))#3,(#2,b))) cost=4
+   >: (#3,((((c)#2,((d)#1,a)))#3,(#2,(#1,b)))) cost=3
+   >: (#3,(((((#1,c))#2,((d)#1,a)))#3,(#2,b))) cost=1
+   >: (#3,(#2,(((((#1,c))#2,((d)#1,a)))#3,b))) cost=0
+   i: (((((d)#2,((b)#3,c)),#2))#1,((#1,a),#3)) cost=1
+   >: ((((d)#2,((b)#3,(c,#2))))#1,((#1,a),#3)) cost=0
+   i: (#2,((((((((d)#1,a))#3,c),#1))#2,b),#3)) cost=0
+Cost:0 Steps:492723 Climbs:2734 TopNetworks:254 Class:TreeChild TimeConsistency:0 HCruns:1047 HCTime:9.3128 Naive:493770 Naivetime:0.88283 DTcnt:3857600
+```
+
+### Using time stop criterion in HC in seconds `--hcstoptime=TIME`, i.e., stop a HC climb if there is no improvement after TIME seconds.
+
+```
+> supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 -v4 --HC --hcrunstats --hcstoptime=0.5 --randseed 13
+HC start: hcusenaive=0 runnaiveleqrt=13 tailmove=1
+   i: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,((((((i)#4,(#7,(#2,g))))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=49
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,(((((((#2,i))#4,(#7,g)))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=48
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((((((#2,i))#4,g))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=47
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((#4,(((((#2,i))#4,g))#1,(b,(#1,((j)#8,f))))),#5),#6)) cost=46
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((#4,(((((#2,i))#4,g))#1,((#1,b),((j)#8,f)))),#5),#6)) cost=45
+   >: ((((((d)#3,(((((#3,b),((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((#4,(((((#2,i))#4,g))#1,(#1,((j)#8,f)))),#5),#6)) cost=43
+   >: ((((((d)#3,(((((#3,b),((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,((#1,((#4,(((((#2,i))#4,g))#1,((j)#8,f))),#5)),#6)) cost=42
+   >: (((((((d,b))#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,((#1,((#4,(((((#2,i))#4,g))#1,((j)#8,f))),#5)),#6)) cost=41
+   >: (((((((d,b))#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,((#1,((#4,((((i)#4,(#2,g)))#1,((j)#8,f))),#5)),#6)) cost=39
+   >: (((((((d,b))#3,(((#3,((a)#7,h)))#6,c)))#5,(#7,e)))#2,((#1,((#4,((((i)#4,(#2,(g,#8))))#1,((j)#8,f))),#5)),#6)) cost=35
+   >: (((((((d,b))#3,((((a)#7,h))#6,c)))#5,(#7,(#3,e))))#2,((#1,((#4,((((i)#4,(#2,(g,#8))))#1,((j)#8,f))),#5)),#6)) cost=33
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,c)))#5,(#3,e)))#2,((#1,((#4,((((i)#4,(#2,(g,#8))))#1,((j)#8,f))),#5)),#6)) cost=32
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,c)))#5,(#3,e)))#2,((#1,(#4,(((((i)#4,(#2,(g,#8))))#1,((j)#8,f)),#5))),#6)) cost=31
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,e)))#2,((#1,(((((i)#4,(#2,(g,#8))))#1,((j)#8,f)),#5)),#6)) cost=30
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,(e,#6))))#2,(#1,(((((i)#4,(#2,(g,#8))))#1,((j)#8,f)),#5))) cost=29
+   >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,(e,#6))))#2,(#1,((((#7,((i)#4,(#2,(g,#8)))))#1,((j)#8,f)),#5))) cost=28
+   >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,(#1,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5))) cost=27
+   >: ((((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5)),#1) cost=25
+HC run stopped due to timeout, cost=25
+1. Cost:25 Steps:1556 Climbs:18 TopNetworks:10 Class:TreeChild TimeConsistency:0
+ New optimal cost: 25
+Cost:25 Steps:1556 Climbs:36 TopNetworks:10 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.500043 Naive:1557 Naivetime:0.481957 DTcnt:398592
+Optimal networks saved: odt.log
+Stats data saved: odt.dat
+```
+
+### Save odt files after each improvement
+
+Use `--hcsavewhenimproved`. Note that stats may be not reliable, before the end of computation.
+
+```
+> supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 -v4 --HC --hcrunstats --hcstoptime=0.5 --randseed 13 --hcsavewhenimproved
+HC start: hcusenaive=0 runnaiveleqrt=13 tailmove=1
+   i: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,((((((i)#4,(#7,(#2,g))))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=49
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,(((((((#2,i))#4,(#7,g)))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=48
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((((((#2,i))#4,g))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=47
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((#4,(((((#2,i))#4,g))#1,(b,(#1,((j)#8,f))))),#5),#6)) cost=46
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((#4,(((((#2,i))#4,g))#1,((#1,b),((j)#8,f)))),#5),#6)) cost=45
+   >: ((((((d)#3,(((((#3,b),((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,(((#4,(((((#2,i))#4,g))#1,(#1,((j)#8,f)))),#5),#6)) cost=43
+   >: ((((((d)#3,(((((#3,b),((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,((#1,((#4,(((((#2,i))#4,g))#1,((j)#8,f))),#5)),#6)) cost=42
+   >: (((((((d,b))#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,((#1,((#4,(((((#2,i))#4,g))#1,((j)#8,f))),#5)),#6)) cost=41
+   >: (((((((d,b))#3,((((#3,((a)#7,h)))#6,c),#8)))#5,(#7,e)))#2,((#1,((#4,((((i)#4,(#2,g)))#1,((j)#8,f))),#5)),#6)) cost=39
+   >: (((((((d,b))#3,(((#3,((a)#7,h)))#6,c)))#5,(#7,e)))#2,((#1,((#4,((((i)#4,(#2,(g,#8))))#1,((j)#8,f))),#5)),#6)) cost=35
+   >: (((((((d,b))#3,((((a)#7,h))#6,c)))#5,(#7,(#3,e))))#2,((#1,((#4,((((i)#4,(#2,(g,#8))))#1,((j)#8,f))),#5)),#6)) cost=33
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,c)))#5,(#3,e)))#2,((#1,((#4,((((i)#4,(#2,(g,#8))))#1,((j)#8,f))),#5)),#6)) cost=32
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,c)))#5,(#3,e)))#2,((#1,(#4,(((((i)#4,(#2,(g,#8))))#1,((j)#8,f)),#5))),#6)) cost=31
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,e)))#2,((#1,(((((i)#4,(#2,(g,#8))))#1,((j)#8,f)),#5)),#6)) cost=30
+   >: ((((((((#7,d),b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,(e,#6))))#2,(#1,(((((i)#4,(#2,(g,#8))))#1,((j)#8,f)),#5))) cost=29
+   >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,(e,#6))))#2,(#1,((((#7,((i)#4,(#2,(g,#8)))))#1,((j)#8,f)),#5))) cost=28
+   >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,(#1,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5))) cost=27
+   >: ((((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5)),#1) cost=25
+HC run stopped due to timeout, cost=25
+1. Cost:25 Steps:1488 Climbs:18 TopNetworks:4 Class:TreeChild TimeConsistency:0
+ New optimal cost: 25
+Cost:25 Steps:1488 Climbs:36 TopNetworks:4 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.500284 Naive:1489 Naivetime:0.468969 DTcnt:381184
+Optimal networks saved: odt.log
+Stats data saved: odt.dat
 ```
 
 ## More examples
@@ -1503,8 +1258,8 @@ Print min total cost 10 random gene trees vs random tree-child network with 5 re
 
 ```
 > supnet -r10 -A8 --pnetworks  | supnet -G- -r1 -A8 -R5 --pnetworks --odtnaivecost
-(((d,((a)#4,((b)#1,g))),((((f)#3,e))#2,(#4,((((c,#2),#1))#5,(#3,h))))),#5)
-58
+(#2,(((#4,((((h)#1,((a)#4,d)))#3,b)))#5,((e,c),(#1,(((f,#5))#2,(#3,g))))))
+61
 ```
 
 

@@ -10,6 +10,8 @@ void EditOp::init(Network *net)
 
 extern int verbosehccost;
 extern int verbosealg;
+extern int flag_globaldagcache;
+extern float opt_hcstoptime;
 
 //#define TAILMOVE_DEBUG
 
@@ -160,7 +162,6 @@ bool TailMove::next()
 #endif						
 			continue;
 		}
-
 
 		if (q>=source->rtstartid && (source->parent[q]==p || source->retparent[q]==p)) 
 		{ 
@@ -429,29 +430,6 @@ bool NNI::next()
 
 
 
-double HillClimb::climb2(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, 
-		bool usenaive, 
-		int runnaiveleqrt_t, 
-		int timeconsistent,
-		int hcmaximprovements,
-		int hcstopclimb
-		)
-{
-
-	op.init(net);
-	cout << "StartNet " << *net << endl;
-	double optcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats());
-	if (op.next())
-	{			
-		cout << " HCV: " << *net << endl;
-	}
-	else
-		cout <<" NO NEXT!" << *net << endl;
-
-	return 0;
-}
-
-
 double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, 
 		bool usenaive, 
 		int runnaiveleqrt_t, 
@@ -462,10 +440,7 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 {
 
 	double starttime = gettime();
-
-	// init edit operation
-	op.init(net);
-
+	
 	if (timeconsistent)
 	{
 			bool tc = net->istimeconsistent();
@@ -485,95 +460,147 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 	// compute the first odt cost
 	double optcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats());
 
-	if (verbosealg>=5 || verbosehccost>=1) 
-	{
-      cout << "   i: " << *net << " cost=" << optcost << endl;
-  }
-	
+	nhcstats.addnewbest(*net, optcost); // save the first network
+
+
+	int improvementscnt = 0;   // number of improvements
+	int noimprovementstep = 0; // number of steps without improvement
+
 	double curcost = optcost; 	
 	std::ofstream odtf;
 
-	nhcstats.setcost(optcost);
-	nhcstats.add(*net); // save the first network
-	
-	if ((verbosehccost==3) && (curcost>optcost))
+	bool first = true;
+	bool timeout = false;
+
+	while (1)
 	{
-		cout << " = " << *net << " cost=" << curcost << endl;				
-	}
-    
-  int improvementscnt = 0;   // number of improvements
+		op.init(net);
 
-  int noimprovementstep = 0; // number of steps without improvement
+		if (verbosealg>=5 || verbosehccost>=1) 
+		{				
+				// The first - initial network
+				if (first)
+				{
+	      	cout << "   i: ";				
+	      	cout << *net << " cost=" << optcost << endl;
+	      }
+	  }
+	  else if (verbosehccost>=2)	
+	  {
+	  		// Continued HC from equal cost network
+	      cout << "   e: ";
+	      cout << *net << " cost=" << optcost << endl;
+	  }	  
 
-	while (op.next())
-	{			
+	  first = false;
+	    
+		while (op.next())
+		{			
 
-		
-		if (timeconsistent)			
-		{  
-			bool tc = net->istimeconsistent();
-			if (timeconsistent==TIMECONSISTENT && !tc) continue; // skip network
-			if (timeconsistent==NOTIMECONSISTENT && tc) continue; // skip network
-		}
-		
-		double curcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats());
-			 
-		nhcstats.step();
-
-		if ((verbosehccost==3) && (curcost>optcost))
-		{
-			cout << "   <: " << *net << " cost=" << curcost << endl;				
-		}
-		
-		if (curcost==optcost)
-		{
-			if (verbosehccost>=2)					
+			if (opt_hcstoptime>0 && (gettime()-starttime > opt_hcstoptime))
 			{
-				cout << "   =: " << *net << " cost=" << curcost << endl;				
-			}
-			
-			nhcstats.add(*net);	    
-		}
-			
-		// Yeah, new better network
-		if (curcost<optcost)
-		{
-			optcost = curcost; 						
-			if (verbosehccost>=1)
-			{
-				cout << "   >: " << *net << " cost=" << optcost << endl;	
-			}
-
-			// new optimal; forget old   
-			nhcstats.setcost(optcost); 
-
-			nhcstats.add(*net);					
-
-			// Stopping condition for maximprovements
-			if (hcmaximprovements && (improvementscnt==hcmaximprovements))
+				timeout = true;				
 				break;
+			}
 
-			improvementscnt++;
-		  noimprovementstep = 0; // reset counter
+			if (timeconsistent)			
+			{  
+				bool tc = net->istimeconsistent();
+				if (timeconsistent==TIMECONSISTENT && !tc) continue; // skip network
+				if (timeconsistent==NOTIMECONSISTENT && tc) continue; // skip network
+			}
+			
+			if (flag_globaldagcache) 
+				if (nhcstats.alreadyvisited(*net))
+				{								
+						continue;
+				}	
 
-			// search in a new neighbourhood
-			op.reset();			
+			if (nhcstats.inbestdags(*net))
+			{
+					// cout << "In best!" << endl;
+					continue;
+			}
+
+			double curcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats());
+				 
+			nhcstats.step();
+
+			// Worse cost
+			if ((verbosehccost==3) && (curcost>optcost))
+			{
+				cout << "   <: " << *net << " cost=" << curcost << endl;				
+			}
+			
+			// Equal cost network
+			if (curcost==optcost)
+			{
+				if (verbosehccost>=2)					
+				{
+					cout << "   =: " << *net << " cost=" << curcost << endl;				
+				}
+				
+				nhcstats.addeq(*net);	    
+			}
+				
+			// Yeah, new better network
+			if (curcost<optcost)
+			{
+					optcost = curcost; 						
+					if (verbosehccost>=1)
+					{
+						cout << "   >: " << *net << " cost=" << optcost << endl;	
+					}
+
+					// new optimal; forget old   
+					nhcstats.addnewbest(*net, optcost);					
+
+					// Stopping condition for maximprovements
+					if (hcmaximprovements && (improvementscnt==hcmaximprovements))
+						break;
+
+					improvementscnt++;
+				  noimprovementstep = 0; // reset counter
+
+					// search in a new neighbourhood
+					op.reset();			
+			}
+			else
+			{
+					noimprovementstep++;
+			}
+
+			if (hcstopclimb && (noimprovementstep==hcstopclimb))
+			{
+			 	 break;
+			}
+
+		} // op.next()
+
+
+		if (timeout)
+		{				
+				break;
 		}
-		else
-		{
-				noimprovementstep++;
-		}
+		// check if new equal cost networks are present
 
-		if (hcstopclimb && (noimprovementstep==hcstopclimb))
-		{
-		 	 break;
+		if (nhcstats.haseqdags())
+		{			
+				Dag *d = nhcstats.popeqdag();				
+				net = new Network(*d,false);				
 		}
+		else break;
 
-	}
+
+
+	} // while (1)
 
 	if (verbosealg>=4) 
 	{
-      cout << "HC run completed: " << *net << " cost=" << optcost << endl;
+			if (!timeout)
+      	cout << "HC run completed: " << *net << " cost=" << optcost << endl;
+     	else
+     		cout << "HC run stopped due to timeout, cost=" << optcost << endl;
   }
 
 

@@ -123,7 +123,7 @@ void TreeSpace::addgenetree(RootedTree* gt)
 
 // }
 
-#define CACHE_STATS
+// #define CACHE_STATS
 
 void TreeSpace::initleaves()
 {

@@ -1,6 +1,6 @@
 #VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
 VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck 
-CPPFLAGS = -Ofast -fomit-frame-pointer
+CPPFLAGS = -Ofast -fomit-frame-pointer 
 CC = g++ -Ofast -fomit-frame-pointer
 MAKEFLAGS += -j10 # parallel
 
@@ -124,6 +124,8 @@ valgrind45n: gdb
 valgrindgu: 	
 	${VALGRIND} --log-file=valgrindgu.log supnet --guidetree "((a,b,c),(d,e,f))" -q1000 -R2
 
+valgrinddg: 	
+	${VALGRIND} --log-file=valgrinddg.log supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 --HC --hcrunstats
 
 profiler: 
 	g++ -Wall -pg -O3 -o supnet ${SRC}	
