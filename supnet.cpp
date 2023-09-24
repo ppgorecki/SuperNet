@@ -1,12 +1,14 @@
+
 /************************************************************************
  SuperNetwork Inference - based partially on FastUrec v2.05
-(c) Copyright 2005-2022 by Pawel Gorecki
+(c) Copyright 2005-2023 by Pawel Gorecki
  Written by P.Gorecki.
+
  Permission is granted to copy and use this program provided no fee is
  charged for it and provided that this copyright notice is not removed.
  *************************************************************************/
 
-const char *SUPNET = "0.03";
+const char *SUPNET = "0.04";
 
 #include <getopt.h>
 #include <stdio.h>
@@ -871,7 +873,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  // Compute ODT cost by naive enumeration of display trees
+  // Compute ODT cost 
   if (flag_odtcost) 
   {
     DagSet visiteddags;

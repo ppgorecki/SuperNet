@@ -222,7 +222,6 @@ string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters 
       return NULL;
     }
 
-
     while (res.size()>1)
     {
         int a = rand()%res.size();

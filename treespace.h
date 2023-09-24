@@ -133,8 +133,7 @@ typedef struct SNode
 	// internal node
 	SNode(int gts)
 	{
-		cost = new COSTT[gts];	
-				
+		cost = new COSTT[gts];				
 	}
 	 		   
 	void computecost2(SNode *snodeleft, SNode *snoderight, TreeSpace *treespace);
@@ -281,7 +280,9 @@ class TreeSpace
 		{
 			if (repr2node.size()>maxdisplaytreecachesize)			
 			{
-			 	// cout << "CLEAR" << get_memory_size() << "MB nodes=" << repr2node.size() << endl;
+#ifdef CACHE_STATS				
+			 	cout << "CLEAR" << get_memory_size() << "MB nodes=" << repr2node.size() << endl;
+#endif			 	
 			 	clearcache();			 	
 			}
 		}

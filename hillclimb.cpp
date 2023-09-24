@@ -211,7 +211,7 @@ bool TailMove::next()
 				if (p >= source->lf)  // p - is a non-leaf tree node
 				{				
 					NODEID pr = MAXNODEID;
-					NODEID rc = source->rightchild[p];
+					NODEID rc = source->rightchild[p]; 
 					NODEID lc = source->leftchild[p];
 
 					if ((lc >= rtstartid) && (rc >= rtstartid))
@@ -574,6 +574,7 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 			{
 			 	 break;
 			}
+
 
 		} // op.next()
 

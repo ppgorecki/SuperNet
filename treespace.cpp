@@ -15,6 +15,8 @@
 //     	gtclu.push_back(CGEdge{p,c,1});
 // }
 
+// #define CACHE_STATS
+
 #define HASHINT(a,b,c) (a>>1)^(b*c)
 
 GNode *copytree(NODEID n, RootedTree *gt)
@@ -189,7 +191,7 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
 	memcpy ( tr+2+REPRLEN(l), REPRT(r)+2, sizeof(NODEID)*(REPRLEN(r)-1));	
 	tr[tr[0]] = REPRCLOSE;
 
-	SNode sk(tr,HASHINT(l->repr.hsh, r->repr.hsh, REPRMM(r)));
+	SNode sk(tr, HASHINT(l->repr.hsh, r->repr.hsh, REPRMM(r)));
 
 #ifdef CACHE_STATS	
 
@@ -205,11 +207,9 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
 
 	unordered_set<SNode*, SNode::Hash, SNodeEq >::iterator it = repr2node.find(&sk);
  	if (it != repr2node.end()) 
-   	{
-	  
-		n_present++;
+   	{   		
+		n_present++;		
 #ifdef DEBUG_TSP   		
-		cout << "  PRESENT!";
 
 		// PPTT(l->repr.t);
 		//  printf(" || ");
@@ -228,13 +228,13 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
 #ifdef DEBUG_TSP 
 		cout << " NEW! ";
 #endif
-    	n_missed++;	 
+    	n_missed++;	     	
     	ret = new SNode(gtrees.size());
     	ret->repr.t = new NODEID[lf*3];
 		memcpy(ret->repr.t, tr, sizeof(NODEID)*(lf*3));    	
 		ret->repr.hsh = sk.repr.hsh;
 		ret->computecost2(l,r,this);	
-		repr2node.insert(ret);   
+		repr2node.insert(ret);       	
 
 #ifdef DEBUG_TSP     	
     	cout << res->repr.hsh << " ";    	
@@ -286,7 +286,7 @@ void SNode::computecost2(SNode *snodeleft, SNode *snoderight, TreeSpace *treespa
 
 	int genetreecnt = treespace->gtrees.size();	
 	// init cost 
-	cost = new COSTT[genetreecnt];
+	// cost = new COSTT[genetreecnt];
 	memcpy(cost, snodeleft->cost, sizeof(COSTT)*genetreecnt);
 
 	bitcluster leftcluster = EMPTYSET();

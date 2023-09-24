@@ -1,7 +1,7 @@
 #VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
 VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck 
-CPPFLAGS = -Ofast -fomit-frame-pointer 
-CC = g++ -Ofast -fomit-frame-pointer
+CPPFLAGS = -Ofast -fomit-frame-pointer -g 
+CC = g++ -Ofast -fomit-frame-pointer -g 
 MAKEFLAGS += -j10 # parallel
 
 .PHONY: all supnet clean_progx progx
