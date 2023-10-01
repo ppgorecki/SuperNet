@@ -53,7 +53,7 @@ string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters 
   vector<GTCluster*> candidates, compclusters;  
 
   for (NODEID i = 0; i < specnames.size(); i++)
-  {
+  {    
     get(spec2gtcluster[i]->spcluster);
   }
   

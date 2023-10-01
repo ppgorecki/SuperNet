@@ -5,22 +5,35 @@
 #include "network.h"
 #include "tools.h"
 
-
 // TODO: better implementation using hash arrays
 // TODO: usagecount improve
 
 class DagSet
 {
+
+protected:
+
 	std::vector<Dag*> *v;
 	bool usecounts = 0;  // --uniquedags (see)
 	bool dagshapes = 0;
 
 public:
+
 	DagSet(bool counts=false, bool _dagshapes=false) 
 	{
 		dagshapes = _dagshapes;
 		usecounts = counts;
 		v = new std::vector<Dag*>;
+	}
+
+	std::vector<Dag*>::iterator begin() 
+	{
+    	return v->begin();
+	}
+
+	std::vector<Dag*>::iterator end() 
+	{
+    	return v->end();
 	}
 
 

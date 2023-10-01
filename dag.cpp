@@ -753,10 +753,7 @@ ostream& Dag::printdebarrays(ostream&s)
       s << " spid2retlabel= "; 
       for (NODEID i=rtstartid; i<nn; i++) s << " " << int(i) << ":" << spid2retlabel[i]; 
       s << endl;   
-
-
     }
-      
     return s;
 }
 
@@ -773,7 +770,8 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
 	  	   		  	   	
     		if (parent[i] == MAXNODEID) 
     			s << "Root";
-    		else { 
+    		else 
+        { 
     			if (i<lf) 
     				s << "Leaf";
     			else if (i>=rtstartid)

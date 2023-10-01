@@ -4,6 +4,8 @@ CPPFLAGS = -Ofast -fomit-frame-pointer -g
 CC = g++ -Ofast -fomit-frame-pointer -g 
 MAKEFLAGS += -j10 # parallel
 
+.ONESHELL:
+
 .PHONY: all supnet clean_progx progx
 
 all: supnet
@@ -12,60 +14,60 @@ OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supne
 
 SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp topsort.cpp randnets.cpp
 
+tools.o: tools.cpp tools.h bb.h clusters.h
 clusters.o: clusters.cpp clusters.h tools.h rtree.h dag.h network.h bb.h \
- treespace.h bitcluster.h
-
-tools.o: tools.cpp tools.h bb.h
-
+ treespace.h bitcluster.h stats.h dagset.h
+dag.o: dag.cpp tools.h dag.h clusters.h topsort.h
 rtree.o: rtree.cpp tools.h clusters.h rtree.h dag.h network.h bb.h \
- treespace.h bitcluster.h costs.h
-
-network.o: network.cpp rtree.h tools.h clusters.h dag.h network.h bb.h \
- treespace.h bitcluster.h dp.h costs.h
-
-dag.o: dag.cpp tools.h dag.h
-
-iso.o: iso.cpp tools.h dag.h
-
-hillclimb.o: hillclimb.cpp hillclimb.h rtree.h tools.h clusters.h dag.h \
- network.h bb.h treespace.h bitcluster.h dagset.h costs.h
-
+ treespace.h bitcluster.h stats.h dagset.h costs.h
 dp.o: dp.cpp rtree.h tools.h clusters.h dag.h network.h bb.h treespace.h \
- bitcluster.h contrnet.h dp.h
-
-
+ bitcluster.h stats.h dagset.h contrnet.h dp.h
 bb.o: bb.cpp bb.h tools.h rtree.h clusters.h dag.h network.h treespace.h \
- bitcluster.h costs.h contrnet.h dp.h
-
-contrnet.o: contrnet.h network.h dag.h tools.h bb.h rtree.h clusters.h \
- bitcluster.h treespace.h
-
+ bitcluster.h stats.h dagset.h costs.h contrnet.h dp.h
+bbstats.o: bbstats.cpp bb.h tools.h rtree.h clusters.h dag.h network.h \
+ treespace.h bitcluster.h stats.h dagset.h contrnet.h dp.h
+network.o: network.cpp rtree.h tools.h clusters.h dag.h network.h bb.h \
+ treespace.h bitcluster.h stats.h dagset.h dp.h costs.h
+hillclimb.o: hillclimb.cpp hillclimb.h rtree.h tools.h clusters.h dag.h \
+ network.h bb.h treespace.h bitcluster.h stats.h dagset.h costs.h \
+ randnets.h
+supnet.o: supnet.cpp bb.h tools.h bitcluster.h clusters.h contrnet.h \
+ network.h dag.h rtree.h treespace.h stats.h dagset.h costs.h hillclimb.h \
+ randnets.h topsort.h
+iso.o: iso.cpp tools.h dag.h clusters.h
+contrnet.o: contrnet.cpp rtree.h tools.h clusters.h dag.h network.h bb.h \
+ treespace.h bitcluster.h stats.h dagset.h contrnet.h
+bitcluster.o: bitcluster.cpp bitcluster.h tools.h clusters.h
 treespace.o: treespace.cpp treespace.h bitcluster.h tools.h clusters.h \
- rtree.h dag.h network.h bb.h
-
-supnet.o: supnet.cpp tools.h bb.h clusters.h rtree.h dag.h network.h \
- treespace.h bitcluster.h contrnet.h hillclimb.h dagset.h costs.h
+ rtree.h dag.h network.h bb.h stats.h dagset.h
+odtstats.o: odtstats.cpp stats.h bb.h tools.h dagset.h rtree.h clusters.h \
+ dag.h network.h treespace.h bitcluster.h
+hcstats.o: hcstats.cpp stats.h bb.h tools.h dagset.h rtree.h clusters.h \
+ dag.h network.h treespace.h bitcluster.h
+topsort.o: topsort.cpp dag.h tools.h clusters.h topsort.h
+randnets.o: randnets.cpp network.h dag.h tools.h clusters.h bb.h rtree.h \
+ bitcluster.h treespace.h stats.h dagset.h randnets.h
 
 supnet: $(OBJS)
 	$(CC) $(LFLAGS) -o $@ $^
 
-#supnet_dtcache: 
-#g++ -D DTCACHE -O3 -o -$@ ${SRC}
-
-clean_dtcache:
+clean_nodtcache:
 	rm -f network.o
-supnet_dtcache: clean_dtcache $(OBJS)
-	$(MAKE) _supnet_dtcache
-_supnet_dtcache: network.o
-_supnet_dtcache: CPPFLAGS += -D DTCACHE
-_supnet_dtcache: $(OBJS) 
-	$(CC) $(LFLAGS) -o supnet_dtcache ${OBJS}
+
+supnet_nodtcache: clean_nodtcache $(OBJS)
+	$(MAKE) _supnet_nodtcache
+
+_supnet_nodtcache: network.o
+_supnet_nodtcache: CPPFLAGS += -D NODTCACHE
+_supnet_nodtcache: $(OBJS) 
+	$(CC) $(LFLAGS) -o supnet_nodtcache ${OBJS}
 	
+
 gdb: clean  
 	g++ -g -o supnet ${SRC}
 
-gdb_dtcache: clean  
-	g++ -D DTCACHE -g -o supnet_dtcache ${SRC}
+gdb_nodtcache: clean  
+	g++ -D NODTCACHE -g -o supnet_nodtcache ${SRC}
 
 supnet_bfs:   
 	g++ -D USE_QUEUE_BFS -O3 -o supnet_bfs ${SRC}
@@ -127,16 +129,53 @@ valgrindgu:
 valgrinddg: 	
 	${VALGRIND} --log-file=valgrinddg.log supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 --HC --hcrunstats
 
-profiler: 
-	g++ -Wall -pg -O3 -o supnet ${SRC}	
-	supnet -r100 -R2 -A10 -g "((a,b),(c,d))" -ed
-	gprof supnet
+# profiler: 
+# 	g++ -Wall -pg -O3 -o supnet ${SRC}	
+# 	supnet -r100 -R2 -A10 -g "((a,b),(c,d))" -ed
+# 	gprof supnet
+
+# profiler2:
+# 	g++ -D DTCACHE -Wall -pg -O3 -o supnet_dtcache ${SRC}	
+# 	supnet_dtcache -G wheat_trees_clean -R6 -q10 --hcstopinit=200 -v1 --HC --hcrunstatsext  --relaxed --hcsavewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --outfiles R6_wheat_relaxed_guidetree  --displaytreesampling="0.03 0.0625 0.125 0.25 0.5 1" --hcsamplerstats
+# 	gprof supnet_dtcache
+
+# profilerlines: 
+# 	rm -f *gcov *gcda *gcno
+# 	g++ -Wall -pg -fprofile-arcs -ftest-coverage -o supnet ${SRC}
+# 	#supnet -N /tmp/hcnet.txt -G /tmp/hcgtr.txt -oT1t -CDC
+# 	supnet -r1000 -R2 -A10 -g "((a,b),(c,d))" -ed
+# 	gcov supnet.cpp
+
 
 profilerlines: 
-	rm -f *gcov *gcda *gcno
+	mkdir -p $@
+	rm -f *gcov *gcda *gcno 
+	cp wheat_trees_clean ${SRC} *.h 	$@	
+	cd $@
 	g++ -Wall -pg -fprofile-arcs -ftest-coverage -o supnet ${SRC}
-	supnet -N /tmp/hcnet.txt -G /tmp/hcgtr.txt -oT1t -CDC
-	#supnet -r1000 -R2 -A10 -g "((a,b),(c,d))" -ed
-	gcov supnet
+	supnet -G wheat_trees_clean -R6 -q1 --hcstopinit=200 -v1 --HC --hcrunstatsext  --relaxed --hcsavewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --displaytreesampling="0.03 0.0625 0.125 0.25 0.5 1" --hcsamplerstats	
+	gcov supnet-bb.cpp -l
+	echo $@ completed
 
+
+profiler:
+	mkdir -p $@
+	rm -f *gcov *gcda *gcno 
+	cp wheat_trees_clean ${SRC} *.h $@	
+	cd $@
+	g++ -Wall -pg -O3 -o supnet ${SRC}	
+	supnet -G wheat_trees_clean -R6 -q1 --hcstopinit=200 -v1 --HC --hcrunstatsext  --relaxed --hcsavewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --displaytreesampling="0.03 0.0625 0.125 0.25 0.5" --hcsamplerstats
+	gprof supnet
+	echo $@ completed
+
+profiler10:
+	mkdir -p $@
+	rm -f *gcov *gcda *gcno 
+	cp wheat_trees_clean ${SRC} *.h $@	
+	cd $@
+	g++ -Wall -pg -O3 -o supnet ${SRC}	
+	supnet -G wheat_trees_clean -R6 -q10 --hcstopinit=200 -v1 --HC --hcrunstatsext  --relaxed --hcsavewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --displaytreesampling="0.03 0.0625 0.125 0.25 0.5" --hcsamplerstats
+	gprof supnet
+	echo $@ completed	
+	
 

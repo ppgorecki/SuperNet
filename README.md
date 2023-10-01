@@ -281,13 +281,12 @@ Insert 8 reticulations into a network; general network `--general`
 Available cost function are {DL,D,L,DC,RF,DCE}; the default is DC. 
 Limitations: 
 - In DP only DC is available, HC cannot be run using PD via BB.
-- Experimental DTCache has only DC cost implementation.
+- DTCache has only DC cost implementation.
 
 Cost functions:
  - `--cost, -C COST`: set cost function from {DL,D,L,DC,RF,DCE}; default is DC
  - `[TODO] -D dupweight`: set weight of gene duplications (def. 1.0)
  - `[TODO] -L lossweight`: set weight of gene losses (def. 1.0)
-
 
 ## Tree(s) vs tree(s) cost computation:
 
@@ -373,7 +372,8 @@ Generate the picture of BB-tree search:
  - `--hcstopinit=NUM`: stop when there is no new optimal network after HC with NUM initial networks
  - `--hcstopclimb=NUM`: stop in HC when there is no improvements after NUM steps
  - `--hcmaximprovements=NUM`: stop after NUM improvements in HC climb
- - `-O BASENAMEFILE, --outfiles`: base name of odt outputfiles .log and .dat
+ - `-O BASENAMEFILE, --outfiles`: base name of odt output files .log and .dat
+ - `-d DIRECTORY, --outdirectory`: directory to save output files, default is the current dir
   - `--odtlabelled`: odt and dat file in labelled format
 
  By default HC is limited to tree-child and non time consistent networks. Use `--general`, `--relaxed` or/and `--timeconsistent` to change the search space.
@@ -604,7 +604,7 @@ unique=5 all=0
  - `--reachablenodescnt`: for each v in V(N), print the number of nodes reachable from v
  - `--reachableleafvescnt`: for each v in V(N), print the number of leaves reachable from v
  - `--pstsubtrees`: print species tree subtrees
- - `--maxdisplaytreecachesize`: set limit for the size of the cache of display tree nodes (only if DTCACHE is enabled)
+ - `--maxdisplaytreecachesize`: set limit for the size of the cache of display tree nodes (if DTCACHE is enabled)
 
 Detailed tree/network info (debug)
 
@@ -655,81 +655,8 @@ Networks:
 
 ```
 
-## Coronavirus dataset processing
-
-Infering tree-child networks without time-consistency, start from 10 networks `-q10`.
-Use: `--hcsavewhenimproved` to save odt files after each improvement
-and  `--hcstoptime 30` to stop a single HC if there is no improvement after 30 seconds.
-
-```
-make supnet_dtcache
-supnet_dtcache -G corona.txt -R7 -q10 --HC --hcrunstats --outfiles corona --hcstoptime 30 --randseed 13 --hcsavewhenimproved
-```
-Results in `corona.log` and `corona.dat`.
 
 
-Inferring relaxed time-consistent networks, start from 10 networks `-q10`.
-```
-supnet_dtcache -G corona.txt -R7 -q10 --HC --hcrunstats --timeconsistent --relaxed
-```
-
-Inferring relaxed time-consistent networks, start from 10 networks `-q10`, save networks to first.log.
-```
-supnet_dtcache -G corona.txt -R7 -q10 --HC -v1 --timeconsistent --relaxed --outfiles first --hcsavewhenimproved
-supnet_dtcache -G corona.txt -N first.log --hcsavewhenimproved  
-supnet_dtcache -G corona.txt -N first.log --HC -v1 --timeconsistent --relaxed --hcsavewhenimproved
-```
-
-
-### Parallel processing 
-
-TODO: multithreded supnet
-
-Use parallel with 10 jobs to run 20 supnet computations.
-```
-mkdir -p corona
-parallel --jobs 10 --ungroup supnet_dtcache -G corona.txt -R7 -q1 --HC --hcrunstats --outfiles corona/{1} --hcstoptime 1  --hcsavewhenimproved --odtlabelled ::: {1..20}
-```
-
-Download `csvmanip` to merge dat files:
-```
-git clone git@github.com:ppgorecki/csvmanip.git 
-```
-
-Use `csvmanip` to merge dat files into csv:
-```
-> csvmanip/csvmanip.py corona/*.dat
-Id,Source,optcost,time,hctime,mergetime,topnets,class,timeconsistency,improvements,steps,bbruns,startnets,memoryMB,dtcnt,naivetime,naivecnt,bbnaivecnt,bbnaivetime,bbdpcnt,bbdptime,randseed
-1,corona/1.dat,139,1.00023,1.00021,1.90735e-05,5,0,0,48,3298,0,1,72,422272,0.928381,3299,0,0,0,0,1030374630
-2,corona/2.dat,113,1.04761,1.04758,2.24113e-05,1,0,0,52,3122,0,1,129,399744,0.993293,3123,0,0,0,0,1030374632
-3,corona/3.dat,151,1.00013,1.00012,1.57356e-05,1,0,0,38,2751,0,1,100,352256,0.980743,2752,0,0,0,0,1030374633
-4,corona/4.dat,81,1.00017,1.00016,1.19209e-05,1,0,0,74,4714,0,1,77,603520,0.95827,4715,0,0,0,0,1030374634
-5,corona/5.dat,102,1.00017,1.00016,1.21593e-05,3,0,0,68,4068,0,1,60,520832,0.959025,4069,0,0,0,0,1030374634
-6,corona/6.dat,97,1.00028,1.00027,1.19209e-05,1,0,0,46,4107,0,1,94,525824,0.972525,4108,0,0,0,0,1030374636
-7,corona/7.dat,121,1.00034,1.00033,6.91414e-06,17,0,0,42,3289,0,1,95,421120,0.878576,3290,0,0,0,0,1030374637
-8,corona/8.dat,129,1.00025,1.00024,1.62125e-05,2,0,0,46,3143,0,1,86,402432,0.964586,3144,0,0,0,0,1030374639
-9,corona/9.dat,160,1.00054,1.00052,1.71661e-05,1,0,0,34,2640,0,1,105,338048,0.977057,2641,0,0,0,0,1030374641
-10,corona/10.dat,116,1.00017,1.00016,1.23978e-05,1,0,0,58,2871,0,1,101,367616,0.970199,2872,0,0,0,0,1030374642
-11,corona/11.dat,156,1.00029,1.00028,1.14441e-05,1,0,0,40,2692,0,1,91,344704,0.978215,2693,0,0,0,0,1030375740
-12,corona/12.dat,125,1.00007,1.00007,6.19888e-06,25,0,0,42,3236,0,1,64,414336,0.884311,3237,0,0,0,0,1030375742
-13,corona/13.dat,142,1.00032,1.0003,1.85966e-05,1,0,0,32,2688,0,1,94,344192,0.973474,2689,0,0,0,0,1030375752
-14,corona/14.dat,205,1.00016,1.00015,1.50204e-05,1,0,0,54,2661,0,1,101,340736,0.975555,2662,0,0,0,0,1030375762
-15,corona/15.dat,105,1.00003,1.00002,1.38283e-05,4,0,0,64,3483,0,1,110,445952,0.916026,3484,0,0,0,0,1030375768
-16,corona/16.dat,98,1.02999,1.02998,1.35899e-05,3,0,0,38,3626,0,1,128,464256,1.0059,3627,0,0,0,0,1030375776
-17,corona/17.dat,95,1.00003,1.00001,1.69277e-05,32,0,0,58,2649,0,1,58,339200,0.750013,2650,0,0,0,0,1030375795
-18,corona/18.dat,94,1.00014,1.00012,2.02656e-05,2,0,0,44,3113,0,1,123,398592,0.973034,3114,0,0,0,0,1030375804
-19,corona/19.dat,132,1.00026,1.00024,2.09808e-05,1,0,0,36,2902,0,1,102,371584,0.973881,2903,0,0,0,0,1030375813
-20,corona/20.dat,134,1.00008,1.00006,1.50204e-05,8,0,0,52,3830,0,1,86,490368,0.951913,3831,0,0,0,0,1030375844
-```
-
-Print cost + networks with sort:
-```
-> cat corona/*.log | supnet -N- -G corona.txt --odtcost | sort -k1 -n
-81 ((BM4831BGR2008,((((((HKU312,(BtCoV2792005)#2),((SARS,(#6,Rf1)),#5)),Rs3367))#1,(((((BtCoV2732005)#6,(((BatCoVZXC21,BatCoVZC45))#3,(HuWuhan2020,#7))))#4,GuangxiPangolinP2V),#1)),#2)),((#3,(((((HuItalyTE48362020)#7,SARSCoVBJ1824))#5,RaTG13),#4)),GuangdongPangolin12019))
-94 ((#5,(Rs3367,((((#6,(((((HuWuhan2020,HuItalyTE48362020))#2,BatCoVZC45))#5,(((((BtCoV2732005,Rf1))#7,GuangdongPangolin12019))#6,((BatCoVZXC21)#3,(RaTG13,#4))))))#1,(#7,((GuangxiPangolinP2V)#4,(SARSCoVBJ1824,SARS)))),(BtCoV2792005,HKU312)))),(((BM4831BGR2008,#3),#1),#2))
-94 ((#5,(Rs3367,((((#6,((((HuWuhan2020,(HuItalyTE48362020)#2),BatCoVZC45))#5,(((((BtCoV2732005,Rf1))#7,GuangdongPangolin12019))#6,((BatCoVZXC21)#3,(RaTG13,#4))))))#1,(#7,((GuangxiPangolinP2V)#4,(SARSCoVBJ1824,SARS)))),(BtCoV2792005,HKU312)))),(((BM4831BGR2008,#3),#1),#2))
-...
-```
 
 
 ### Check network classes in the result:
@@ -737,17 +664,12 @@ Print cost + networks with sort:
 supnet -N odt.log --detectclass
 ```
 
-
-
-## Development variants
-
 ### Display tree cache 
 
-When compiling with macro DTCACHE `make supnet_dtcache` option `--maxdisplaytreecachesize SIZE` will limit the number of stored nodes in the cache. The default is `1000000` nodes.
+By default DTCACHE is enabled since version 0.10. Compile with macro NODTCACHE to obtain non-cached version. Option `--maxdisplaytreecachesize SIZE` will limit the number of stored nodes in the cache. The default is `1000000` nodes.
 
 ```
-make supnet_dtcache
-supnet_dtcache  --maxdisplaytreecachesize 5000000 ...
+supnet  --maxdisplaytreecachesize 5000000 ...
 ```
 
 ### Limit the number of improvements
@@ -1315,9 +1237,40 @@ Optimal networks saved: odt.log
 Stats data saved: odt.dat
 ```
 
+## Display tree sampler in HC
+
+HC algorithm may start with the approximated cost, before switching to exact computations, by sampling display trees in the naive algorithm.
+
+To enable random sampling for display trees, you can utilize the `--displaytreesampling` flag with the following format: `--displaytreesampling="PAR-1 PAR-2 ... PAR-N"`. Here, the parameters are specified as a space-separated string, where each 'PAR' represents a parameter of an exponential distribution.
+In such a scenario, the HC algorithm will engage in a sequence of N+1 iterative climbs, first utilizing the provided parameters. The optimal networks obtained from one sampling parameter will serve as the starting point for the subsequent climb with the next parameter. The final (N+1)-th climb is performed using the exact algorithm. Setting `PAR=0.5` will result in approximately half of the display trees being sampled 
+(due to the integer sampler implementation the number of sampled trees for parameters >=1 will be smaller than expected). Setting the value `PAR=0.25` will yield roughly a quater of display trees and so on. Parameters should be monotonically increasing.
+
+```
+> supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 -v4 --HC --hcrunstats --hcstoptime=0.5 --randseed 13 --hcsavewhenimproved --displaytreesampling="0.125 0.25 0.5"
+```
+
+Use `hcsamplingmaxnetstonextlevel=MAXNETS` to limit the number of networks passed to the next level sampler. Default is 0 (unlimited).
+
+To test the effectiveness of display tree sampling employ 
+the `--testdisplaytreesampling=RETICULATIONCNT` flag, where 'RETICULATIONCNT' indicates the number of reticulations. Here the number of reticulation was set to 10, i.e., to 1024 display trees. 
+
+```
+> supnet --HC --displaytreesampling="0.0625 0.125 0.25 0.5 1" --testdisplaytreesampling=10
+```
+
+When sampling if a display tree already yields a better cost that found in HC, the climb can continue immediately if `--cutwhendtimproved` is set. To be tested.
+
+Use `--hcdetailedsummary` to print summary on each sampling level.
+Use `--hcdetailedsummarydat` to write additional summary dat file.
+
+
+## Automatic names of outfiles
+
+Configure the `--autooutfiles` option to generate filenames with the cost value followed by `dat` or `log` In the event of naming conflicts, increment numbers will be added, such as COST.1.dat, COST.2.dat, and so forth. Try with '--outdirectory'.
+
 ## More examples
 
-Print min total cost 10 random gene trees vs random tree-child network with 5 reticulations over 8 species; print the initial network.
+To print the minimum total cost for 10 random gene trees versus random tree-child networks with 5 reticulations over 8 species, and also print the initial network:
 
 ```
 > supnet -r10 -A8 --pnetworks  | supnet -G- -r1 -A8 -R5 --pnetworks --odtnaivecost
@@ -1325,4 +1278,102 @@ Print min total cost 10 random gene trees vs random tree-child network with 5 re
 61
 ```
 
+
+## Coronavirus dataset processing
+
+Infering tree-child networks without time-consistency, start from 10 networks `-q10`.
+Use: `--hcsavewhenimproved` to save odt files after each improvement
+and  `--hcstoptime=30` to stop a single HC if there is no improvement after 30 seconds.
+
+```
+supnet -G corona.txt -R7 -q10 --HC --hcrunstats --outfiles corona --hcstoptime=30  --hcsavewhenimproved
+```
+Results in `corona.log` and `corona.dat`.
+
+Inferring relaxed time-consistent networks, start from 10 networks `-q10`.
+```
+supnet -G corona.txt -R7 -q10 --HC --hcrunstats --timeconsistent --relaxed --outdirectory corona_tc_rel
+```
+
+<!-- Inferring relaxed time-consistent networks, start from 10 networks `-q10`, save networks to #first.log.
+```
+supnet -G corona.txt -R7 -q10 --HC -v1 --timeconsistent --relaxed --outfiles first --hcsavewhenimproved
+supnet -G corona.txt -N first.log --hcsavewhenimproved  
+supnet -G corona.txt -N first.log --HC -v1 --timeconsistent --relaxed --hcsavewhenimproved
+``` -->
+
+### Parallel processing 
+
+TODO: multithreaded supnet
+
+Use parallel with 10 jobs to run 20 supnet computations.
+```
+parallel --jobs 10 --ungroup supnet -G corona.txt -R7 -q1 --HC --hcrunstats --outdirectory corona --hcstoptime 1 --hcsavewhenimproved --odtlabelled --autooutfiles ::: {1..20}
+```
+
+Extracting best networks from log files using supnet:
+```
+cat corona/*.log | supnet -G corona.txt -N- --bestnetworks -v4
+cat odt.log
+```
+
+Download `csvmanip` to merge dat files:
+```
+git clone git@github.com:ppgorecki/csvmanip.git 
+```
+
+Use `csvmanip` to merge dat files into csv:
+```
+> csvmanip/csvmanip.py corona/*.dat
+Id,Source,optcost,time,hctime,mergetime,topnets,class,timeconsistency,improvements,steps,bbruns,startnets,memoryMB,dtcnt,naivetime,naivecnt,bbnaivecnt,bbnaivetime,bbdpcnt,bbdptime,randseed
+1,corona/1.dat,139,1.00023,1.00021,1.90735e-05,5,0,0,48,3298,0,1,72,422272,0.928381,3299,0,0,0,0,1030374630
+2,corona/2.dat,113,1.04761,1.04758,2.24113e-05,1,0,0,52,3122,0,1,129,399744,0.993293,3123,0,0,0,0,1030374632
+3,corona/3.dat,151,1.00013,1.00012,1.57356e-05,1,0,0,38,2751,0,1,100,352256,0.980743,2752,0,0,0,0,1030374633
+4,corona/4.dat,81,1.00017,1.00016,1.19209e-05,1,0,0,74,4714,0,1,77,603520,0.95827,4715,0,0,0,0,1030374634
+5,corona/5.dat,102,1.00017,1.00016,1.21593e-05,3,0,0,68,4068,0,1,60,520832,0.959025,4069,0,0,0,0,1030374634
+6,corona/6.dat,97,1.00028,1.00027,1.19209e-05,1,0,0,46,4107,0,1,94,525824,0.972525,4108,0,0,0,0,1030374636
+7,corona/7.dat,121,1.00034,1.00033,6.91414e-06,17,0,0,42,3289,0,1,95,421120,0.878576,3290,0,0,0,0,1030374637
+8,corona/8.dat,129,1.00025,1.00024,1.62125e-05,2,0,0,46,3143,0,1,86,402432,0.964586,3144,0,0,0,0,1030374639
+9,corona/9.dat,160,1.00054,1.00052,1.71661e-05,1,0,0,34,2640,0,1,105,338048,0.977057,2641,0,0,0,0,1030374641
+10,corona/10.dat,116,1.00017,1.00016,1.23978e-05,1,0,0,58,2871,0,1,101,367616,0.970199,2872,0,0,0,0,1030374642
+11,corona/11.dat,156,1.00029,1.00028,1.14441e-05,1,0,0,40,2692,0,1,91,344704,0.978215,2693,0,0,0,0,1030375740
+12,corona/12.dat,125,1.00007,1.00007,6.19888e-06,25,0,0,42,3236,0,1,64,414336,0.884311,3237,0,0,0,0,1030375742
+13,corona/13.dat,142,1.00032,1.0003,1.85966e-05,1,0,0,32,2688,0,1,94,344192,0.973474,2689,0,0,0,0,1030375752
+14,corona/14.dat,205,1.00016,1.00015,1.50204e-05,1,0,0,54,2661,0,1,101,340736,0.975555,2662,0,0,0,0,1030375762
+15,corona/15.dat,105,1.00003,1.00002,1.38283e-05,4,0,0,64,3483,0,1,110,445952,0.916026,3484,0,0,0,0,1030375768
+16,corona/16.dat,98,1.02999,1.02998,1.35899e-05,3,0,0,38,3626,0,1,128,464256,1.0059,3627,0,0,0,0,1030375776
+17,corona/17.dat,95,1.00003,1.00001,1.69277e-05,32,0,0,58,2649,0,1,58,339200,0.750013,2650,0,0,0,0,1030375795
+18,corona/18.dat,94,1.00014,1.00012,2.02656e-05,2,0,0,44,3113,0,1,123,398592,0.973034,3114,0,0,0,0,1030375804
+19,corona/19.dat,132,1.00026,1.00024,2.09808e-05,1,0,0,36,2902,0,1,102,371584,0.973881,2903,0,0,0,0,1030375813
+20,corona/20.dat,134,1.00008,1.00006,1.50204e-05,8,0,0,52,3830,0,1,86,490368,0.951913,3831,0,0,0,0,1030375844
+```
+
+Print cost + networks with sort:
+```
+> cat corona/*.log | supnet -N- -G corona.txt --odtcost | sort -k1 -n
+81 ((BM4831BGR2008,((((((HKU312,(BtCoV2792005)#2),((SARS,(#6,Rf1)),#5)),Rs3367))#1,(((((BtCoV2732005)#6,(((BatCoVZXC21,BatCoVZC45))#3,(HuWuhan2020,#7))))#4,GuangxiPangolinP2V),#1)),#2)),((#3,(((((HuItalyTE48362020)#7,SARSCoVBJ1824))#5,RaTG13),#4)),GuangdongPangolin12019))
+94 ((#5,(Rs3367,((((#6,(((((HuWuhan2020,HuItalyTE48362020))#2,BatCoVZC45))#5,(((((BtCoV2732005,Rf1))#7,GuangdongPangolin12019))#6,((BatCoVZXC21)#3,(RaTG13,#4))))))#1,(#7,((GuangxiPangolinP2V)#4,(SARSCoVBJ1824,SARS)))),(BtCoV2792005,HKU312)))),(((BM4831BGR2008,#3),#1),#2))
+94 ((#5,(Rs3367,((((#6,((((HuWuhan2020,(HuItalyTE48362020)#2),BatCoVZC45))#5,(((((BtCoV2732005,Rf1))#7,GuangdongPangolin12019))#6,((BatCoVZXC21)#3,(RaTG13,#4))))))#1,(#7,((GuangxiPangolinP2V)#4,(SARSCoVBJ1824,SARS)))),(BtCoV2792005,HKU312)))),(((BM4831BGR2008,#3),#1),#2))
+...
+```
+
+
+## Wheat dataset procesing
+
+Using sampling and output directory wheat_guided. Single run with 10 initial networks.
+```
+supnet -G wheat_trees_clean -R6 -q10 -v4 --HC --hcstoptime=4 --hcrunstatsext --relaxed --hcsavewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --outdirectory wheat_guided --displaytreesampling="0.001 0.01 0.03 0.05 0.1" --hcsamplerstats --hcsamplingmaxnetstonextlevel=1  --hcdetailedsummary  --autooutfiles
+```   
+
+In parallel with 10 cores and 20 runs:
+```
+parallel -q --jobs 10 --ungroup supnet -G wheat_trees_clean -R6 -q1 -v4 --HC --hcstoptime=4 --hcrunstatsext --relaxed --hcsavewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --outdirectory wheat_guided --displaytreesampling="0.001 0.01 0.03 0.05 0.1" --hcsamplerstats --hcsamplingmaxnetstonextlevel=1  --hcdetailedsummary  --autooutfiles --outfile={1} ::: {1..20}
+```
+
+Results in wheat_guided directory.
+
+```
+cat wheat_guided/*.log | supnet -G wheat_trees_clean -N- --bestnetworks -v4
+cat odt.log
+```
 

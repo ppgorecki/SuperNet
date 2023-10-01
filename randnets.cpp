@@ -1,5 +1,6 @@
 
 #include "network.h"
+#include "randnets.h"
 
 // How many tries to obrain time consistent network
 #define RANDCNTREPEAT 100 
@@ -159,20 +160,13 @@ Network *randquasiconsnetwork(int reticulationcnt, int networkclass, int timecon
 
 
 // interator over networks
-// i should be initialized with -1
-Network* netiterator(long int &i, VecNetwork &netvec, int &randomnetworkscnt, int &quasiconsensuscnt, 
-  Clusters *gtc,
-  RootedTree *preserverootst,
-  int reticulationcnt, int networkclass, int timeconsistency, 
-  bool randnetuniform,
-  Clusters *guideclusters,
-  Clusters *guidetree)
+Network* NetIterator::next()
 {
   
   i++;
 
   if (netvec.size()>0 && i<netvec.size())  
-      return netvec[i];    
+      return new Network(*netvec[i]);
     
   if (randomnetworkscnt!=0)   // with -1 infitite 
   { 

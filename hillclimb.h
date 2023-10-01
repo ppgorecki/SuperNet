@@ -5,7 +5,9 @@
 #include "network.h"
 #include "tools.h"
 #include "costs.h"
+#include "randnets.h"
 
+#define ODTBASENAME "odt"
 
 // Network neighbourhood iterator using edfit operation; in situ
 // next - for accessing next neigbour of a network; returns false -> no more neighbours
@@ -98,11 +100,28 @@ public:
 	double climb(EditOp &op, Network *net, CostFun &costfun, 
 		NetworkHCStats &nhcstats, 
 		bool usenaive, 
-		int runnaiveleqrt_t, 
-		int timeconsistent,
+		int runnaiveleqrt_t, 		
 		int hcmaximprovements = 0,
-		int hcstopclimb = 0);
+		int hcstopclimb = 0,
+		float displaytreesampling=0,
+		bool cutwhendtimproved=false);
 
 };
+
+void supnetheuristic(		
+		vector<RootedTree*> &gtvec,				
+		NetIterator *netiterator,
+		EditOp *op,
+		CostFun *costfun,
+
+		int printstats,				
+		int hcstopinit,
+		int hcstopclimb,
+		bool usenaive, 
+		int runnaiveleqrt_t, 		
+		int hcmaximprovements,		
+		vector<NetworkHCStatsGlobal*> globalstatsrarr,
+		bool cutwhendtimproved
+		);
 
 #endif

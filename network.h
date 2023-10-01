@@ -13,6 +13,10 @@ class CostFun;
 class BBTreeStats;
 
 
+#ifndef NODTCACHE
+	#define DTCACHE
+#endif
+
 #ifndef MAXRTNODES
 	#define MAXRTNODES 64
 #endif 
@@ -80,7 +84,6 @@ struct SNode;
 class TreeSpace;
 
 
-
 class Network: public Dag
 {
 
@@ -146,7 +149,9 @@ public:
 	virtual ~Network() {}
 
 	// Compute min cost vs. gene trees via enumeration of all display trees
-	double odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, struct ODTStats &odtstats, float sampling = 0);
+	double odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, struct ODTStats &odtstats, float sampling = 0,
+		bool cutwhendtimproved = false,
+		double externalbestcost = 0);
 
 	// Compute min cost vs. gene tree via enumeration of all display trees
 	double odtcostnaive(RootedTree *genetree, CostFun &costfun, ODTStats &odtstats, float sampling = 0);
@@ -156,7 +161,9 @@ public:
 	double odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, int runnaiveleqrt_t, ODTStats &odtstats);
 
 	// Compute min cost vs. gene trees 	
-	double odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive_oe, int runnaiveleqrt_t, ODTStats &odtstats);
+	double odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive_oe, int runnaiveleqrt_t, ODTStats &odtstats, float displaytreesampling = 0,
+		bool cutwhendtimproved = false,
+		double externalbestcost = 0);
 	
 	// Mark nodes reachable from v (including v)	
 	void getreachablefrom(NODEID v, bool *reachable);

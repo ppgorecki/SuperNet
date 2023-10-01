@@ -8,7 +8,7 @@
  charged for it and provided that this copyright notice is not removed.
  *************************************************************************/
 
-const char *SUPNET = "0.04";
+const char *SUPNET = "0.10";
 
 #include <getopt.h>
 #include <stdio.h>
@@ -52,8 +52,15 @@ int gspos = 0;
 int verbosehccost = 1; // 0=quiet
 int verbosealg = 3;    // <4 quiet
 
+string opt_outfiles = ODTBASENAME;
+string opt_outdirectory = "";
+
 int flag_globaldagcache = 0; 
+int flag_autooutfiles = 0; 
 int flag_hcsavewhenimproved = 0;
+int flag_hcsamplerstats = 0;
+int flag_hcsamplingmaxnetstonextlevel = 0; // unlimited
+int flag_hcdetailedsummarydat = 0;
 float opt_hcstoptime = 0; 
 
 int print_repr_inodtnaive = 0;
@@ -102,10 +109,6 @@ void insertstr(vector<char *> &v, const char *t) {
   free(y);
 }
 
-typedef struct params {
-  float odtnaivesampling;
-
-} params;
 
 TreeSpace *globaltreespace;
 
@@ -173,13 +176,13 @@ int main(int argc, char **argv) {
 
   int randnetuniform = 0;
 
-  string opt_outfiles = "odt";
+  
   
   vector<char *> sgtvec, sstvec, snetvec;
 
   COSTT bbstartscore = 0;
   int bbstartscoredefined = 0;
-  float odtnaivesampling = 0.0;
+  string displaytreesampling = "";
 
   int maxdisplaytreecachesize = 1000000;
 
@@ -207,15 +210,20 @@ int main(int argc, char **argv) {
   int flag_hcrunstats = 0;
   int flag_hcrunstatsext = 0;
   int flag_hcrunstatsalways = 0;
+  int flag_hcdetailedsummary = 0;
   int flag_match_after = 0;
   int flag_match_before = 0;
   int flag_match_atpos = 0;
   int flag_print_network_clusters = 0;
+  int flag_cutwhendtimproved = 0;
+
+  int testdisplaytreesampling = 0;
 
   int hcmaximprovements = 0;
   int hcstopinit = 0;
   int hcstopclimb = 0;
   int flag_odtcost = 0;
+  int flag_bestneworks = 0;
   char *matchparam = NULL;
 
   char *opt_guideclusters = NULL;
@@ -263,10 +271,12 @@ int main(int argc, char **argv) {
       {"notimeconsistent", no_argument, &flag_notimeconsistent, 1},
 
       {"outfiles", required_argument, NULL, 'O'},
+      {"outdirectory", required_argument, NULL, 'd'},
 
       {"detectclass", no_argument, &flag_detectclass, 1},
       {"uniformedgesampling", no_argument, &randnetuniform, 1},
-      {"odtnaivesampling", required_argument, NULL, 1},
+      {"displaytreesampling", required_argument, NULL, 'U'},
+      {"testdisplaytreesampling", required_argument, NULL, '2'},
       {"pspeciesdictionary", no_argument, &flag_extra_print_species_dictionary,
        1},
       {"pstsubtrees", no_argument, &flag_printstsubtrees, 1},
@@ -291,11 +301,18 @@ int main(int argc, char **argv) {
       {"hcusenaive", no_argument, &flag_hcusenaive, 1},
       {"hcnnimove", no_argument, &flag_hcedit_nni, 1},
       {"hcrunstats", no_argument, &flag_hcrunstats, 1},
+      {"hcsamplerstats", no_argument, &flag_hcsamplerstats, 1},
       {"hcrunstatsext", no_argument, &flag_hcrunstatsext, 1},
       {"hcrunstatsalways", no_argument, &flag_hcrunstatsalways, 1},
       {"hcsavewhenimproved", no_argument, &flag_hcsavewhenimproved, 1},
-      
+      {"hcsamplingmaxnetstonextlevel", required_argument, NULL, '3'},
+      {"hcdetailedsummary", no_argument, &flag_hcdetailedsummary, 1},
+      {"hcdetailedsummarydat", no_argument, &flag_hcdetailedsummarydat, 1},
+      {"autooutfiles", no_argument, &flag_autooutfiles, 1},
+      {"cutwhendtimproved", no_argument, &flag_cutwhendtimproved, 1},
 
+      {"bestnetworks", no_argument, &flag_bestneworks, 1},
+      
       {"hcmaximprovements", required_argument, NULL, 'F'},
       {"hcstopinit", required_argument, NULL, 'Y'},
       {"hcstopclimb", required_argument, NULL, 'Z'},
@@ -341,7 +358,16 @@ int main(int argc, char **argv) {
       break;
 
     case 'U':
-      odtnaivesampling = atof(optarg);
+      displaytreesampling = string(optarg);
+      break;
+
+    case '3':
+      flag_hcsamplingmaxnetstonextlevel=atoi(optarg);
+      break;
+
+
+    case '2':
+      testdisplaytreesampling = atoi(optarg);
       break;
 
     case 'P':
@@ -391,6 +417,12 @@ int main(int argc, char **argv) {
     case 'O': 
     {
       opt_outfiles = optarg;      
+      break;
+    }
+
+    case 'd': 
+    {
+      opt_outdirectory = optarg;      
       break;
     }
 
@@ -691,13 +723,12 @@ int main(int argc, char **argv) {
     long int i = -1;
 
     Dag *src;
-    while (
-        (n = netiterator(i, netvec, randomnetworkscnt, quasiconsensuscnt, genetreeclusters,
-                         preserverootst, reticulationcnt_R, networkclass,
-                         timeconsistency, randnetuniform, guideclusters, 
-                          guidetree)) != NULL)
-
-      dagset.add(n, &src);
+    NetIterator netiterator(netvec, randomnetworkscnt, quasiconsensuscnt, genetreeclusters,
+                          preserverootst, reticulationcnt_R, networkclass,
+                          timeconsistency, randnetuniform, guideclusters, 
+                           guidetree);
+    while ((n = netiterator.next()) != NULL)
+       dagset.add(n, &src);
 
     cout << dagset;
     cerr << "unique=" << dagset.size() << " all=" << netvec.size() << endl;
@@ -867,8 +898,7 @@ int main(int argc, char **argv) {
       {
         cout << *ntpos << " ";
       }
-      cout << ntpos->odtcostnaive(gtvec, *costfun, odtstats,
-                                     odtnaivesampling)
+      cout << ntpos->odtcostnaive(gtvec, *costfun, odtstats, 0)
            << endl;
     }
   }
@@ -877,8 +907,8 @@ int main(int argc, char **argv) {
   if (flag_odtcost) 
   {
     DagSet visiteddags;
-    NetworkHCStats *stats =
-        new NetworkHCStats(networkclass, timeconsistency, visiteddags, randseed, NULL);
+    NetworkHCStatsBase *stats =
+        new NetworkHCStatsBase(networkclass, timeconsistency, visiteddags, randseed);
     for (auto &net: netvec) 
     {
       double cost = net->odtcost(gtvec, *costfun, flag_hcusenaive, hcrunnaiveleqrt_t, stats->getodtstats());
@@ -940,51 +970,45 @@ int main(int argc, char **argv) {
   }
 
   // ODT heuristic using HC, BB and DP
-  if (flag_hcalgorithm) 
+  if (flag_hcalgorithm || flag_bestneworks) 
   {
-    HillClimb hc(gtvec);
-    EditOp *op;
 
-    if (flag_hcedit_nni)
-      op = new NNI();
-    else
-      op = new TailMove(networkclass, guideclusters, guidetree);
+      if (flag_bestneworks) 
+      {
+        opt_hcstoptime = -1; // no climb employed
+      }
 
-    DagSet visiteddags;
+      DagSet visiteddags;
 
-    NetworkHCStats *globalstats =
-        new NetworkHCStats(networkclass, timeconsistency, visiteddags, randseed, NULL);
+      NetworkHCStatsGlobal *globalstats =
+        new NetworkHCStatsGlobal(networkclass, timeconsistency, visiteddags, randseed);
 
-    if (opt_outfiles.length()) 
-    {
-      globalstats->setoutfiles(opt_outfiles, odtlabelled);
-    }
+      EditOp *editop;
+      if (flag_hcedit_nni)
+        editop = new NNI();
+      else
+        editop = new TailMove(networkclass, guideclusters, guidetree);
 
-    long int hccnt = -1;
-    int lastimprovement = 0;
-    if (verbosealg >= 4) {
-      cout << "HC"
+      if (opt_outfiles.length()) 
+      {
+        globalstats->setoutfiles(opt_outdirectory, opt_outfiles, odtlabelled);
+      }
+
+      int printstats = 0;
+      if (flag_hcrunstats) printstats = 1;
+      else if (flag_hcrunstatsext) printstats = 2;
+      else if (flag_hcrunstatsalways) printstats = 3;
+
+      if (verbosealg >= 4) 
+      {
+        cout << "HC"
            << " start:"
            << " hcusenaive=" << flag_hcusenaive
            << " runnaiveleqrt=" << hcrunnaiveleqrt_t
            << " tailmove=" << !flag_hcedit_nni << endl;
-    }
+       }
 
-    int printstats = 0;
-    if (flag_hcrunstats) printstats = 1;
-    else if (flag_hcrunstatsext) printstats = 2;
-    else if (flag_hcrunstatsalways) printstats = 3;
-
-    int cnt = 0;
-    while (1) 
-    {
-      // stopping criterion
-      if (hcstopinit && (hccnt - lastimprovement) > hcstopinit)
-        break; // stop
-
-      // get next initial network
-      Network *n =
-          netiterator(hccnt, netvec, randomnetworkscnt, 
+      NetIterator netiterator(netvec, randomnetworkscnt, 
                       quasiconsensuscnt, genetreeclusters,
                       preserverootst, reticulationcnt_R, 
                       networkclass,
@@ -992,48 +1016,82 @@ int main(int argc, char **argv) {
                       guideclusters,
                       guidetree);
 
-      if (!n)
-      {
-        if (!cnt)
+
+     vector<NetworkHCStatsGlobal*> globalstatsarr;
+
+     DagSet visiteddags1;
+     DagSet visiteddags2;
+     
+     if (displaytreesampling.length())
+     {
+        vector<float> v;
+        istringstream iss(displaytreesampling);   
+        copy(std::istream_iterator<float>(iss), istream_iterator<float>(), back_inserter(v));
+        
+        for (auto samplingvalue: v)
         {
-          cerr << "No network defined. Use -q, -r, --guidetree or --guideclusters to generate some starting networks." << endl;
-          exit(-1);
+          globalstatsarr.push_back(new NetworkHCStatsGlobalSampler(networkclass, timeconsistency, visiteddags2, randseed, samplingvalue));    
+        }        
+      }
+
+     globalstatsarr.push_back(globalstats);    
+
+     // Test effectiveness of display tree sampler
+     if (testdisplaytreesampling)
+        {
+          for (auto nhc: globalstatsarr) 
+          {
+             cout << " Sampler " << nhc->getsampling() << " " << nhc->testsampling(testdisplaytreesampling) << endl;
+          }
+          exit(0);
         }
-        break;
-      }
+    
+     supnetheuristic(   
+        gtvec,       
+        &netiterator,
+        editop,
+        costfun,
+        printstats,       
+        hcstopinit,
+        hcstopclimb,
+        flag_hcusenaive,
+        hcrunnaiveleqrt_t,    
+        hcmaximprovements,
+        globalstatsarr,
+        flag_cutwhendtimproved
+    );
 
-      cnt++;
+    delete editop;
 
-      NetworkHCStats nhcstats(networkclass, timeconsistency, visiteddags, randseed, globalstats);
-      nhcstats.start();
-
-      // climb
-      double cost = hc.climb(*op, n, *costfun, nhcstats, flag_hcusenaive,
-                             hcrunnaiveleqrt_t, timeconsistency,
-                             hcmaximprovements, hcstopclimb);
-
-
-
-      nhcstats.finalize();
-
-      if (globalstats->merge(nhcstats, printstats, false)) 
-      {
-        lastimprovement = hccnt;
-      }
-
-      if (find(netvec.begin(), netvec.end(), n) == netvec.end())       
-        delete n;
-    } 
-
-    globalstats->print(true);
-    delete op;
-
-    if (opt_outfiles.length()) 
+    if (flag_hcdetailedsummary)
     {
-      // save odt/dat file(s)
-      globalstats->saveglobal(verbosealg >= 4);            
+       // print summary stats     
+       for (auto nhc: globalstatsarr) 
+       {        
+          cout << "HC stats: "; 
+          nhc->info(cout);
+          cout << " ";        
+          nhc->print();        
+          cout << endl;
+       }
     }
-  }
+
+    globalstatsarr.pop_back(); // remove the last global
+
+
+    // merge all data and save odt/dat file(s); optional     
+    globalstats->savedatmerged(verbosealg >= 4, globalstatsarr);     
+
+    // best dags to file
+    globalstats->savebestdags(verbosealg >= 4);
+
+    // print summary
+    globalstats->print();
+    globalstats->printnetworkinfo();     
+    cout << endl;
+
+
+  } 
 
   if (flag_print_display_trees || flag_print_display_trees_with_ids) 
   {
@@ -1042,7 +1100,8 @@ int main(int argc, char **argv) {
       DISPLAYTREEID tid = 0;      
       RootedTree *t = NULL;
       // cout << *n << endl;
-      while ((t = ntpos->gendisplaytree(tid, t)) != NULL) {
+      while ((t = ntpos->gendisplaytree(tid, t)) != NULL) 
+      {
         if (flag_print_display_trees_with_ids)
           cout << tid << " ";
         t->printrepr() << endl;

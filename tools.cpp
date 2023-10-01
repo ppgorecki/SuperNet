@@ -13,6 +13,7 @@ using namespace std;
 #include "tools.h"
 #include "bb.h"
 #include "clusters.h"
+#include "network.h"
 
 vector<string> specnames;
 vector<int> specorder;
@@ -261,16 +262,24 @@ int usage(int argc, char **argv) {
        
        "SupNet: Phylogenetic networks visualisation, evaluation and inference\n"
 
-       "SuperNetwork " << SUPNET << " with "
+       "Version " << SUPNET << " with "
 #if defined USE_PRIORITY_QUEUE_MINRT
-       "MinRT-strategy\n"
+       "MinRT-strategy"
 #endif
 #if defined USE_PRIORITY_QUEUE_MINLB
-       "MinLB-strategy\n"
+       "MinLB-strategy"
 #endif 
 #if defined USE_QUEUE_BFS
-      "BFS-strategy\n"
+      "BFS-strategy"
 #endif      
+
+#ifdef DTCACHE
+      " and DT-CACHE"
+#else
+      " and no DT-CACHE" 
+#endif    
+
+      "\n"
 
        "Software homepage: https://github.com/ppgorecki/SuperNet\n"
        

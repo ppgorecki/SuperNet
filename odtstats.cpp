@@ -1,5 +1,4 @@
 
-
 #include "stats.h"
 
 void ODTStats::addbbstats(BBStats &b)

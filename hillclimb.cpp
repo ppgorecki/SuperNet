@@ -1,6 +1,7 @@
 #include "hillclimb.h"
 #include "network.h"
 #include "costs.h"
+#include "randnets.h"
 
 void EditOp::init(Network *net) 
 { 
@@ -11,6 +12,7 @@ void EditOp::init(Network *net)
 extern int verbosehccost;
 extern int verbosealg;
 extern int flag_globaldagcache;
+extern int flag_hcsamplingmaxnetstonextlevel;
 extern float opt_hcstoptime;
 
 //#define TAILMOVE_DEBUG
@@ -429,18 +431,24 @@ bool NNI::next()
 }
 
 
-
-double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCStats &nhcstats, 
+double HillClimb::climb(
+		EditOp &op, 
+		Network *net, 
+		CostFun &costfun, 
+		NetworkHCStats &nhcstats, 
 		bool usenaive, 
-		int runnaiveleqrt_t, 
-		int timeconsistent,
+		int runnaiveleqrt_t, 		
 		int hcmaximprovements,
-		int hcstopclimb
+		int hcstopclimb,
+		float displaytreesampling,
+		bool cutwhendtimproved
 		)
 {
 
-	double starttime = gettime();
+	double lasthcimprovementtime = gettime();
+	int timeconsistent = nhcstats.gettimeconsistency();
 	
+
 	if (timeconsistent)
 	{
 			bool tc = net->istimeconsistent();
@@ -457,11 +465,15 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 			}
 	}
 
+	if (!displaytreesampling && cutwhendtimproved)
+	{
+		cutwhendtimproved = false;
+	}
+
 	// compute the first odt cost
-	double optcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats());
+	double optcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats(), displaytreesampling);
 
 	nhcstats.addnewbest(*net, optcost); // save the first network
-
 
 	int improvementscnt = 0;   // number of improvements
 	int noimprovementstep = 0; // number of steps without improvement
@@ -493,11 +505,14 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 	  }	  
 
 	  first = false;
+
+	  if (opt_hcstoptime<0) break; //
 	    
 		while (op.next())
 		{			
+			
 
-			if (opt_hcstoptime>0 && (gettime()-starttime > opt_hcstoptime))
+			if (opt_hcstoptime>0 && (gettime()-lasthcimprovementtime > opt_hcstoptime))
 			{
 				timeout = true;				
 				break;
@@ -522,7 +537,7 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 					continue;
 			}
 
-			double curcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats());
+			double curcost = net->odtcost(genetrees, costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats(), displaytreesampling, cutwhendtimproved, optcost);
 				 
 			nhcstats.step();
 
@@ -561,6 +576,9 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 
 					improvementscnt++;
 				  noimprovementstep = 0; // reset counter
+
+				  // reset 
+				  lasthcimprovementtime = gettime();
 
 					// search in a new neighbourhood
 					op.reset();			
@@ -607,4 +625,136 @@ double HillClimb::climb(EditOp &op, Network *net, CostFun &costfun, NetworkHCSta
 
 	return optcost;
 
+}
+
+extern int flag_hcsamplerstats;
+
+void supnetheuristic(		
+		vector<RootedTree*> &gtvec,				
+		NetIterator *netiterator,
+		EditOp *op,
+		CostFun *costfun,		
+		int printstats,				
+		int hcstopinit,
+		int hcstopclimb,
+		bool usenaive, 
+		int runnaiveleqrt_t, 		
+		int hcmaximprovements,		
+		vector<NetworkHCStatsGlobal*> globalstatsarr,
+		bool cutwhendtimproved
+		)
+{
+      
+		HillClimb hc(gtvec);    
+    DagSet visiteddags;
+
+    vector<pair<Network *, int>> samplerarr;
+
+    long int hccnt = -1;
+    int lastimprovement = 0;
+
+    int cnt = 0;
+    while (1) 
+    {
+      // stopping criterion
+      if (hcstopinit && (hccnt - lastimprovement) > hcstopinit)
+        break; // stop
+
+      // get next initial network
+      Network *n = netiterator->next();
+      
+      if (!n)
+      {
+        if (!cnt)
+        {
+          cerr << "No network defined. Use -q, -r, --guidetree or --guideclusters to generate some starting networks." << endl;
+          exit(-1);
+        }
+        break;
+      }
+
+      cnt++;
+      hccnt++;
+
+      // preprocess using samplers
+
+      unsigned int maxdt = n->displaytreemaxid();
+
+      samplerarr.push_back(make_pair(n, 0));
+      
+			while (!samplerarr.empty())
+			{
+
+					pair<Network*, int> p = samplerarr.back();					
+					samplerarr.pop_back();					
+
+
+					DagSet visiteddags;				
+					NetworkHCStatsGlobal *globalstats = globalstatsarr[p.second];
+
+					if (flag_hcsamplerstats)
+					{
+						cout << "Level " <<  p.second << " ";
+						globalstats->info(cout) <<  endl;
+					}
+
+					NetworkHCStats nhcstats(visiteddags, globalstats);      
+					nhcstats.start();					
+
+					double cost = hc.climb(*op, p.first, *costfun, nhcstats, 
+														 usenaive,
+                             runnaiveleqrt_t, 
+                             hcmaximprovements, 
+                             hcstopclimb,
+                             globalstats->getsampling(),
+                             cutwhendtimproved);
+
+					if (globalstats->issampler())
+					{
+						// all best dags to the next level sampler
+
+						DagSet *dagset = nhcstats.getbestdags();
+						int nextsampler = p.second + 1;
+
+						int ncnt = 0;
+						for (std::vector<Dag*>::iterator a = dagset->begin(); a!=dagset->end(); a++ )			
+						{													
+								if ((flag_hcsamplingmaxnetstonextlevel>0) && ncnt == flag_hcsamplingmaxnetstonextlevel)
+									break;
+								ncnt++;
+
+								Network *net = new Network(**a, false);			
+								//cout << *net << endl;
+								samplerarr.push_back(make_pair(net, nextsampler));
+						}
+
+						if (flag_hcsamplerstats)
+						{
+							cout << "" << ncnt << " (out of " << dagset->size() << ") network(s) moved to next level: ";
+							if (globalstatsarr.size() == nextsampler+1 )
+								cout << " exact climb" << endl;
+							else 
+							 	cout << " sampler " << nextsampler <<  endl;
+						}
+					}
+
+					nhcstats.finalize();
+
+					if (!globalstats->issampler())
+					{
+						 hccnt++;
+					}
+
+					if (globalstats->merge(nhcstats, printstats, false)) 
+      		{
+      				if (!globalstats->issampler())
+        				lastimprovement = hccnt;
+      		}
+			}      
+
+			delete n;
+      
+      
+      
+    } 
 }

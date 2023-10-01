@@ -212,13 +212,17 @@ void Network::_getreachableto(NODEID v, bool *reachable, bool *visited)
 		_getreachableto(retparent[v],reachable, visited);		
 }
 
-double Network::odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive_oe, int runnaiveleqrt_t, ODTStats &odtstats)
+double Network::odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool usenaive_oe, int runnaiveleqrt_t, ODTStats &odtstats, 
+	float displaytreesampling,
+	bool cutwhendtimproved,
+	double externalbestcost
+	)
 {	
 	double res;
 
-	if (usenaive_oe || (runnaiveleqrt_t>rtcount()))
+	if ((displaytreesampling>0) || usenaive_oe || (runnaiveleqrt_t>rtcount()))
 	{		
-		res = odtcostnaive(genetrees, costfun, odtstats);
+		res = odtcostnaive(genetrees, costfun, odtstats, displaytreesampling, cutwhendtimproved, externalbestcost);
 
 		if (verbosealg>=5) 
 		{ 
@@ -275,18 +279,22 @@ double Network::odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, in
     return cost;        
 }
 
-double Network::odtcostnaive(RootedTree *genetree, CostFun &costfun, ODTStats &odtstats, float sampling)
+/*
+ *  Compute cost via naive enumeration with optional displaytreesampling for a single gene tree
+ */ 
+double Network::odtcostnaive(RootedTree *genetree, CostFun &costfun, ODTStats &odtstats, 
+	float displaytreesampling)
 {
 	vector<RootedTree*> genetrees;
 	genetrees.push_back(genetree);
-	return odtcostnaive(genetrees, costfun, odtstats, sampling);
+	return odtcostnaive(genetrees, costfun, odtstats, displaytreesampling);
 }
 
 extern bool print_repr_inodtnaive;
 
 /*
 	-profiler
-	-cache D.Trees vs. costs, wczesniej test częstoci uzycia d.trees	
+	-cache D.Trees vs. costs, wczesniej test czestoci uzycia d.trees	
 	-lca queries w czasie stałym po liniowym preprocessing (C/C++?)
 */
 
@@ -300,12 +308,15 @@ long gcnt=0;
 
 extern TreeSpace *globaltreespace;
 
-double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, ODTStats &odtstats, float sampling)
+/*
+ *  Compute cost via naive enumeration with optional displaytreesampling 
+ */ 
+double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, ODTStats &odtstats, float displaytreesampling, bool cutwhendtimproved, double externalbestcost)
 {
     RootedTree tr(lf, lab);	
     RootedTree *t = &tr;
     DISPLAYTREEID tid = 0; // id of display tree
-    double mincost;
+    double mincost = 0;
     NODEID *lcamaps[genetrees.size()];
     double gtcost[genetrees.size()];
     double lb[genetrees.size()];
@@ -313,8 +324,8 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    std::exponential_distribution<> d(sampling);
-
+    std::exponential_distribution<> expdistr(displaytreesampling);
+    
     odtstats.startnaive();
 
     // https://en.cppreference.com/w/cpp/numeric/random/exponential_distribution
@@ -323,6 +334,7 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     {    		
     	RootedTree *genetree = genetrees[gt];
     	lb[gt]=costfun.lowerboundnet(*genetree,*this);    			    	
+    	gtcost[gt] = 0;
     }   
    
 	int lbcnt = 0;
@@ -404,6 +416,8 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
 
     		if (!tid || (gtcost[gt] > curcost)) 
     		{ 
+    			mincost += (curcost - gtcost[gt]);
+    			
     			gtcost[gt] = curcost;  
 
     			if (gtcost[gt]==lb[gt])  // check again lb
@@ -431,12 +445,18 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     		// all is lower bound (ODT optimum)    		
     		break;
     	}
-
-    	if (sampling)
+    	// DT Sampler
+    	if (displaytreesampling)
     	{
-    		int nexttid=(int)floor(tid+2*d(gen));
+    		int nexttid=(int)floor(tid+expdistr(gen));
     		if (nexttid==tid) tid++;
     		else tid = nexttid;
+
+    		if (cutwhendtimproved && (mincost < externalbestcost))
+    		{    			
+    			break;
+    		}
+    		
     	}
     	else    
     		tid++;

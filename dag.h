@@ -201,7 +201,7 @@ public:
     if (u>=rtstartid)
   {
       NODEID p = retparent[u];
-      if (lf<=p<rtstartid) return leftchild[p]==u?rightchild[p]:leftchild[p];
+      if ((lf<=p) && (p<rtstartid)) return leftchild[p]==u?rightchild[p]:leftchild[p];
     }
     return MAXSPECIES;
   }

@@ -1,37 +1,43 @@
 
 
+#include <ostream>
+#include <cstdio>
 #include "stats.h"
+#include "hillclimb.h"
 
 
-void NetworkHCStats::print(bool global)
+void NetworkHCStatsBase::print()
 {
-    cout << "Cost:" << optcost    
-     << " Steps:" << steps 
-     << " Climbs:" << improvements 
-     << " TopNetworks:" << topnetworks;     
+    cout << " Steps:" << steps 
+     << " Climbs:" << improvements;     
+}
 
-     if (networkclass==NET_TREECHILD)
-     cout << " Class:TreeChild";
 
-    if (networkclass==NET_CLASS1RELAXED)
-     cout << " Class:Relaxed";
 
-    if (networkclass==NET_GENERAL)
-     cout << " Class:General";
 
-    cout << " TimeConsistency:" << timeconsistency;
+void NetworkHCStatsGlobal::print()
+{
+    cout << "Cost:" << optcost
+         << " TopNetworks:" << topnetworks;      
 
-    if (global) 
-     {     		
-     		cout 
-	     		<< " HCruns:" << startingnets 
-	     		<< " HCTime:" << hctime;
-	     		// << " MergeTime:" << mergetime;	    // usually low
-		   	odtstats.print();
-	   }
-	   
-     cout << endl;
+    NetworkHCStatsBase::print();
 
+    cout 
+        << " HCruns:" << startingnets 
+        << " HCTime:" << hctime;
+        // << " MergeTime:" << mergetime;     // usually low
+        odtstats.print();
+}
+
+void NetworkHCStatsGlobalSampler::print()
+{
+    NetworkHCStatsBase::print();
+
+    cout 
+        << " HCruns:" << startingnets 
+        << " HCTime:" << hctime;
+        // << " MergeTime:" << mergetime;     // usually low
+        odtstats.print();
 }
 
 // Merge stats. Returns 
@@ -44,7 +50,7 @@ void NetworkHCStats::print(bool global)
 // printstats = 2 - improvements and new nets
 // printstats = 3 - always
 
-int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats, bool fullmerge) 
+int NetworkHCStatsBase::merge(NetworkHCStatsBase &nhc, int printstats, bool fullmerge) 
 {
 	double mtime = gettime();
 	int res = 0;
@@ -65,6 +71,7 @@ int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats, bool fullmerge)
 
     if (!bestdags->size() || nhc.optcost < optcost)
     {
+      // New best cost 
       delete bestdags;
       optcost = nhc.optcost;
       bestdags = nhc.bestdags;
@@ -79,6 +86,8 @@ int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats, bool fullmerge)
     else 
     	if (nhc.optcost == optcost)
       {      
+
+        // Eq best cost
         int insnets = bestdags->merge(*nhc.bestdags);
 
         if ((insnets && printstats==2) || printstats==3)
@@ -94,28 +103,7 @@ int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats, bool fullmerge)
   	      PNET;
 
   }
-  else
-  {
-    if (_newoptimal)
-    {    
-      if (printstats) 
-      {     
-        PNET;
-        cout << " New optimal cost: " << nhc.optcost << endl;             
-      }      
-    }
-    else {
-
-        if ((_improvements && printstats==2) || printstats==3)
-        {
-          PNET;
-          cout << " New optimal networks:" << _improvements << " " << "Total:" << bestdags->size() << endl;
-        }
-        if (_improvements) res=2;  // new opt nets.   
-    }
-
-  }
-
+  
   mergetime += gettime()-mtime;
 	topnetworks = bestdags->size();
 
@@ -128,10 +116,41 @@ int NetworkHCStats::merge(NetworkHCStats &nhc, int printstats, bool fullmerge)
 }
 
 
-void NetworkHCStats::savedat(string file, bool labelled)
+int NetworkHCStatsGlobal::merge(NetworkHCStatsBase &nhc, int printstats, bool fullmerge) 
 {
-    std::ofstream odtf;
-    odtf.open ( file, std::ofstream::out);
+
+  int res = NetworkHCStatsBase::merge(nhc, printstats, fullmerge);
+
+  if (!fullmerge)
+  {
+    if (_newoptimal)
+    {    
+      if (printstats) 
+      {     
+        cout << startingnets << ". ";  
+        nhc.print(); 
+        cout << " New optimal cost: " << nhc.optcost << endl;             
+      }      
+    }
+    else {
+
+        if ((_improvements && printstats==2) || printstats==3)
+        {
+          cout << startingnets << ". ";  
+          nhc.print(); 
+          cout << " New optimal networks:" << _improvements << " " << "Total:" << bestdags->size() << endl;
+        }
+        if (_improvements) res=2;  // new opt nets.   
+    }
+
+  }
+
+  return res;
+}
+
+
+void NetworkHCStatsBase::_savedat(ostream &odtf, bool labelled, bool partial)
+{
     
     if (labelled) odtf << "optcost=";
     odtf << optcost << endl; // cost
@@ -148,11 +167,15 @@ void NetworkHCStats::savedat(string file, bool labelled)
   	if (labelled) odtf << "topnets=";
     odtf << topnetworks << endl; // networks
 
-    if (labelled) odtf << "class=";
-    odtf << networkclass << endl; // network type
+    if (!partial)
+    {
+      if (labelled) odtf << "class=";
+      odtf << networkclass << endl; // network type
 
-    if (labelled) odtf << "timeconsistency=";
-    odtf << timeconsistency << endl; 
+
+      if (labelled) odtf << "timeconsistency=";
+      odtf << timeconsistency << endl; 
+    }
 
   	if (labelled) odtf << "improvements=";
     odtf << improvements << endl; // improvements
@@ -166,8 +189,11 @@ void NetworkHCStats::savedat(string file, bool labelled)
   	if (labelled) odtf << "startnets=";
     odtf << startingnets << endl; // networks merged
 
-    if (labelled) odtf << "memoryMB=";
-    odtf << get_memory_size() << endl; // memory size in MB
+    if (!partial)
+    {
+      if (labelled) odtf << "memoryMB=";
+      odtf << get_memory_size() << endl; // memory size in MB
+    }
 
     if (labelled) odtf << "dtcnt=";
     odtf << odtstats.displaytreecnt << endl; // number of generated display trees
@@ -178,29 +204,31 @@ void NetworkHCStats::savedat(string file, bool labelled)
     if (labelled) odtf << "naivecnt=";
     odtf << odtstats.odtnaivecnt << endl; 
 
-    if (labelled) odtf << "bbnaivecnt=";
-    odtf << odtstats.bbstats.naivecnt << endl; 
+    if (!partial)
+    {
+
+      if (labelled) odtf << "bbnaivecnt=";
+      odtf << odtstats.bbstats.naivecnt << endl; 
+      
+      if (labelled) odtf << "bbnaivetime=";
+      odtf << odtstats.bbstats.naivetime << endl; 
+      
+      if (labelled) odtf << "bbdpcnt=";
+      odtf << odtstats.bbstats.dpcnt << endl; 
+
+      if (labelled) odtf << "bbdptime=";
+      odtf << odtstats.bbstats.dptime << endl; 
+
+      if (labelled) odtf << "randseed=";
+      odtf << randseed << endl; 
+    }
     
-    if (labelled) odtf << "bbnaivetime=";
-    odtf << odtstats.bbstats.naivetime << endl; 
-    
-    if (labelled) odtf << "bbdpcnt=";
-    odtf << odtstats.bbstats.dpcnt << endl; 
-
-    if (labelled) odtf << "bbdptime=";
-    odtf << odtstats.bbstats.dptime << endl; 
-
-    if (labelled) odtf << "randseed=";
-    odtf << randseed << endl; 
-
-    odtf.close();
 }
 
-NetworkHCStats::NetworkHCStats(int _networkclass, int _timeconsistency, DagSet &_visiteddags, unsigned int _randseed, NetworkHCStats *_globalstats) : visiteddags(_visiteddags), randseed(_randseed), globalstats(_globalstats)
+NetworkHCStatsBase::NetworkHCStatsBase(int _networkclass, int _timeconsistency, DagSet &_visiteddags, unsigned int _randseed) : visiteddags(_visiteddags), randseed(_randseed)
 { 
     networkclass= _networkclass;
     timeconsistency = _timeconsistency;
-
     bestdags = new DagSet();
     improvements = 0; 
     hctime = 0;
@@ -210,23 +238,70 @@ NetworkHCStats::NetworkHCStats(int _networkclass, int _timeconsistency, DagSet &
     topnetworks = 0;    
 }
 
-NetworkHCStats::~NetworkHCStats()
+
+extern int flag_autooutfiles;
+
+void NetworkHCStatsGlobal::setoutfiles(string _outdirectory, string _outfiles,  bool _odtlabelled)
 { 
-    if (bestdags)
-      delete bestdags;
-}
+    if (flag_autooutfiles && _outfiles == ODTBASENAME)
+      _outfiles = "";
 
+    if (_outdirectory.length())
+    {
+      filesystem::create_directories(_outdirectory);    
+      outfile = _outdirectory + filesystem::path::preferred_separator;    
+      if (_outfiles.length())
+        baseoutfiles = string(".")+_outfiles;
+      else
+        baseoutfiles = "";
+    }
+    else      
+    {
+      outfile = _outfiles;    
+    }
 
-
-void NetworkHCStats::setoutfiles(string _outfiles,  bool _odtlabelled)
-{ 
-    datfile = _outfiles+".dat";
-    odtfile = _outfiles+".log";
     odtlabelled = _odtlabelled;
+    curoutfile = "";    
+    curoutfilecost = 0;
+}
+
+// Set new based on cost
+void NetworkHCStatsGlobal::_checkoutfilename()
+{
+  if (flag_autooutfiles)
+  { 
+    string newoutfile = curoutfile;
+    char buf[1000];
+
+    if (curoutfilecost != optcost)
+    {
+      curoutfilecost = optcost;
+      sprintf(buf,"%g", optcost);      
+      int cnt = 1;
+
+      newoutfile = outfile + buf + baseoutfiles;
+      // find new file name
+      while (filesystem::exists(newoutfile+".dat"))
+      {
+        newoutfile = buf + string(".") + to_string(cnt++);            
+      }      
+    }
+    if ((newoutfile != curoutfile) && curoutfile.length())
+    {            
+      remove((curoutfile+".dat").c_str());
+      remove((curoutfile+".log").c_str());
+    }
+    curoutfile = newoutfile;    
+  }
+  else
+  {
+    curoutfile = outfile;    
+  }
+
 }
 
 
-void NetworkHCStats::addglobal(Dag *src, double cost)
+void NetworkHCStatsGlobal::addglobal(Dag *src, double cost)
 {
     Dag *_;   
     if (!bestdags->size() || optcost > cost)
@@ -234,35 +309,153 @@ void NetworkHCStats::addglobal(Dag *src, double cost)
       setcost(cost);
       bestdags->add(*src, &_);        
       _newoptimal = true;
-      _improvements++;
+      _improvements++;      
       if (flag_hcsavewhenimproved)
-        saveglobal();
-    } else if (optcost == cost)
+      {
+        _checkoutfilename();
+        savedat();
+        savebestdags();
+      }
+    } 
+    else if (optcost == cost)
     {
       if (bestdags->add(*src, &_)) _improvements++;           
       if (flag_hcsavewhenimproved)
-        saveglobal();
+      {
+        _checkoutfilename();
+        savedat();
+        savebestdags();
+      }
     }
 }
 
 
-void NetworkHCStats::saveglobal(bool printinfo)
+void NetworkHCStatsGlobal::savebestdags(bool printinfo)
 {   
-    if (odtfile.length()) 
+    if (outfile.length()) 
     { 
-      save(odtfile);
-      if (printinfo) 
-      {
-        cout << "Optimal networks saved: " << odtfile << endl;
-      }
-    }
+      ostringstream ss;     
+      ss << *bestdags;      
+      _save(curoutfile + ".log", ss.str(), printinfo, "Best networks");      
+    }    
+}
 
-    if (datfile.length()) 
+void NetworkHCStatsGlobal::savedat(bool printinfo)
+{       
+    if (outfile.length()) 
     { 
-      savedat(datfile, odtlabelled);
+      ostringstream ss;
+      _savedat(ss, odtlabelled);    
+      _save(curoutfile+".dat", ss.str(), printinfo, "Stats");
+    }
+}
+
+void NetworkHCStatsGlobal::_save(string filename, string s, bool printinfo, string sinfo)
+{
+    ofstream f;
+    f.open(filename, ofstream::out);  
+    if(!f.is_open() || f.fail())
+    {
+        cout << "Could not open file " << filename << " to write. Redirecting to cout." << endl;          
+        cout << s;
+    }
+    else
+    {
+      f << s;    
+      f.close();
+
       if (printinfo) 
       { 
-        cout << "Stats data saved: " << datfile << endl;
+        cout << sinfo << " saved to " << filename << endl;
       }
     }   
 }
+
+extern int flag_hcdetailedsummarydat;
+
+void NetworkHCStatsGlobal::savedatmerged(bool printinfo,  vector<NetworkHCStatsGlobal*> globalstatsarr)
+{   
+
+    _checkoutfilename();
+
+    if (!globalstatsarr.size())
+    {
+        savedat(printinfo);
+        return;
+    }
+
+    if (outfile.length()) 
+    {
+
+      if (flag_hcdetailedsummarydat)
+      {
+        ostringstream ss;
+        int i = 0;
+        for (auto n: globalstatsarr) 
+        {
+          ss << "Sampler" << i++ << ":" << endl; // class
+          ss << "displaytreesampling=" << n->getsampling() << endl; 
+          n->_savedat(ss, odtlabelled, true);        
+          ss << endl;
+        }
+        ss << "ExactClimb:" << endl;
+        _savedat(ss, odtlabelled, true);              
+        ss << endl;
+
+        ofstream datf;
+        datf.open(curoutfile+".detailed.dat", std::ofstream::out);
+        datf << ss.str();
+        datf.close();
+
+        if (printinfo) 
+      { 
+        cout << "Detailed stats data saved: " << curoutfile << ".detailed.dat" << endl;
+      }
+
+      }
+
+      ostringstream ss;
+      // Merge 
+      for (auto n: globalstatsarr)       
+          merge(*n, false, false);
+            
+      _savedat(ss, odtlabelled);        
+
+      // Merge
+      ofstream datf;
+      datf.open(curoutfile+".dat", std::ofstream::out);
+      datf << ss.str();
+      datf.close();
+      
+      if (printinfo) 
+      { 
+        cout << "Stats data saved: " << curoutfile << ".dat" << endl;
+      }
+
+      // cout << ss;
+    }   
+}
+
+
+Dag* NetworkHCStatsBase::addeq(Dag &n)
+{
+    Dag *src;
+    if (bestdags->add(n, &src)) 
+    {           
+      // new eq
+      eqdags.push_back(src);
+    }   
+    topnetworks = bestdags->size();
+    return src;     
+}
+
+Dag* NetworkHCStatsBase::addnewbest(Dag &n, double cost) 
+{ 
+    setcost(cost);        
+    Dag *src;
+    bestdags->add(n, &src);   
+    topnetworks = bestdags->size();    
+    return src;     
+}
+
+
