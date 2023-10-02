@@ -364,7 +364,7 @@ Generate the picture of BB-tree search:
  - ` --hcpstats`: print stats after locating optimal networks after each HC runs
  - ` --hcpstatsext`: print extended stats after each HC run
 
- - `--hcrunstats`: print improvements stats after each HC runs
+ - `--hcrunstats`: print improvements stats after each HC run
  - `--hcrunstatsext`: print improvements stats after locating optimal networks after each HC run
  - `--hcrunstatsalways`: print stats after each HC run
  - `--noodtfiles`: do not save odt.log and odt.dat with optimal networks
@@ -1237,6 +1237,12 @@ Optimal networks saved: odt.log
 Stats data saved: odt.dat
 ```
 
+### Odt files optimizations
+
+Set '--hcignorecostgeq=COST' to omit saving odt files if the cost is too large.
+Set '--hcsavefinalodt' to save the final odt/log files, even if `--hcignorecostgeq` is set.
+
+
 ## Display tree sampler in HC
 
 HC algorithm may start with the approximated cost, before switching to exact computations, by sampling display trees in the naive algorithm.
@@ -1371,9 +1377,9 @@ parallel -q --jobs 10 --ungroup supnet -G wheat_trees_clean -R6 -q1 -v4 --HC --h
 ```
 
 Results in wheat_guided directory.
-
 ```
 cat wheat_guided/*.log | supnet -G wheat_trees_clean -N- --bestnetworks -v4
 cat odt.log
 ```
+
 

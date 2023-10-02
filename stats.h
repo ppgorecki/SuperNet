@@ -251,7 +251,7 @@ class NetworkHCStatsGlobal: public NetworkHCStatsBase
 		double curoutfilecost = 0;
 
   		void _save(string filename, string s, bool printinfo, string sinfo="");
-		virtual void _checkoutfilename();
+		virtual bool _checkoutfilename(bool finalfiles=false);
 
 	public: 
 
@@ -265,7 +265,7 @@ class NetworkHCStatsGlobal: public NetworkHCStatsBase
 	}
 
 
-	void savebestdags(bool printinfo = false);
+	void savebestdags(bool printinfo = false, bool finalfiles=false);
 	
 	void savedat(bool printinfo = false);
 
@@ -273,7 +273,7 @@ class NetworkHCStatsGlobal: public NetworkHCStatsBase
 
 	int merge(NetworkHCStatsBase &nhc, int printstats, bool fullmerge);
 
-	void savedatmerged(bool printinfo,  vector<NetworkHCStatsGlobal*> globalstatsarr);
+	void savedatmerged(bool printinfo,  vector<NetworkHCStatsGlobal*> globalstatsarr, bool finalfiles);
 	
 
 	void setoutfiles(string _outdirectory, string _outfiles,  bool _odtlabelled);
@@ -296,7 +296,7 @@ class NetworkHCStatsGlobalSampler: public NetworkHCStatsGlobal
 	protected:
 		float displaytreesampling;
 
-		void _checkoutfilename() {}
+		bool _checkoutfilename(bool finalfiles=false) { return false; }
 
 	public:
 		NetworkHCStatsGlobalSampler(int networkclass, int timeconsistency, DagSet &visiteddags, unsigned int randseed, float sampling) 

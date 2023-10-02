@@ -62,6 +62,9 @@ int flag_hcsamplerstats = 0;
 int flag_hcsamplingmaxnetstonextlevel = 0; // unlimited
 int flag_hcdetailedsummarydat = 0;
 float opt_hcstoptime = 0; 
+bool flag_hcignorecostgeq = 0; // if set 
+float opt_hcignorecostgeq = 0;
+int flag_hcsavefinalodt = 0; // ignore hcignorecostgeq for final files
 
 int print_repr_inodtnaive = 0;
 
@@ -314,6 +317,8 @@ int main(int argc, char **argv) {
       {"bestnetworks", no_argument, &flag_bestneworks, 1},
       
       {"hcmaximprovements", required_argument, NULL, 'F'},
+      {"hcignorecostgeq", required_argument, NULL, '4'},
+      {"hcsavefinalodt", no_argument, &flag_hcsavefinalodt, 1},
       {"hcstopinit", required_argument, NULL, 'Y'},
       {"hcstopclimb", required_argument, NULL, 'Z'},
       {"hcstoptime", required_argument, NULL, 'P'},
@@ -363,6 +368,11 @@ int main(int argc, char **argv) {
 
     case '3':
       flag_hcsamplingmaxnetstonextlevel=atoi(optarg);
+      break;
+
+    case '4': 
+      opt_hcignorecostgeq = atof(optarg);
+      flag_hcignorecostgeq = true;
       break;
 
 
@@ -1078,12 +1088,11 @@ int main(int argc, char **argv) {
 
     globalstatsarr.pop_back(); // remove the last global
 
-
     // merge all data and save odt/dat file(s); optional     
-    globalstats->savedatmerged(verbosealg >= 4, globalstatsarr);     
+    globalstats->savedatmerged(verbosealg >= 4, globalstatsarr, true);     
 
     // best dags to file
-    globalstats->savebestdags(verbosealg >= 4);
+    globalstats->savebestdags(verbosealg >= 4, true);
 
     // print summary
     globalstats->print();

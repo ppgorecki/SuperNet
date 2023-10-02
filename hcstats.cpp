@@ -265,9 +265,21 @@ void NetworkHCStatsGlobal::setoutfiles(string _outdirectory, string _outfiles,  
     curoutfilecost = 0;
 }
 
+extern bool flag_hcignorecostgeq;
+extern int flag_hcsavefinalodt;
+extern float opt_hcignorecostgeq;
+
 // Set new based on cost
-void NetworkHCStatsGlobal::_checkoutfilename()
+bool NetworkHCStatsGlobal::_checkoutfilename(bool finalfiles)
 {
+
+
+  if (flag_hcignorecostgeq && (optcost>=opt_hcignorecostgeq))
+  {
+    if (finalfiles==false || flag_hcsavefinalodt==false)
+      return false; // ignore
+  }
+
   if (flag_autooutfiles)
   { 
     string newoutfile = curoutfile;
@@ -298,6 +310,7 @@ void NetworkHCStatsGlobal::_checkoutfilename()
     curoutfile = outfile;    
   }
 
+  return true;
 }
 
 
@@ -312,9 +325,11 @@ void NetworkHCStatsGlobal::addglobal(Dag *src, double cost)
       _improvements++;      
       if (flag_hcsavewhenimproved)
       {
-        _checkoutfilename();
-        savedat();
-        savebestdags();
+        if (_checkoutfilename())
+        { 
+          savedat();
+          savebestdags();
+        }
       }
     } 
     else if (optcost == cost)
@@ -322,17 +337,19 @@ void NetworkHCStatsGlobal::addglobal(Dag *src, double cost)
       if (bestdags->add(*src, &_)) _improvements++;           
       if (flag_hcsavewhenimproved)
       {
-        _checkoutfilename();
-        savedat();
-        savebestdags();
+        if (_checkoutfilename())
+        {
+          savedat();
+          savebestdags();
+        }
       }
     }
 }
 
 
-void NetworkHCStatsGlobal::savebestdags(bool printinfo)
+void NetworkHCStatsGlobal::savebestdags(bool printinfo, bool finalfiles)
 {   
-    if (outfile.length()) 
+    if (_checkoutfilename(finalfiles))      
     { 
       ostringstream ss;     
       ss << *bestdags;      
@@ -373,10 +390,10 @@ void NetworkHCStatsGlobal::_save(string filename, string s, bool printinfo, stri
 
 extern int flag_hcdetailedsummarydat;
 
-void NetworkHCStatsGlobal::savedatmerged(bool printinfo,  vector<NetworkHCStatsGlobal*> globalstatsarr)
+void NetworkHCStatsGlobal::savedatmerged(bool printinfo,  vector<NetworkHCStatsGlobal*> globalstatsarr, bool finalfiles)
 {   
 
-    _checkoutfilename();
+    bool savefiles = _checkoutfilename(finalfiles);
 
     if (!globalstatsarr.size())
     {
@@ -402,15 +419,20 @@ void NetworkHCStatsGlobal::savedatmerged(bool printinfo,  vector<NetworkHCStatsG
         _savedat(ss, odtlabelled, true);              
         ss << endl;
 
-        ofstream datf;
-        datf.open(curoutfile+".detailed.dat", std::ofstream::out);
-        datf << ss.str();
-        datf.close();
 
-        if (printinfo) 
-      { 
-        cout << "Detailed stats data saved: " << curoutfile << ".detailed.dat" << endl;
-      }
+        if (savefiles)
+        {
+          ofstream datf;
+          datf.open(curoutfile+".detailed.dat", std::ofstream::out);
+          datf << ss.str();
+          datf.close();
+
+
+          if (printinfo) 
+          { 
+            cout << "Detailed stats data saved: " << curoutfile << ".detailed.dat" << endl;
+          }
+        }
 
       }
 
@@ -421,15 +443,19 @@ void NetworkHCStatsGlobal::savedatmerged(bool printinfo,  vector<NetworkHCStatsG
             
       _savedat(ss, odtlabelled);        
 
-      // Merge
-      ofstream datf;
-      datf.open(curoutfile+".dat", std::ofstream::out);
-      datf << ss.str();
-      datf.close();
+      if (savefiles)
+      {
+        // Merge
+        ofstream datf;
+        datf.open(curoutfile+".dat", std::ofstream::out);
+        datf << ss.str();
+        datf.close();
+
       
-      if (printinfo) 
-      { 
-        cout << "Stats data saved: " << curoutfile << ".dat" << endl;
+        if (printinfo) 
+        { 
+          cout << "Stats data saved: " << curoutfile << ".dat" << endl;
+        }
       }
 
       // cout << ss;
