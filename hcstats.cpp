@@ -295,7 +295,7 @@ bool NetworkHCStatsGlobal::_checkoutfilename(bool finalfiles)
       // find new file name
       while (filesystem::exists(newoutfile+".dat"))
       {
-        newoutfile = buf + string(".") + to_string(cnt++);            
+        newoutfile = outfile + buf + string(".") + to_string(cnt++);            
       }      
     }
     if ((newoutfile != curoutfile) && curoutfile.length())
