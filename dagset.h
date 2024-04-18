@@ -8,6 +8,8 @@
 // TODO: better implementation using hash arrays
 // TODO: usagecount improve
 
+extern int flag_saveextnewick;
+
 class DagSet
 {
 
@@ -126,10 +128,19 @@ public:
 		for( size_t i = 0; i < ds.v->size(); i++ )
 		{
 			Dag *d = (*ds.v)[i];
-
 			d->verifychildparent();
-			if (ds.usecounts) os << d->getusagecount() << "\t";
-	     	os << *d << endl;
+			if (!flag_saveextnewick)
+			{
+				if (ds.usecounts) os << d->getusagecount() << "\t";
+	     	}
+	     	os << *d;
+	     	if (flag_saveextnewick)
+			{
+				if (ds.usecounts)
+	     			os << "[&count=" << *d <<"]";
+	     		os << ";"; 
+	     	}
+	     	os << endl;    	
 	    }
 		return os;
 	}

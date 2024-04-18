@@ -10,6 +10,8 @@ using namespace std;
 #include <bits/stdc++.h>
 using namespace std;
 
+extern string flag_retidprefix;
+
 void Dag::init(int _lf, int _rt)
 {
     if (2*_lf+2*_rt-1 >= MAXNODEID) 
@@ -868,8 +870,8 @@ Dag::Dag(Dag *d, NODEID v, NODEID p, NODEID w, NODEID q, string retid, double da
     parent[root] = MAXNODEID;
 
     if (!retid.length())    
-        retid = "#"+std::to_string(rt);
-    
+      retid = "#"+flag_retidprefix + std::to_string(rt);
+      
 
     // insert ret. edge 
     // new retid = nn-1 

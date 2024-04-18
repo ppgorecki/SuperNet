@@ -86,10 +86,9 @@ Print all display trees with their ids '--pdisplaytreesext'.
 Display tree usage stats after HC run:
 ```  
 > supnet --HC -g '(a,(b,c));(b,(a,c))' -R1 -q1; supnet -N odt.log --pdisplaytrees | sort | uniq -c | sort -k1 -n
-   i: (c,((b)#1,(a,#1))) cost=2
-   >: ((c,#1),((b)#1,a)) cost=1
+   i: (#1,(((c,b))#1,a)) cost=1
    >: (#1,((c,(b)#1),a)) cost=0
-Cost:0 Steps:17 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:8.9407e-05 Naive:18 Naivetime:9.05991e-06 DTcnt:36
+Cost:0 TopNetworks:1 Steps:17 Climbs:4 HCruns:1 HCTime:8.17776e-05 Naive:18 Naivetime:1.0252e-05 DTcnt:36 Class:TreeChild TimeConsistency:0
       1 ((c,a),b)
       1 ((c,b),a)
 ```
@@ -166,8 +165,8 @@ By default, the generator produces tree-child networks without time-consistency 
 Print 2 quasi consensus trees with preserved split of the root.
 ```
 > supnet -g '(a,((b,c),d));(a,(b,e))' -s'((a,b),(c,(d,e)))' -q2 --preserveroot --pnetworks
-((e,(d,c)),(b,a))
-((b,a),(d,(e,c)))
+((e,(c,d)),(b,a))
+((c,(e,d)),(a,b))
 ```
 
 ### Guide clusters: used in quasi consensus 
@@ -176,10 +175,10 @@ Guide clusters are defined as a list of multifurcated trees separated by `;`. Al
 
 ```
 > supnet --guideclusters "(a,b,c);(d,e,(f,g))" -q4 --pnetworks
-(((f,g),(e,d)),((a,b),c))
-(((e,(g,f)),d),((a,c),b))
-((d,(e,(f,g))),((a,b),c))
-(((g,f),(d,e)),((a,c),b))
+((a,(b,c)),((f,g),(d,e)))
+((c,(b,a)),(d,((f,g),e)))
+(((b,c),a),(d,((g,f),e)))
+((((f,g),e),d),((b,a),c))
 ```
 
 ### Guide tree: forcing tree structure in networks
@@ -190,17 +189,17 @@ Note that random networks are not not generated using guide trees (i.e., with `-
 
 ```
 > supnet --guidetree "((a,b,c),(d,e,f))" -q4 --pnetworks
-(((f,e),d),((a,b),c))
-((f,(d,e)),(c,(b,a)))
-((c,(b,a)),(e,(f,d)))
-((c,(a,b)),((d,e),f))
+((c,(a,b)),(d,(e,f)))
+(((d,f),e),((b,a),c))
+((f,(e,d)),(a,(c,b)))
+(((a,c),b),(f,(d,e)))
 ```
 
 With reticulations; guide trees are separated by `;`.
 ```
 > supnet -A10 -q2  --pnetworks --guidetree '(a,b);(d,e,f)' -R3
-((((f,(e,d)),#3),(((c,h))#2,((j)#1,(i,(((a,b))#3,(#1,g)))))),#2)
-((#1,(((d,f),e),j)),(#2,(((((h,c))#1,g))#2,((((a,b))#3,i),#3))))
+((((((d,(e,f)),c))#3,j),(((((i)#1,(#3,h)))#2,(a,b)),#1)),(#2,g))
+((c)#3,(#2,(((((e,f),d))#1,((i,j),(((a,b),#1),((h)#2,g)))),#3)))
 ```
 
 ### Random trees
@@ -208,15 +207,15 @@ With reticulations; guide trees are separated by `;`.
 Print two random networks with no reticulations (i.e., species trees) using species {a,b,c,d,e} (`-A5`). 
 ```
 >  supnet -A5 -r2 --pnetworks
-(a,((d,e),(c,b)))
-(((a,c),(d,e)),b)
+((d,((c,b),a)),e)
+(a,((b,e),(d,c)))
 ```
 
 Print two quasi-consensus trees.
 ```
 > supnet -g '(a,((b,c),d));(a,(b,d))' -q2 --pnetworks
-(d,((c,a),b))
-((d,c),(b,a))
+(((b,c),d),a)
+((c,b),(d,a))
 ```
 
 ### Random networks 
@@ -224,36 +223,37 @@ Print two quasi-consensus trees.
 Print one random relaxed network with species {a,b,c}  and 5 reticulations.
 ```
 >  supnet -A3 -R5 -r1 --pnetworks --relaxed
-(((#4)#2)#5,((#3)#4,((#5,(a,((#2)#1,((c)#3,b)))),#1)))
+(#2,(#5,(#3,(#4,((((((((b)#2,c))#1)#3)#4)#5,a),#1)))))
 ```
 
 Print one quasi-consensus network with two reticulations.
 ```
 > supnet -G examples/gtrees.txt -q1 -R2 --pnetworks --pnetworkclusters
-((c)#1,((d)#2,((#1,(a,#2)),b)))
+(#2,((b)#1,((((d)#2,a),#1),c)))
 a 
 b 
 c 
 d 
 a d 
-a c d 
+a b d 
 a b c d 
 ```
 
 Print one quasi-consensus network with one reticulations and having guide tree clusters, and print all network clusters.
 ```
 > supnet -q1 -R2 --pnetworks --guideclusters '((a,b,c),(d,e,f))' --pnetworkclusters
-(((f,((d)#1,e)),#1),(b,(#2,((a)#2,c))))
+(((b,#2),a),((c)#2,((f)#1,((e,d),#1))))
 a 
 b 
 c 
 d 
 e 
 f 
-a c 
+b c 
 d e 
 a b c 
 d e f 
+c d e f 
 a b c d e f 
 ```
 
@@ -267,13 +267,13 @@ Use `-z SEED` or `--randseed SEED` to set seed for random generator (srand).
 Insert 2 reticulations into a network; tree-child network in output (default).
 ```  
 > supnet -R2 -n '(a,((d)#1,(b,(c,#1))))' --pnetworks
-(#3,((a)#3,(((c,#1))#2,((d)#1,(b,#2)))))
+(#3,((((b)#2,d))#1,(#2,((a)#3,(c,#1)))))
 ```
 
 Insert 8 reticulations into a network; general network `--general`
 ```  
 > supnet -R8 -n '(a,((d)#1,(b,(c,#1))))' --pnetworks --general 
-(((((#8)#3,(d)#1),(#3,#9)))#7,(((#2)#6,(((#6,#1))#9,(((((c)#2,#4))#8,((a)#5,(b)#4)),#5))),#7))
+(a,(((#1)#5)#7,(#3,(((((#2)#1)#3)#9,(#7,(((d)#8,#9),b))),(#6,(#4,(((((c)#6,#8))#2)#4,#5)))))))
 ```
 
 ## Cost functions 
@@ -359,7 +359,7 @@ Generate the picture of BB-tree search:
 
 ## Hill Climbing (HC) heuristic for DC cost (only) by using BB and/or ODT-naive 
 
- - `--HC`: run hill climbing heuristic for each initial network using cost function and print optimal cost, all optimal networks are written in odt.log file; summary stats are saved to odt.dat;
+ - `--HC`: run hill climbing heuristic for each initial network using cost function and print optimal cost, all optimal networks are written in odt.log file (default) or in odt.tre (if --saveextnewick is set); summary stats are saved to odt.dat;
  - ` --hcnnimove`: use NNI instead of TailMoves
  - ` --hcpstats`: print stats after locating optimal networks after each HC runs
  - ` --hcpstatsext`: print extended stats after each HC run
@@ -367,12 +367,12 @@ Generate the picture of BB-tree search:
  - `--hcrunstats`: print improvements stats after each HC run
  - `--hcrunstatsext`: print improvements stats after locating optimal networks after each HC run
  - `--hcrunstatsalways`: print stats after each HC run
- - `--noodtfiles`: do not save odt.log and odt.dat with optimal networks
+ - `--noodtfiles`: do not save odt.log/odt.tre and odt.dat with optimal networks
  - `--hcusenaive`: use only ODT naive algorithm in HCH (no BB)
  - `--hcstopinit=NUM`: stop when there is no new optimal network after HC with NUM initial networks
  - `--hcstopclimb=NUM`: stop in HC when there is no improvements after NUM steps
  - `--hcmaximprovements=NUM`: stop after NUM improvements in HC climb
- - `-O BASENAMEFILE, --outfiles`: base name of odt output files .log and .dat
+ - `-O BASENAMEFILE, --outfiles`: base name of odt output files .log/.tre and .dat
  - `-d DIRECTORY, --outdirectory`: directory to save output files, default is the current dir
   - `--odtlabelled`: odt and dat file in labelled format
 
@@ -425,10 +425,46 @@ Minimalistic hill climbing (HC) run using Tail Moves (default) with a single ran
    >: (((#1,d),#2),((((a)#2,c))#1,b)) cost=2
    >: (#2,((#1,d),((((a)#2,c))#1,b))) cost=1
    >: (#2,((#1,d),((a)#2,((c)#1,b)))) cost=0
-Cost:0 Steps:703 Climbs:8 TopNetworks:20 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.00435758 Naive:704 Naivetime:0.000680923 DTcnt:2795
+Cost:0 TopNetworks:20 Steps:703 Climbs:8 HCruns:1 HCTime:0.00446939 Naive:704 Naivetime:0.00068903 DTcnt:2795 Class:TreeChild TimeConsistency:0
 ```
 
 See more examples in the last section.
+
+## Saving extended newick and inserting prefix in reticulation ids
+
+```
+> supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -r1 -R2 --HC --randseed 13 --saveextnewick --retidprefix=H
+   i: ((#H1,d),(((((a)#H2,c),#H2))#H1,b)) cost=4
+   >: (((#H1,d),#H2),((((a)#H2,c))#H1,b)) cost=2
+   >: (#H2,((#H1,d),((((a)#H2,c))#H1,b))) cost=1
+   >: (#H2,((#H1,d),((a)#H2,((c)#H1,b)))) cost=0
+Cost:0 TopNetworks:20 Steps:703 Climbs:8 HCruns:1 HCTime:0.00651765 Naive:704 Naivetime:0.00101852 DTcnt:2795 Class:TreeChild TimeConsistency:0
+```
+
+Output in odt.tre (not odt.log).
+```
+> cat odt.tre
+(#H2,((#H1,d),((a)#H2,((c)#H1,b))));
+(#H2,(#H1,((a)#H2,(((c,d))#H1,b))));
+(#H2,(((c)#H1,(#H1,d)),((a)#H2,b)));
+(#H2,((#H1,d),((c)#H1,((a)#H2,b))));
+(#H2,((c)#H1,((#H1,d),((a)#H2,b))));
+(#H2,((#H1,d),((((c)#H1,a))#H2,b)));
+(#H2,(#H1,(((((c,d))#H1,a))#H2,b)));
+(#H2,((c,#H1),((((d)#H1,a))#H2,b)));
+(#H2,(#H1,(((c,d))#H1,((a)#H2,b))));
+((#H2,(((c,d))#H1,((a)#H2,b))),#H1);
+(#H2,((c,#H1),((d)#H1,((a)#H2,b))));
+(#H2,(#H1,((c,(d)#H1),((a)#H2,b))));
+(#H2,(((#H1,c),(d)#H1),((a)#H2,b)));
+(#H2,((c,(d)#H1),((a)#H2,(#H1,b))));
+((#H2,((c,(d)#H1),((a)#H2,b))),#H1);
+((#H2,(((c)#H1,d),((a)#H2,b))),#H1);
+((#H2,((a)#H2,(((c,d))#H1,b))),#H1);
+((#H2,(((((a)#H2,c),d))#H1,b)),#H1);
+((#H2,(((c,((a)#H2,d)))#H1,b)),#H1);
+((#H2,((((a)#H2,(c,d)))#H1,b)),#H1);
+```
 
 ## Verbose in algorithms 
 
@@ -447,7 +483,7 @@ Print only improvements in HC `-v1`:
 > supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d))" -r1 -R1 --HC -v1 --randseed 13
    i: ((#1,d),(((c,a))#1,b)) cost=5
    >: (((c,#1),d),((a)#1,b)) cost=2
-Cost:2 Steps:96 Climbs:4 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000315189 Naive:97 Naivetime:6.34193e-05 DTcnt:194
+Cost:2 TopNetworks:3 Steps:96 Climbs:4 HCruns:1 HCTime:0.000304222 Naive:97 Naivetime:5.6982e-05 DTcnt:194 Class:TreeChild TimeConsistency:0
 ```
 
 Print improvements and equal cost networks `-v2`:
@@ -457,7 +493,7 @@ Print improvements and equal cost networks `-v2`:
    >: (((c,#1),d),((a)#1,b)) cost=2
    =: ((a)#1,(((c,#1),d),b)) cost=2
    =: ((a)#1,((c,d),(b,#1))) cost=2
-Cost:2 Steps:96 Climbs:4 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000326633 Naive:97 Naivetime:6.29425e-05 DTcnt:194
+Cost:2 TopNetworks:3 Steps:96 Climbs:4 HCruns:1 HCTime:0.000311613 Naive:97 Naivetime:5.48363e-05 DTcnt:194 Class:TreeChild TimeConsistency:0
 ```
 
 Print every visited network `-v3`:
@@ -482,7 +518,7 @@ Print every visited network `-v3`:
    <: (#1,((a)#1,(b,c))) cost=1
    <: ((#1,c),((a)#1,b)) cost=1
    <: (#1,(((a,c))#1,b)) cost=2
-Cost:0 Steps:18 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000101805 Naive:19 Naivetime:9.77516e-06 DTcnt:38
+Cost:0 TopNetworks:1 Steps:18 Climbs:6 HCruns:1 HCTime:0.000104189 Naive:19 Naivetime:1.16825e-05 DTcnt:38 Class:TreeChild TimeConsistency:0
 ```
 
 To show details on DP & BB algorithms use `-v` with 4, 5 and 6. See examples below.
@@ -498,7 +534,7 @@ HC with guide trees.
    >: (((#3,c))#2,((((a,b))#3,((((f,g),(e,d)))#1,(#1,h))),#2)) cost=9
    i: ((((b,a))#3,(((((g,f),(e,d)))#1,((c)#2,(h,#2))),#3)),#1) cost=10
    >: (((((b,a),#2))#3,(((((g,f),(e,d)))#1,((c)#2,h)),#3)),#1) cost=9
-Cost:9 Steps:2151 Climbs:10 TopNetworks:103 Class:TreeChild TimeConsistency:0 HCruns:2 HCTime:0.105543 Naive:2153 Naivetime:0.00626135 DTcnt:17224
+Cost:9 TopNetworks:103 Steps:2151 Climbs:10 HCruns:2 HCTime:0.105818 Naive:2153 Naivetime:0.00676727 DTcnt:17224 Class:TreeChild TimeConsistency:0
 ```
 
 HC with guide clusters.
@@ -515,7 +551,7 @@ HC with guide clusters.
    >: (#1,(((d)#3,(f,e)),((((#2,g),#3))#1,(((b,a))#2,c)))) cost=2
    >: (#1,(((d)#3,(f,e)),(((((#2,g),a),#3))#1,((b)#2,c)))) cost=1
    >: (((#2,g),#1),(((d)#3,(f,e)),(((a)#1,((b)#2,c)),#3))) cost=0
-Cost:0 Steps:2944 Climbs:16 TopNetworks:53 Class:TreeChild TimeConsistency:0 HCruns:2 HCTime:0.0629137 Naive:2946 Naivetime:0.00739336 DTcnt:23410
+Cost:0 TopNetworks:53 Steps:2944 Climbs:16 HCruns:2 HCTime:0.0680449 Naive:2946 Naivetime:0.0101357 DTcnt:23410 Class:TreeChild TimeConsistency:0
 ```
 
 ## Networks/dags comparing and aggregating
@@ -589,11 +625,11 @@ unique=5 all=0
 Print unique random shapes of networks with counts using uniform draw
 ```  
 > supnet -r100000 -R1 -A3 --dagshapes --uniformedgesampling --uniquedagscnts
-14198	((((b,a))#1,c),#1)
-28763	((b)#1,(a,(#1,c)))
-14163	(((a)#1,c),(b,#1))
-28406	((((a)#1,c),#1),b)
-14470	(#1,((c)#1,(a,b)))
+28672	((((b)#1,c),#1),a)
+28586	((c)#1,(b,(a,#1)))
+14226	((#1,b),((c)#1,a))
+14172	((b)#1,(#1,(a,c)))
+14344	(#1,(((c,a))#1,b))
 unique=5 all=0
 ```
 
@@ -687,49 +723,37 @@ supnet --hcstopclimb=10 ...
 Do not print detailed stats for individual HC runs.
 ```
 > supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC -v0 --randseed 13
-Cost:3 Steps:2066 Climbs:43 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00680876 Naive:2074 Naivetime:0.00165772 DTcnt:4148
+Cost:3 TopNetworks:1 Steps:2066 Climbs:43 HCruns:8 HCTime:0.00661349 Naive:2074 Naivetime:0.00131178 DTcnt:4148 Class:TreeChild TimeConsistency:0
 ```
 
 Print stats after completed HC run for each initial network when only when new optimal network is found.
 ```
 > supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC --hcrunstats -v0 --randseed 13
-1. Cost:4 Steps:266 Climbs:3 TopNetworks:5 Class:TreeChild TimeConsistency:0
- New optimal cost: 4
-5. Cost:3 Steps:182 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0
- New optimal cost: 3
-Cost:3 Steps:2066 Climbs:43 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00700283 Naive:2074 Naivetime:0.00165749 DTcnt:4148
+1.  Steps:0 Climbs:0 New optimal cost: 4
+5.  Steps:0 Climbs:0 New optimal cost: 3
+Cost:3 TopNetworks:1 Steps:2066 Climbs:43 HCruns:8 HCTime:0.00752974 Naive:2074 Naivetime:0.00161791 DTcnt:4148 Class:TreeChild TimeConsistency:0
 ```
 
 Print stats after completed HC run for each initial network when a new optimal network including equal networks is found.
 ```
 > supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC --hcrunstatsext -v0 --randseed 13
-1. Cost:4 Steps:266 Climbs:3 TopNetworks:5 Class:TreeChild TimeConsistency:0
- New optimal cost: 4
-5. Cost:3 Steps:182 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0
- New optimal cost: 3
-Cost:3 Steps:2066 Climbs:43 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00709414 Naive:2074 Naivetime:0.00165248 DTcnt:4148
+1.  Steps:0 Climbs:0 New optimal cost: 4
+5.  Steps:0 Climbs:0 New optimal cost: 3
+Cost:3 TopNetworks:1 Steps:2066 Climbs:43 HCruns:8 HCTime:0.00679064 Naive:2074 Naivetime:0.00133586 DTcnt:4148 Class:TreeChild TimeConsistency:0
 ```
 
 Print stats after completed HC run.
 ```
 > supnet -g "(a,(b,(c,d))); ((a,b),(c,d)); ((a,c),(b,d)); ((a,d),e)" -r8 -R1 --HC --hcrunstatsalways -v0 --randseed 13
-1. Cost:4 Steps:266 Climbs:3 TopNetworks:5 Class:TreeChild TimeConsistency:0
- New optimal cost: 4
-2. Cost:6 Steps:160 Climbs:4 TopNetworks:2 Class:TreeChild TimeConsistency:0
- New optimal networks:0 Total:5
-3. Cost:4 Steps:247 Climbs:1 TopNetworks:5 Class:TreeChild TimeConsistency:0
- New optimal networks:0 Total:5
-4. Cost:4 Steps:255 Climbs:3 TopNetworks:5 Class:TreeChild TimeConsistency:0
- New optimal networks:0 Total:5
-5. Cost:3 Steps:182 Climbs:6 TopNetworks:1 Class:TreeChild TimeConsistency:0
- New optimal cost: 3
-6. Cost:3 Steps:371 Climbs:9 TopNetworks:1 Class:TreeChild TimeConsistency:0
- New optimal networks:0 Total:1
-7. Cost:4 Steps:292 Climbs:7 TopNetworks:5 Class:TreeChild TimeConsistency:0
- New optimal networks:0 Total:1
-8. Cost:4 Steps:293 Climbs:6 TopNetworks:3 Class:TreeChild TimeConsistency:0
- New optimal networks:0 Total:1
-Cost:3 Steps:2066 Climbs:43 TopNetworks:1 Class:TreeChild TimeConsistency:0 HCruns:8 HCTime:0.00736785 Naive:2074 Naivetime:0.00177097 DTcnt:4148
+1.  Steps:0 Climbs:0 New optimal cost: 4
+2.  Steps:0 Climbs:0 New optimal networks:0 Total:5
+3.  Steps:0 Climbs:0 New optimal networks:0 Total:5
+4.  Steps:0 Climbs:0 New optimal networks:0 Total:5
+5.  Steps:0 Climbs:0 New optimal cost: 3
+6.  Steps:0 Climbs:0 New optimal networks:0 Total:1
+7.  Steps:0 Climbs:0 New optimal networks:0 Total:1
+8.  Steps:0 Climbs:0 New optimal networks:0 Total:1
+Cost:3 TopNetworks:1 Steps:2066 Climbs:43 HCruns:8 HCTime:0.00649858 Naive:2074 Naivetime:0.00126171 DTcnt:4148 Class:TreeChild TimeConsistency:0
 ```
 
 #### Run naive odt computation threshold `-t THRESHOLD`
@@ -776,9 +800,9 @@ ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=2
    <: (#1,(b,(d,((c,a))#1))) cost=2
 HC run completed: (#1,((b,(d,(c)#1)),a)) cost=0
-Cost:0 Steps:410 Climbs:2 TopNetworks:19 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.0021975 Naive:411 Naivetime:0.000174046 DTcnt:809
-Optimal networks saved: odt.log
-Stats data saved: odt.dat
+Stats saved to odt.dat
+Best networks saved to odt.log
+Cost:0 TopNetworks:19 Steps:410 Climbs:2 HCruns:1 HCTime:0.0022347 Naive:411 Naivetime:0.000195742 DTcnt:809 Class:TreeChild TimeConsistency:0
 ```
 
 Lower `-t`, more BB & DP computations
@@ -820,9 +844,9 @@ ODT-cost-naive 1 tree(s);rt=1(-t) cost=1
 ODT-cost-naive 1 tree(s);rt=1(-t) cost=2
    <: (#1,(b,(d,((c,a))#1))) cost=2
 HC run completed: (#1,((b,(d,(c)#1)),a)) cost=0
-Cost:0 Steps:410 Climbs:2 TopNetworks:19 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.00220919 Naive:411 Naivetime:0.000168085 DTcnt:809
-Optimal networks saved: odt.log
-Stats data saved: odt.dat
+Stats saved to odt.dat
+Best networks saved to odt.log
+Cost:0 TopNetworks:19 Steps:410 Climbs:2 HCruns:1 HCTime:0.00229454 Naive:411 Naivetime:0.000186205 DTcnt:809 Class:TreeChild TimeConsistency:0
 ```
 
 ### NNI vs Tail Moves
@@ -868,7 +892,7 @@ HC via Tail Moves (default)
    <: ((c,((a)#1,d)),(b,#1)) cost=3
    <: (((a)#1,(c,d)),(b,#1)) cost=3
    <: ((c,d),((a)#1,(b,#1))) cost=3
-Cost:2 Steps:96 Climbs:4 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000408649 Naive:97 Naivetime:6.4373e-05 DTcnt:194
+Cost:2 TopNetworks:3 Steps:96 Climbs:4 HCruns:1 HCTime:0.000420094 Naive:97 Naivetime:5.72205e-05 DTcnt:194 Class:TreeChild TimeConsistency:0
 ```
 
 HC via NNI moves 
@@ -883,7 +907,7 @@ HC via NNI moves
    =: ((b,(d,((c,a))#1)),#1) cost=4
    <: (((d,((c,a))#1),#1),b) cost=5
    <: ((#1,b),(d,((c,a))#1)) cost=5
-Cost:4 Steps:7 Climbs:4 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:7.31945e-05 Naive:8 Naivetime:7.86781e-06 DTcnt:16
+Cost:4 TopNetworks:3 Steps:7 Climbs:4 HCruns:1 HCTime:7.10487e-05 Naive:8 Naivetime:7.39098e-06 DTcnt:16 Class:TreeChild TimeConsistency:0
 ```
 
 #### Default tree-child networks and Tail Moves:
@@ -898,7 +922,7 @@ Cost:4 Steps:7 Climbs:4 TopNetworks:3 Class:TreeChild TimeConsistency:0 HCruns:1
    =: (((c)#3,((((((#3,d))#1,b))#2,a),#1)),#2) cost=0
    =: (((((((#3,d))#1,b))#2,((c)#3,a)),#1),#2) cost=0
    =: (#1,((((((#3,d))#1,b))#2,((c)#3,a)),#2)) cost=0
-Cost:0 Steps:121 Climbs:8 TopNetworks:5 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.000751972 Naive:122 Naivetime:0.000237942 DTcnt:966
+Cost:0 TopNetworks:5 Steps:121 Climbs:8 HCruns:1 HCTime:0.000770092 Naive:122 Naivetime:0.000240803 DTcnt:966 Class:TreeChild TimeConsistency:0
 ```
 
 ```
@@ -916,7 +940,7 @@ Cost:0 Steps:121 Climbs:8 TopNetworks:5 Class:TreeChild TimeConsistency:0 HCruns
    i: ((#1)#3,((#3,d),(((((a)#2,c),#2))#1,b))) cost=4
    >: ((#1)#3,(((((a)#2,c),#3),d),((#2)#1,b))) cost=1
    >: (((c,#1))#3,((a)#2,((#3,d),((#2)#1,b)))) cost=0
-Cost:0 Steps:233 Climbs:6 TopNetworks:2 Class:Relaxed TimeConsistency:0 HCruns:1 HCTime:0.00120163 Naive:234 Naivetime:0.000477314 DTcnt:1866
+Cost:0 TopNetworks:2 Steps:221 Climbs:6 HCruns:1 HCTime:0.00114369 Naive:222 Naivetime:0.000426531 DTcnt:1770 Class:Relaxed TimeConsistency:0
 ```
 
 ```
@@ -966,7 +990,7 @@ Cost:0 Steps:233 Climbs:6 TopNetworks:2 Class:Relaxed TimeConsistency:0 HCruns:1
    =: ((c)#3,(((a,(b)#2),#1),(((#3)#1,d),#2))) cost=0
    =: (#3,(((#2,d))#1,((((c,#1))#3,(b)#2),a))) cost=0
    =: ((((#3,d))#1,(((b)#2,#1),((c)#3,a))),#2) cost=0
-Cost:0 Steps:52673 Climbs:4 TopNetworks:680 Class:General TimeConsistency:0 HCruns:1 HCTime:3.88446 Naive:52674 Naivetime:0.120052 DTcnt:420111
+Cost:0 TopNetworks:680 Steps:52673 Climbs:4 HCruns:1 HCTime:3.8679 Naive:52674 Naivetime:0.109817 DTcnt:420111 Class:General TimeConsistency:0
 ```
 
 ```
@@ -1057,7 +1081,7 @@ Note that using a broader network class does not guarantee a better cost.
    =: (((#1)#2,(d)#3),((b,#3),(((c)#1,a),#2))) cost=1
    =: (((#1)#2,(d)#3),((((c)#1,b),#3),(a,#2))) cost=1
    >: (((#1)#2,(((c)#1,d))#3),((b,#3),(a,#2))) cost=0
-Cost:0 Steps:176 Climbs:10 TopNetworks:1 Class:General TimeConsistency:1 HCruns:1 HCTime:0.00196719 Naive:177 Naivetime:0.00036931 DTcnt:1414
+Cost:0 TopNetworks:1 Steps:176 Climbs:10 HCruns:1 HCTime:0.00194407 Naive:177 Naivetime:0.000349283 DTcnt:1414 Class:General TimeConsistency:1
 ```
 
 ### Global cache of networks in HC runs
@@ -1069,14 +1093,14 @@ This feature is not optimized. For large sets of networks, it may be slower that
 
 ```
 > supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -r1 -R2 --randseed 13 --HC --odtlabelled -v0
-Cost:0 Steps:703 Climbs:8 TopNetworks:20 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.00411057 Naive:704 Naivetime:0.000678778 DTcnt:2795
+Cost:0 TopNetworks:20 Steps:703 Climbs:8 HCruns:1 HCTime:0.00404644 Naive:704 Naivetime:0.000644445 DTcnt:2795 Class:TreeChild TimeConsistency:0
 ```
 
 ```
 > cat odt.dat
 optcost=0
-time=0.00411081
-hctime=0.00411057
+time=0.00404668
+hctime=0.00404644
 mergetime=2.38419e-07
 topnets=20
 class=0
@@ -1087,7 +1111,7 @@ bbruns=0
 startnets=1
 memoryMB=6
 dtcnt=2795
-naivetime=0.000678778
+naivetime=0.000644445
 naivecnt=704
 bbnaivecnt=0
 bbnaivetime=0
@@ -1127,9 +1151,8 @@ Larger instance; tree-child search:
    >: (((((((e)#2,a))#7,h))#6,(((((i)#4,(#3,((#2,(g,#8)),#6))))#1,((#7,(((j)#8,d),(b)#3)),(((#4,c))#5,f))),#5)),#1) cost=18
    >: (((((((e)#2,a))#7,h))#6,((#4,((((i)#4,(#3,((#2,(g,#8)),#6))))#1,((#7,(((j)#8,d),(b)#3)),((c)#5,f)))),#5)),#1) cost=17
    >: (((#4,(((#7,((((((((a)#7,h))#6,i))#4,e))#2,(d,(b)#3))),(j)#8),(((#3,((#2,(g,#8)),#6)))#1,((c)#5,f)))),#5),#1) cost=16
-1. Cost:16 Steps:46020 Climbs:26 TopNetworks:60 Class:TreeChild TimeConsistency:0
- New optimal cost: 16
-Cost:16 Steps:46020 Climbs:52 TopNetworks:60 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:20.5688 Naive:46021 Naivetime:14.9772 DTcnt:11781376
+1.  Steps:0 Climbs:0 New optimal cost: 16
+Cost:16 TopNetworks:60 Steps:46020 Climbs:52 HCruns:1 HCTime:13.6933 Naive:46021 Naivetime:8.59259 DTcnt:11781376 Class:TreeChild TimeConsistency:0
 ```
 
 Recommended with large HC-runs using quasi-consensus rand networks
@@ -1154,23 +1177,23 @@ Recommended with large HC-runs using quasi-consensus rand networks
    >: ((#2,((((((d)#3,a))#2,(c,#3)))#1,b)),#1) cost=0
    i: ((#1,(#2,((((((c)#2,a))#1,d))#3,b))),#3) cost=3
    >: ((#1,((((((c)#2,a))#1,(#2,d)))#3,b)),#3) cost=0
-Cost:0 Steps:470980 Climbs:2623 TopNetworks:254 Class:TreeChild TimeConsistency:0 HCruns:1000 HCTime:8.92229 Naive:471980 Naivetime:0.851009 DTcnt:3687318
+Cost:0 TopNetworks:254 Steps:470980 Climbs:2623 HCruns:1000 HCTime:8.73315 Naive:471980 Naivetime:0.830175 DTcnt:3687318 Class:TreeChild TimeConsistency:0
 ```
 
 ### Using stopping criterion (--hcstopinit=1000) with quasi-consensus rand networks.
 
 ```  
 > supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -q-1 -R3 --HC --hcrunstats --hcstopinit=1000 --randseed 13 | tail -10
-   >: ((d)#2,(#3,((((a)#1,(c,#2)))#3,(#1,b)))) cost=1
-   >: ((d)#2,(#3,(#1,((((a)#1,(c,#2)))#3,b)))) cost=0
-   i: (#3,(((#1,((c)#2,((d)#1,a))))#3,(#2,b))) cost=4
-   >: (#3,((((c)#2,((d)#1,a)))#3,(#2,(#1,b)))) cost=3
-   >: (#3,(((((#1,c))#2,((d)#1,a)))#3,(#2,b))) cost=1
-   >: (#3,(#2,(((((#1,c))#2,((d)#1,a)))#3,b))) cost=0
-   i: (((((d)#2,((b)#3,c)),#2))#1,((#1,a),#3)) cost=1
-   >: ((((d)#2,((b)#3,(c,#2))))#1,((#1,a),#3)) cost=0
-   i: (#2,((((((((d)#1,a))#3,c),#1))#2,b),#3)) cost=0
-Cost:0 Steps:492723 Climbs:2734 TopNetworks:254 Class:TreeChild TimeConsistency:0 HCruns:1047 HCTime:9.3128 Naive:493770 Naivetime:0.88283 DTcnt:3857600
+   i: ((d)#2,((((b,#2))#3,(((#3,c))#1,a)),#1)) cost=2
+   >: ((d)#2,(((b)#3,(((#3,(c,#2)))#1,a)),#1)) cost=0
+   i: ((#3,((d)#2,(((((a)#3,b),#2))#1,c))),#1) cost=1
+   >: (#3,(#1,((d)#2,(((((a)#3,b),#2))#1,c)))) cost=0
+   i: ((d)#2,(#3,(#2,((c)#3,((b)#1,(a,#1)))))) cost=4
+   >: ((d)#2,(#3,((#2,((c)#3,((b)#1,a))),#1))) cost=3
+   >: ((d)#2,(#3,((((#2,c))#3,((b)#1,a)),#1))) cost=1
+   >: ((d)#2,(#3,((((#2,c),#1))#3,((b)#1,a)))) cost=0
+   i: ((#1,(((((c)#2,((b)#1,a)))#3,d),#2)),#3) cost=0
+Cost:0 TopNetworks:254 Steps:263275 Climbs:1449 HCruns:547 HCTime:4.97781 Naive:263822 Naivetime:0.467635 DTcnt:2060491 Class:TreeChild TimeConsistency:0
 ```
 
 ### Using time stop criterion in HC in seconds `--hcstoptime=TIME`, i.e., stop a HC climb if there is no improvement after TIME seconds.
@@ -1196,12 +1219,16 @@ HC start: hcusenaive=0 runnaiveleqrt=13 tailmove=1
    >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,(e,#6))))#2,(#1,((((#7,((i)#4,(#2,(g,#8)))))#1,((j)#8,f)),#5))) cost=28
    >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,(#1,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5))) cost=27
    >: ((((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5)),#1) cost=25
-HC run stopped due to timeout, cost=25
-1. Cost:25 Steps:1556 Climbs:18 TopNetworks:10 Class:TreeChild TimeConsistency:0
- New optimal cost: 25
-Cost:25 Steps:1556 Climbs:36 TopNetworks:10 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.500043 Naive:1557 Naivetime:0.481957 DTcnt:398592
-Optimal networks saved: odt.log
-Stats data saved: odt.dat
+   >: (((((((((a)#7,h))#6,(#4,c)))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,(((d,b))#3,((j)#8,f))),#5)),#1) cost=24
+   >: (((((((((a)#7,h))#6,(#4,c)))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,(((((j)#8,d),b))#3,f)),#5)),#1) cost=23
+   >: ((((e,#6))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,(((((((((a)#7,h))#6,(#4,c)))#5,((j)#8,d)),b))#3,f)),#5)),#1) cost=22
+   >: (((((#7,((((((a)#7,h))#6,(#4,c)))#5,((j)#8,(((e,#6))#2,d)))),b))#3,((((#3,(#2,((i)#4,(g,#8)))))#1,f),#5)),#1) cost=20
+   >: (((((#7,(((#4,c))#5,((j)#8,d))),b))#3,((((((e)#2,a))#7,h))#6,((((#3,((#2,(((i)#4,g),#8)),#6)))#1,f),#5))),#1) cost=19
+HC run stopped due to timeout, cost=19
+1.  Steps:0 Climbs:0 New optimal cost: 19
+Stats saved to odt.dat
+Best networks saved to odt.log
+Cost:19 TopNetworks:65 Steps:8251 Climbs:46 HCruns:1 HCTime:1.82087 Naive:8252 Naivetime:1.50564 DTcnt:2112512 Class:TreeChild TimeConsistency:0
 ```
 
 ### Save odt files after each improvement
@@ -1229,12 +1256,15 @@ HC start: hcusenaive=0 runnaiveleqrt=13 tailmove=1
    >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(#3,(e,#6))))#2,(#1,((((#7,((i)#4,(#2,(g,#8)))))#1,((j)#8,f)),#5))) cost=28
    >: (((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,(#1,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5))) cost=27
    >: ((((((((d,b))#3,((((a)#7,h))#6,(#4,c))))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,((j)#8,f)),#5)),#1) cost=25
-HC run stopped due to timeout, cost=25
-1. Cost:25 Steps:1488 Climbs:18 TopNetworks:4 Class:TreeChild TimeConsistency:0
- New optimal cost: 25
-Cost:25 Steps:1488 Climbs:36 TopNetworks:4 Class:TreeChild TimeConsistency:0 HCruns:1 HCTime:0.500284 Naive:1489 Naivetime:0.468969 DTcnt:381184
-Optimal networks saved: odt.log
-Stats data saved: odt.dat
+   >: (((((((((a)#7,h))#6,(#4,c)))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,(((d,b))#3,((j)#8,f))),#5)),#1) cost=24
+   >: (((((((((a)#7,h))#6,(#4,c)))#5,(e,#6)))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,(((((j)#8,d),b))#3,f)),#5)),#1) cost=23
+   >: ((((e,#6))#2,((((#7,(#3,((i)#4,(#2,(g,#8))))))#1,(((((((((a)#7,h))#6,(#4,c)))#5,((j)#8,d)),b))#3,f)),#5)),#1) cost=22
+   >: (((((#7,((((((a)#7,h))#6,(#4,c)))#5,((j)#8,(((e,#6))#2,d)))),b))#3,((((#3,(#2,((i)#4,(g,#8)))))#1,f),#5)),#1) cost=20
+HC run stopped due to timeout, cost=20
+1.  Steps:0 Climbs:0 New optimal cost: 20
+Stats saved to odt.dat
+Best networks saved to odt.log
+Cost:20 TopNetworks:43 Steps:5868 Climbs:44 HCruns:1 HCTime:1.51163 Naive:5869 Naivetime:1.26863 DTcnt:1502464 Class:TreeChild TimeConsistency:0
 ```
 
 ### Odt files optimizations
@@ -1253,6 +1283,45 @@ In such a scenario, the HC algorithm will engage in a sequence of N+1 iterative 
 
 ```
 > supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 -v4 --HC --hcrunstats --hcstoptime=0.5 --randseed 13 --hcsavewhenimproved --displaytreesampling="0.125 0.25 0.5"
+HC start: hcusenaive=0 runnaiveleqrt=13 tailmove=1
+   i: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,((((((i)#4,(#7,(#2,g))))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=59
+   >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,((((((i)#4,(#7,g)))#1,((#2,b),(#1,(#4,((j)#8,f))))),#5),#6)) cost=54
+   >: ((((((d)#3,(((((#3,((a)#7,h)))#6,c),b),#8)))#5,e))#2,((((((i)#4,(#7,g)))#1,(#2,(#1,(#4,((j)#8,f))))),#5),#6)) cost=53
+   >: ((((((d)#3,(b,#8)))#5,e))#2,((((((i)#4,(((((#3,((a)#7,h)))#6,c),#7),g)))#1,(#2,(#1,(#4,((j)#8,f))))),#5),#6)) cost=50
+   >: ((((((d)#3,(b,#8)))#5,e))#2,((((((i)#4,(#7,g)))#1,(((((#3,((a)#7,h)))#6,c),#2),(#1,(#4,((j)#8,f))))),#5),#6)) cost=49
+   >: ((((((d)#3,(b,#8)))#5,e))#2,((((((i)#4,(#7,g)))#1,(#2,(#1,(#4,((j)#8,f))))),((((#3,((a)#7,h)))#6,c),#5)),#6)) cost=47
+   >: ((((((d)#3,(b,#8)))#5,e))#2,((((((i)#4,(#7,g)))#1,(#2,(#1,(#4,((j)#8,(f,#5)))))),(((#3,((a)#7,h)))#6,c)),#6)) cost=46
+   >: (((#7,((((d)#3,(b,#8)))#5,e)))#2,((((((i)#4,g))#1,(#2,(#1,(#4,((j)#8,(f,#5)))))),(((#3,((a)#7,h)))#6,c)),#6)) cost=45
+   >: (((#7,((((d)#3,(b,#8)))#5,e)))#2,((((((i)#4,g))#1,(#2,(#1,((j)#8,(f,#5))))),(#4,(((#3,((a)#7,h)))#6,c))),#6)) cost=44
+   >: (((#7,((((d)#3,(b,#8)))#5,e)))#2,((((((i)#4,g))#1,(#2,(#1,((j)#8,f)))),(#4,((((#3,((a)#7,h)))#6,c),#5))),#6)) cost=41
+   >: (((#7,(#1,((((d)#3,(b,#8)))#5,e))))#2,((((((i)#4,g))#1,(#2,((j)#8,f))),(#4,((((#3,((a)#7,h)))#6,c),#5))),#6)) cost=38
+   >: (((#7,((((d)#3,(b,#8)))#5,e)))#2,((((((i)#4,g))#1,(#2,(((#1,j))#8,f))),(#4,((((#3,((a)#7,h)))#6,c),#5))),#6)) cost=37
+   >: (((#7,((((d)#3,(b,#8)))#5,e)))#2,((#4,(((((i)#4,g))#1,(#2,(((#1,j))#8,f))),((((#3,((a)#7,h)))#6,c),#5))),#6)) cost=36
+   >: (((#7,((((d)#3,(b,#8)))#5,e)))#2,((#4,((((#3,((a)#7,h)))#6,c),#5)),(((((i)#4,g))#1,(#2,(((#1,j))#8,f))),#6))) cost=35
+   >: (((#7,((((d)#3,(b,#8)))#5,e)))#2,((#4,((((#3,((a)#7,h)))#6,c),#5)),((#2,(((#1,((((i)#4,g))#1,j)))#8,f)),#6))) cost=34
+   >: ((((#7,(#1,((((d)#3,b))#5,e))),#8))#2,((#4,((((#3,((a)#7,h)))#6,c),#5)),(((#2,f),(((((i)#4,g))#1,j))#8),#6))) cost=33
+   >: ((((#7,(#1,((((d)#3,b))#5,e))),#8))#2,((#4,(((((#3,((a)#7,h)))#6,c),#5),(((((i)#4,g))#1,j))#8)),((#2,f),#6))) cost=32
+HC run completed: ((((#7,((((d)#3,b))#5,e)),#8))#2,((#4,(((((#3,((a)#7,h)))#6,c),#5),(((((i)#4,g))#1,j))#8)),((#2,(#1,f)),#6))) cost=32
+...
+   >: ((((#7,((#1,(#3,((a)#7,h))),e)),#8))#2,((#4,(((((((d)#3,b))#5,(#2,f)))#6,c),((((((i)#4,g))#1,j),#5))#8)),#6)) cost=28
+   >: (((((#7,(#1,e)),#8),(#3,((a)#7,h))))#2,((#4,(((((((d)#3,b))#5,(#2,f)))#6,c),((((((i)#4,g))#1,j),#5))#8)),#6)) cost=27
+   >: (((((#1,e),#8),(#3,((a)#7,h))))#2,((#4,(((((((d)#3,b))#5,(#2,f)))#6,(#7,c)),((((((i)#4,g))#1,j),#5))#8)),#6)) cost=26
+   >: ((((e,#8),(#1,(#3,((a)#7,h)))))#2,((#4,(((((((d)#3,b))#5,(#2,f)))#6,(#7,c)),((((((i)#4,g))#1,j),#5))#8)),#6)) cost=25
+   >: ((((e,#8),(#1,(#3,((a)#7,h)))))#2,((#4,((((((((d)#3,b))#5,(#2,f)))#6,c),#7),((((((i)#4,g))#1,j),#5))#8)),#6)) cost=24
+HC run completed: ((((e,#8),(#1,(#3,((a)#7,h)))))#2,((#4,((((((((d)#3,b))#5,(#2,f)))#6,c),#7),((((((i)#4,g))#1,j),#5))#8)),#6)) cost=24
+2.  Steps:0 Climbs:0 New optimal cost: 24
+   i: ((((e,#8),(#1,(#3,((a)#7,h)))))#2,((#4,((((((((d)#3,b))#5,(#2,f)))#6,c),#7),((((((i)#4,g))#1,j),#5))#8)),#6)) cost=24
+   >: ((((e,#8),(#1,((a)#7,h))))#2,((#4,((((((((d)#3,b))#5,(#2,f)))#6,c),#7),(((#3,((((i)#4,g))#1,j)),#5))#8)),#6)) cost=23
+   >: ((((e,#8),(#1,((a)#7,h))))#2,((((#4,((((((d)#3,b))#5,(#2,f)))#6,c)),#7),(((#3,((((i)#4,g))#1,j)),#5))#8),#6)) cost=22
+   >: ((((e,#8),(#1,((a)#7,h))))#2,((((#4,((((((d)#3,b))#5,(#2,f)))#6,c)),#7),((#3,(((((i)#4,g))#1,j),#5)))#8),#6)) cost=21
+HC run completed: ((((e,#8),(#1,((a)#7,h))))#2,((((#4,((((((d)#3,b))#5,(#2,f)))#6,c)),#7),((#3,(((((i)#4,g))#1,j),#5)))#8),#6)) cost=21
+   i: ((((e,#8),(#1,((a)#7,h))))#2,((((#4,((((((d)#3,b))#5,(#2,f)))#6,c)),#7),((#3,(((((i)#4,g))#1,j),#5)))#8),#6)) cost=21
+   >: (((((#3,e),#8),(#1,((a)#7,h))))#2,(((#2,(#4,(((((((d,#7))#3,b))#5,f))#6,c))),((((((i)#4,g))#1,j),#5))#8),#6)) cost=20
+   >: (((#2,(#4,(((((((d,#7))#3,b))#5,(((((#3,e),#8),(#1,((a)#7,h))))#2,f)))#6,c))),((((((i)#4,g))#1,j),#5))#8),#6) cost=19
+HC run stopped due to timeout, cost=19
+Stats data saved: odt.dat
+Best networks saved to odt.log
+Cost:17 TopNetworks:28 Steps:24935 Climbs:90 HCruns:7 HCTime:3.86488 Naive:24944 Naivetime:3.4015 DTcnt:4083321 Class:TreeChild TimeConsistency:0
 ```
 
 Use `hcsamplingmaxnetstonextlevel=MAXNETS` to limit the number of networks passed to the next level sampler. Default is 0 (unlimited).
@@ -1262,6 +1331,12 @@ the `--testdisplaytreesampling=RETICULATIONCNT` flag, where 'RETICULATIONCNT' in
 
 ```
 > supnet --HC --displaytreesampling="0.0625 0.125 0.25 0.5 1" --testdisplaytreesampling=10
+ Sampler 0.0625 64
+ Sampler 0.125 139
+ Sampler 0.25 263
+ Sampler 0.5 478
+ Sampler 1 818
+ Sampler 0 1024
 ```
 
 When sampling if a display tree already yields a better cost that found in HC, the climb can continue immediately if `--cutwhendtimproved` is set. To be tested.
@@ -1280,8 +1355,8 @@ To print the minimum total cost for 10 random gene trees versus random tree-chil
 
 ```
 > supnet -r10 -A8 --pnetworks  | supnet -G- -r1 -A8 -R5 --pnetworks --odtnaivecost
-(#2,(((#4,((((h)#1,((a)#4,d)))#3,b)))#5,((e,c),(#1,(((f,#5))#2,(#3,g))))))
-61
+(#4,((((((c,g))#2,b))#1,(#1,(((((#3,(((#2,e))#3,a)))#5,d))#4,(f,h)))),#5))
+69
 ```
 
 
@@ -1332,35 +1407,88 @@ Use `csvmanip` to merge dat files into csv:
 ```
 > csvmanip/csvmanip.py corona/*.dat
 Id,Source,optcost,time,hctime,mergetime,topnets,class,timeconsistency,improvements,steps,bbruns,startnets,memoryMB,dtcnt,naivetime,naivecnt,bbnaivecnt,bbnaivetime,bbdpcnt,bbdptime,randseed
-1,corona/1.dat,139,1.00023,1.00021,1.90735e-05,5,0,0,48,3298,0,1,72,422272,0.928381,3299,0,0,0,0,1030374630
-2,corona/2.dat,113,1.04761,1.04758,2.24113e-05,1,0,0,52,3122,0,1,129,399744,0.993293,3123,0,0,0,0,1030374632
-3,corona/3.dat,151,1.00013,1.00012,1.57356e-05,1,0,0,38,2751,0,1,100,352256,0.980743,2752,0,0,0,0,1030374633
-4,corona/4.dat,81,1.00017,1.00016,1.19209e-05,1,0,0,74,4714,0,1,77,603520,0.95827,4715,0,0,0,0,1030374634
-5,corona/5.dat,102,1.00017,1.00016,1.21593e-05,3,0,0,68,4068,0,1,60,520832,0.959025,4069,0,0,0,0,1030374634
-6,corona/6.dat,97,1.00028,1.00027,1.19209e-05,1,0,0,46,4107,0,1,94,525824,0.972525,4108,0,0,0,0,1030374636
-7,corona/7.dat,121,1.00034,1.00033,6.91414e-06,17,0,0,42,3289,0,1,95,421120,0.878576,3290,0,0,0,0,1030374637
-8,corona/8.dat,129,1.00025,1.00024,1.62125e-05,2,0,0,46,3143,0,1,86,402432,0.964586,3144,0,0,0,0,1030374639
-9,corona/9.dat,160,1.00054,1.00052,1.71661e-05,1,0,0,34,2640,0,1,105,338048,0.977057,2641,0,0,0,0,1030374641
-10,corona/10.dat,116,1.00017,1.00016,1.23978e-05,1,0,0,58,2871,0,1,101,367616,0.970199,2872,0,0,0,0,1030374642
-11,corona/11.dat,156,1.00029,1.00028,1.14441e-05,1,0,0,40,2692,0,1,91,344704,0.978215,2693,0,0,0,0,1030375740
-12,corona/12.dat,125,1.00007,1.00007,6.19888e-06,25,0,0,42,3236,0,1,64,414336,0.884311,3237,0,0,0,0,1030375742
-13,corona/13.dat,142,1.00032,1.0003,1.85966e-05,1,0,0,32,2688,0,1,94,344192,0.973474,2689,0,0,0,0,1030375752
-14,corona/14.dat,205,1.00016,1.00015,1.50204e-05,1,0,0,54,2661,0,1,101,340736,0.975555,2662,0,0,0,0,1030375762
-15,corona/15.dat,105,1.00003,1.00002,1.38283e-05,4,0,0,64,3483,0,1,110,445952,0.916026,3484,0,0,0,0,1030375768
-16,corona/16.dat,98,1.02999,1.02998,1.35899e-05,3,0,0,38,3626,0,1,128,464256,1.0059,3627,0,0,0,0,1030375776
-17,corona/17.dat,95,1.00003,1.00001,1.69277e-05,32,0,0,58,2649,0,1,58,339200,0.750013,2650,0,0,0,0,1030375795
-18,corona/18.dat,94,1.00014,1.00012,2.02656e-05,2,0,0,44,3113,0,1,123,398592,0.973034,3114,0,0,0,0,1030375804
-19,corona/19.dat,132,1.00026,1.00024,2.09808e-05,1,0,0,36,2902,0,1,102,371584,0.973881,2903,0,0,0,0,1030375813
-20,corona/20.dat,134,1.00008,1.00006,1.50204e-05,8,0,0,52,3830,0,1,86,490368,0.951913,3831,0,0,0,0,1030375844
+119,corona/119.dat,119,5.2893,5.2893,2.38419e-07,2,0,0,80,10186,0,1,261,1303936,4.52791,10187,0,0,0,0,3894346635
+122,corona/122.dat,122,3.55873,3.55873,4.76837e-07,3,0,0,86,8837,0,1,258,1131264,2.75365,8838,0,0,0,0,3894353523
+24.1,corona/24.1.dat,24,3.38207,3.38207,4.76837e-07,69,0,0,102,26871,0,2,125,1491739,2.34371,26873,0,0,0,0,3892887752
+24.2,corona/24.2.dat,24,7.1368,7.1368,2.38419e-07,64,0,0,128,26560,0,1,261,3399808,6.06366,26561,0,0,0,0,3894353403
+24,corona/24.dat,24,6.76618,6.76618,2.38419e-07,2,0,0,110,25438,0,1,262,3256192,5.81489,25439,0,0,0,0,3894346632
+25.1,corona/25.1.dat,25,7.52293,7.52293,2.38419e-07,4,0,0,114,24546,0,1,260,3142016,6.63867,24547,0,0,0,0,3892752804
+25.2,corona/25.2.dat,25,4.80912,4.80912,2.38419e-07,8,0,0,136,18157,0,1,196,2324224,4.55608,18158,0,0,0,0,3892756406
+25.3,corona/25.3.dat,25,5.77002,5.77002,2.38419e-07,78,0,0,94,20104,0,1,235,2573440,5.18477,20105,0,0,0,0,3892757807
+25.4,corona/25.4.dat,25,3.02409,3.02409,2.38419e-07,85,0,0,122,22827,0,2,80,1091661,2.17269,22829,0,0,0,0,3892889004
+25.5,corona/25.5.dat,25,4.71099,4.71099,9.53674e-07,20,0,0,92,16743,0,1,202,2143232,4.47507,16744,0,0,0,0,3894346634
+25.6,corona/25.6.dat,25,4.99702,4.99702,9.53674e-07,17,0,0,76,23172,0,1,218,2966144,4.50657,23173,0,0,0,0,3894346638
+25.7,corona/25.7.dat,25,8.88987,8.88987,2.38419e-07,24,0,0,112,29396,0,1,261,3762816,7.75601,29397,0,0,0,0,3894346637
+25.8,corona/25.8.dat,25,5.80147,5.80147,2.38419e-07,2,0,0,102,20142,0,1,262,2578304,4.6518,20143,0,0,0,0,3894351422
+25,corona/25.dat,25,7.33998,7.33998,2.38419e-07,103,0,0,128,23076,0,1,261,2953856,6.16913,23077,0,0,0,0,3892752802
+26.1,corona/26.1.dat,26,6.26758,6.26758,2.38419e-07,100,0,0,96,17760,0,1,261,2273408,5.37885,17761,0,0,0,0,3892757353
+26.2,corona/26.2.dat,26,3.72703,3.72703,4.76837e-07,64,0,0,84,21394,0,2,121,1296013,2.84425,21396,0,0,0,0,3892885079
+26.3,corona/26.3.dat,26,3.7391,3.7391,2.38419e-07,4,0,0,104,18221,0,2,168,2025251,3.17031,18223,0,0,0,0,3892885074
+26.4,corona/26.4.dat,26,2.43439,2.43438,7.15256e-07,80,0,0,108,24853,0,2,82,1280504,1.86578,24855,0,0,0,0,3892889650
+...
+33.2,corona/33.2.dat,33,6.70923,6.70923,2.38419e-07,35,0,0,114,19246,0,1,262,2463616,5.95569,19247,0,0,0,0,3894346643
+33.3,corona/33.3.dat,33,3.27832,3.27832,2.38419e-07,126,0,0,120,22867,0,2,176,1864966,2.74244,22869,0,0,0,0,3892892150
+33.4,corona/33.4.dat,33,5.04684,5.04684,2.38419e-07,44,0,0,86,14390,0,1,262,1842048,4.20835,14391,0,0,0,0,3894351965
+33,corona/33.dat,33,5.15879,5.15879,2.38419e-07,2,0,0,98,15065,0,1,261,1928448,4.38866,15066,0,0,0,0,3892757202
+34.1,corona/34.1.dat,34,12.7193,12.7193,1.19209e-06,98,0,0,194,49735,0,4,263,5835263,10.8442,49739,0,0,0,0,3892891669
+34.2,corona/34.2.dat,34,0,0,0,0,0,0,46,0,0,0,197,0,0,0,0,0,0,0,3894341672
+34,corona/34.dat,34,1.84298,1.84298,0,85,0,0,90,19013,0,2,72,1109007,1.40869,19015,0,0,0,0,3892892152
+35,corona/35.dat,35,2.4352,2.4352,2.38419e-07,174,0,0,154,55996,0,6,124,912761,1.39763,56002,0,0,0,0,3892867240
+36,corona/36.dat,36,4.74186,4.74186,4.76837e-07,171,0,0,122,31319,0,3,144,2110112,3.48464,31322,0,0,0,0,3892890750
+39,corona/39.dat,39,0,0,0,0,0,0,45,0,0,0,183,0,0,0,0,0,0,0,3894341681
+41.1,corona/41.1.dat,41,5.14744,5.14744,2.38419e-07,2,0,0,110,15571,0,1,259,1993216,4.47464,15572,0,0,0,0,3892758128
+42,corona/42.dat,42,2.14001,2.14,2.38419e-07,131,0,0,72,22148,0,2,87,1090153,1.52107,22150,0,0,0,0,3892891265
+46,corona/46.dat,46,4.49964,4.49964,2.38419e-07,5,0,0,82,13012,0,1,260,1665664,3.71095,13013,0,0,0,0,3892752808
+50.1,corona/50.1.dat,50,5.30467,5.30467,4.76837e-07,8,0,0,102,14107,0,1,262,1805824,4.51396,14108,0,0,0,0,3892752801
+55,corona/55.dat,55,5.05534,5.05534,2.38419e-07,5,0,0,98,15144,0,1,261,1938560,4.1888,15145,0,0,0,0,3894346636
+56,corona/56.dat,56,4.56794,4.56794,4.76837e-07,6,0,0,108,9637,0,1,261,1233664,3.69766,9638,0,0,0,0,3894346639
+57,corona/57.dat,57,4.76359,4.76359,9.53674e-07,6,0,0,82,10013,0,1,260,1281792,3.95678,10014,0,0,0,0,3894346640
+62,corona/62.dat,62,0,0,0,0,0,0,44,0,0,0,217,0,0,0,0,0,0,0,3894341677
+96,corona/96.dat,96,0,0,0,0,0,0,37,0,0,0,172,0,0,0,0,0,0,0,3894341673
 ```
 
 Print cost + networks with sort:
 ```
 > cat corona/*.log | supnet -N- -G corona.txt --odtcost | sort -k1 -n
-81 ((BM4831BGR2008,((((((HKU312,(BtCoV2792005)#2),((SARS,(#6,Rf1)),#5)),Rs3367))#1,(((((BtCoV2732005)#6,(((BatCoVZXC21,BatCoVZC45))#3,(HuWuhan2020,#7))))#4,GuangxiPangolinP2V),#1)),#2)),((#3,(((((HuItalyTE48362020)#7,SARSCoVBJ1824))#5,RaTG13),#4)),GuangdongPangolin12019))
-94 ((#5,(Rs3367,((((#6,(((((HuWuhan2020,HuItalyTE48362020))#2,BatCoVZC45))#5,(((((BtCoV2732005,Rf1))#7,GuangdongPangolin12019))#6,((BatCoVZXC21)#3,(RaTG13,#4))))))#1,(#7,((GuangxiPangolinP2V)#4,(SARSCoVBJ1824,SARS)))),(BtCoV2792005,HKU312)))),(((BM4831BGR2008,#3),#1),#2))
-94 ((#5,(Rs3367,((((#6,((((HuWuhan2020,(HuItalyTE48362020)#2),BatCoVZC45))#5,(((((BtCoV2732005,Rf1))#7,GuangdongPangolin12019))#6,((BatCoVZXC21)#3,(RaTG13,#4))))))#1,(#7,((GuangxiPangolinP2V)#4,(SARSCoVBJ1824,SARS)))),(BtCoV2792005,HKU312)))),(((BM4831BGR2008,#3),#1),#2))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((((Rf1)#2,Rs3367))#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rf1)#2,((Rs3367)#3,(SARSCoVBJ1824,SARS))))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(((Rf1)#2,SARSCoVBJ1824),SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,((Rf1)#2,(SARSCoVBJ1824,SARS))))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,((Rf1)#2,SARS))))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,((Rf1)#2,BtCoV2732005))))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((((Rf1)#2,BtCoV2792005))#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((Rf1)#2,((BtCoV2792005)#4,(#2,BtCoV2732005))))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((Rf1)#2,((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS))))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((((Rf1)#2,HKU312),#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,((((Rf1)#2,(HKU312,#4)),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((Rf1)#2,((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS))))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,((Rf1)#2,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3))))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(BM4831BGR2008)#5),((Rf1)#2,BatCoVZXC21))))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((BatCoVZC45,(((Rf1)#2,BM4831BGR2008))#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((((Rf1)#2,BatCoVZC45),(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),(((Rf1)#2,(BatCoVZC45,(BM4831BGR2008)#5)),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),RaTG13),((Rf1)#2,((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21))))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
+24 (#1,(#5,(#6,((((GuangxiPangolinP2V)#7,((GuangdongPangolin12019,#7),(((HuItalyTE48362020,HuWuhan2020),((Rf1)#2,RaTG13)),((BatCoVZC45,(BM4831BGR2008)#5),BatCoVZXC21)))))#1,(((HKU312,#4),((((BtCoV2792005)#4,(#2,BtCoV2732005)))#6,((Rs3367)#3,(SARSCoVBJ1824,SARS)))),#3)))))
 ...
+56 ((((((BatCoVZXC21,BatCoVZC45))#7,BM4831BGR2008),#5),(((((HKU312,(BtCoV2792005,#4)))#1,(Rs3367,((SARSCoVBJ1824)#4,SARS))))#6,((#3,(((((((BtCoV2732005)#3,((#6,HuItalyTE48362020),HuWuhan2020)),RaTG13),#7),GuangdongPangolin12019))#5,((GuangxiPangolinP2V)#2,Rf1))),#1))),#2)
+56 ((((((BatCoVZXC21,BatCoVZC45))#7,BM4831BGR2008),#5),(((((HKU312,(BtCoV2792005,#4)))#1,(Rs3367,((SARSCoVBJ1824)#4,SARS))))#6,((#3,((((((((BtCoV2732005)#3,(#6,HuWuhan2020)),HuItalyTE48362020),RaTG13),#7),GuangdongPangolin12019))#5,((GuangxiPangolinP2V)#2,Rf1))),#1))),#2)
+56 ((((((BatCoVZXC21,BatCoVZC45))#7,BM4831BGR2008),#5),(((((HKU312,(BtCoV2792005,#4)))#1,(Rs3367,((SARSCoVBJ1824)#4,SARS))))#6,((#3,(((((((BtCoV2732005)#3,(#6,(HuWuhan2020,HuItalyTE48362020))),RaTG13),#7),GuangdongPangolin12019))#5,((GuangxiPangolinP2V)#2,Rf1))),#1))),#2)
+56 ((((((BatCoVZXC21,BatCoVZC45))#7,BM4831BGR2008),#5),(((((HKU312,(BtCoV2792005,#4)))#1,(Rs3367,((SARSCoVBJ1824)#4,SARS))))#6,((#3,(((((((BtCoV2732005)#3,((#6,HuWuhan2020),HuItalyTE48362020)),RaTG13),#7),GuangdongPangolin12019))#5,((GuangxiPangolinP2V)#2,Rf1))),#1))),#2)
+56 ((((((BatCoVZXC21,BatCoVZC45))#7,BM4831BGR2008),#5),(((((HKU312,(BtCoV2792005,#4)))#1,(Rs3367,((SARSCoVBJ1824)#4,SARS))))#6,((#3,((((((((BtCoV2732005)#3,HuItalyTE48362020),(#6,HuWuhan2020)),RaTG13),#7),GuangdongPangolin12019))#5,((GuangxiPangolinP2V)#2,Rf1))),#1))),#2)
+56 ((((((BatCoVZXC21,BatCoVZC45))#7,BM4831BGR2008),#5),((Rs3367,((((HKU312,(BtCoV2792005,#4)))#1,((SARSCoVBJ1824)#4,SARS)))#6),((#3,((((((((BtCoV2732005)#3,(#6,HuWuhan2020)),HuItalyTE48362020),RaTG13),#7),GuangdongPangolin12019))#5,((GuangxiPangolinP2V)#2,Rf1))),#1))),#2)
+57 (#6,(((((#5,BtCoV2792005))#1,(((BatCoVZXC21)#5,((BM4831BGR2008)#6,BatCoVZC45)),(HuWuhan2020,HuItalyTE48362020))))#3,((((((((Rf1,BtCoV2732005))#7,(GuangxiPangolinP2V,(#4,GuangdongPangolin12019))))#2,(SARSCoVBJ1824,SARS)),(((RaTG13,#3))#4,Rs3367)),((HKU312,#1),#7)),#2)))
+57 (#6,(((((#5,BtCoV2792005))#1,(((BatCoVZXC21,((BM4831BGR2008)#6,BatCoVZC45)))#5,(HuWuhan2020,HuItalyTE48362020))))#3,((((((((Rf1,BtCoV2732005))#7,(GuangxiPangolinP2V,(#4,GuangdongPangolin12019))))#2,(SARSCoVBJ1824,SARS)),(((RaTG13,#3))#4,Rs3367)),((HKU312,#1),#7)),#2)))
+57 (#6,(((((#5,BtCoV2792005))#1,((BatCoVZXC21,(((BM4831BGR2008)#6,BatCoVZC45))#5),(HuWuhan2020,HuItalyTE48362020))))#3,((((((((Rf1,BtCoV2732005))#7,(GuangxiPangolinP2V,(#4,GuangdongPangolin12019))))#2,(SARSCoVBJ1824,SARS)),(((RaTG13,#3))#4,Rs3367)),((HKU312,#1),#7)),#2)))
+57 (#6,(((((#5,BtCoV2792005))#1,(((BatCoVZXC21,((BM4831BGR2008)#6,BatCoVZC45)))#5,(HuWuhan2020,HuItalyTE48362020))))#3,(((((((((Rf1,BtCoV2732005))#7,(GuangxiPangolinP2V,(#4,GuangdongPangolin12019))))#2,(SARSCoVBJ1824,SARS)),((RaTG13,#3))#4),Rs3367),((HKU312,#1),#7)),#2)))
+57 (#6,(((((#5,BtCoV2792005))#1,(((BatCoVZXC21,((BM4831BGR2008)#6,BatCoVZC45)))#5,(HuWuhan2020,HuItalyTE48362020))))#3,((((SARSCoVBJ1824,(((((Rf1,BtCoV2732005))#7,(GuangxiPangolinP2V,(#4,GuangdongPangolin12019))))#2,SARS)),(((RaTG13,#3))#4,Rs3367)),((HKU312,#1),#7)),#2)))
+57 (#6,(((((#5,BtCoV2792005))#1,(((BatCoVZXC21,((BM4831BGR2008)#6,BatCoVZC45)))#5,(HuWuhan2020,HuItalyTE48362020))))#3,(((((SARSCoVBJ1824,((((Rf1,BtCoV2732005))#7,(GuangxiPangolinP2V,(#4,GuangdongPangolin12019))))#2),SARS),(((RaTG13,#3))#4,Rs3367)),((HKU312,#1),#7)),#2)))
+62 ((((GuangdongPangolin12019)#5,(((((GuangxiPangolinP2V)#6,BM4831BGR2008))#7,(Rs3367,((SARSCoVBJ1824,SARS))#3)),((Rf1,BtCoV2732005),((#3,((BtCoV2792005,#6),(((((#5,RaTG13),(HuWuhan2020,HuItalyTE48362020)),#4))#1,HKU312))))#2))),#2),(#7,(#1,((BatCoVZXC21)#4,BatCoVZC45))))
+96 ((((#1,((HKU312)#4,Rf1)))#2,(((((Rs3367)#1,BtCoV2732005),(((SARSCoVBJ1824,SARS))#5,(#6,(#3,GuangdongPangolin12019)))))#7,(BtCoV2792005,#4))),(((((HuWuhan2020,HuItalyTE48362020),RaTG13),(BatCoVZC45,BatCoVZXC21)))#3,((GuangxiPangolinP2V)#6,(#5,(#2,(BM4831BGR2008,#7))))))
+119 ((GuangxiPangolinP2V,(((GuangdongPangolin12019)#3,(((((((#7,BM4831BGR2008))#4,HuItalyTE48362020))#5,(SARSCoVBJ1824,SARS)))#1,HuWuhan2020)))#6),((#2,(((BatCoVZC45,BatCoVZXC21),#5),(#4,(((((Rf1,BtCoV2732005))#7,RaTG13),(((HKU312,BtCoV2792005))#2,(#1,Rs3367))),#6)))),#3))
+119 ((GuangxiPangolinP2V,(((GuangdongPangolin12019)#3,(((((((#7,BM4831BGR2008))#4,HuItalyTE48362020))#5,(SARSCoVBJ1824,SARS)))#1,HuWuhan2020)))#6),((#2,(((BatCoVZC45,BatCoVZXC21),#5),(#4,(((((Rf1,BtCoV2732005))#7,RaTG13),((HKU312,(BtCoV2792005)#2),(#1,Rs3367))),#6)))),#3))
+122 ((#1,(#6,((#5,(((SARSCoVBJ1824,SARS))#3,(((((((BatCoVZC45)#4,BM4831BGR2008))#7,((GuangxiPangolinP2V)#6,((HuItalyTE48362020,(HuWuhan2020)#1),RaTG13))),Rf1),(GuangdongPangolin12019)#2),((((#4,BatCoVZXC21))#5,(HKU312,BtCoV2792005)),#2)))),((Rs3367,#3),BtCoV2732005)))),#7)
+122 (#1,(#7,(#6,((#5,(((SARSCoVBJ1824,SARS))#3,(((((((BatCoVZC45)#4,BM4831BGR2008))#7,((GuangxiPangolinP2V)#6,(((HuItalyTE48362020,HuWuhan2020))#1,RaTG13))),Rf1),(GuangdongPangolin12019)#2),((((#4,BatCoVZXC21))#5,(HKU312,BtCoV2792005)),#2)))),((Rs3367,#3),BtCoV2732005)))))
+122 (#1,(#7,(#6,((#5,(((SARSCoVBJ1824,SARS))#3,(((((((BatCoVZC45)#4,BM4831BGR2008))#7,((GuangxiPangolinP2V)#6,((HuItalyTE48362020,(HuWuhan2020)#1),RaTG13))),Rf1),(GuangdongPangolin12019)#2),((((#4,BatCoVZXC21))#5,(HKU312,BtCoV2792005)),#2)))),((Rs3367,#3),BtCoV2732005)))))
 ```
 
 

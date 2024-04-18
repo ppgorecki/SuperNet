@@ -56,6 +56,7 @@ string opt_outfiles = ODTBASENAME;
 string opt_outdirectory = "";
 
 int flag_globaldagcache = 0; 
+int flag_saveextnewick = 0; 
 int flag_autooutfiles = 0; 
 int flag_hcsavewhenimproved = 0;
 int flag_hcsamplerstats = 0;
@@ -70,6 +71,8 @@ int print_repr_inodtnaive = 0;
 
 typedef vector<RootedTree *> VecRootedTree;
 typedef vector<Network *> VecNetwork;
+
+string flag_retidprefix = "";
 
 #define BUFSIZE 100000
 
@@ -341,6 +344,10 @@ int main(int argc, char **argv) {
 
       {"globaldagcache", no_argument, &flag_globaldagcache, 1 },
 
+      {"saveextnewick", no_argument, &flag_saveextnewick, 1 },
+
+      {"retidprefix", required_argument, NULL, 'Q'},
+
       {0, 0, 0, 0}
 
   };
@@ -455,6 +462,12 @@ int main(int argc, char **argv) {
     case 'e': 
     {
       opt_guidetree = strdup(optarg);
+      break;
+    }
+
+    case 'Q':
+    {
+      flag_retidprefix = string(optarg);
       break;
     }
 

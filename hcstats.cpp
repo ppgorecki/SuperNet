@@ -148,7 +148,6 @@ int NetworkHCStatsGlobal::merge(NetworkHCStatsBase &nhc, int printstats, bool fu
   return res;
 }
 
-
 void NetworkHCStatsBase::_savedat(ostream &odtf, bool labelled, bool partial)
 {
     
@@ -301,7 +300,9 @@ bool NetworkHCStatsGlobal::_checkoutfilename(bool finalfiles)
     if ((newoutfile != curoutfile) && curoutfile.length())
     {            
       remove((curoutfile+".dat").c_str());
-      remove((curoutfile+".log").c_str());
+      if (flag_saveextnewick)
+        remove((curoutfile+".tre").c_str());
+      else remove((curoutfile+".log").c_str());
     }
     curoutfile = newoutfile;    
   }
@@ -352,8 +353,12 @@ void NetworkHCStatsGlobal::savebestdags(bool printinfo, bool finalfiles)
     if (_checkoutfilename(finalfiles))      
     { 
       ostringstream ss;     
-      ss << *bestdags;      
-      _save(curoutfile + ".log", ss.str(), printinfo, "Best networks");      
+      ss << *bestdags;    
+      if (flag_saveextnewick)  
+        _save(curoutfile + ".tre", ss.str(), printinfo, "Best networks");      
+      else
+        _save(curoutfile + ".log", ss.str(), printinfo, "Best networks");      
+
     }    
 }
 
