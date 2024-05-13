@@ -247,7 +247,7 @@ void NetworkHCStatsGlobal::setoutfiles(string _outdirectory, string _outfiles,  
 
     if (_outdirectory.length())
     {
-      filesystem::create_directories(_outdirectory);    
+      std::filesystem::create_directories(_outdirectory);    
       outfile = _outdirectory + filesystem::path::preferred_separator;    
       if (_outfiles.length())
         baseoutfiles = string(".")+_outfiles;
