@@ -640,7 +640,7 @@ int ppreprsingle(SPID *t, ostream&s)
         if (c==REPROPEN) 
         { 
           open++;
-          if (prev!=REPROPEN && prev!=MAXSPECIES) s << ",";
+          if (prev!=REPROPEN) s << ",";
           s << "("; 
         }
         else if (c==REPRCLOSE) { 
