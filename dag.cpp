@@ -77,7 +77,7 @@ NODEID Dag::_parse(char *s, int &p, int num,
     NODEID* &parentset, map<string, NODEID> &retlabel2spid)
 {
   char *cur = getTok(s, p, num);
- 
+
   if (cur[0] == '(')
   {
     NODEID *parenta = parent;
@@ -90,8 +90,10 @@ NODEID Dag::_parse(char *s, int &p, int num,
     {
 
       char *cur = getTok(s, p, num);        
+      cout << cur << endl;
       if (cur[0]!='#')
       {
+        printlinepos();
         cerr << "Parse error: # expected in " << cur << endl;
         exit(-1);
       }
@@ -114,6 +116,7 @@ NODEID Dag::_parse(char *s, int &p, int num,
 
       if (freeint >= nn)
       {
+        printlinepos();
         cerr << "Is it a binary network? Too many nodes in rooted network" << endl;
         exit(-1);
       }
@@ -140,12 +143,21 @@ NODEID Dag::_parse(char *s, int &p, int num,
   // leaf processing 
   if (freeleaf >= lf)
   {
+    printlinepos();
     cerr << "Too many leaves in a binary network. " << endl; 
     exit(-1);
   }
   
-  // normal leaf
-  lab[freeleaf] = getspecies(cur, s + p - cur);        
+  // leaf  
+  lab[freeleaf] = getspecies(cur, s + p - cur);    
+  char *cur2 = seeTok(s, p, num);
+  if (cur2[0]!=',' && cur2[0]!=')')
+  { 
+    printlinepos();
+    cerr << ", or ) expected after leaf definition " << cur << endl;
+    exit(-1);
+  }
+  
   return freeleaf++;
  
 }

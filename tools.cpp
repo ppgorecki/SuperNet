@@ -98,6 +98,7 @@ bool spsubseteq(NODEID *a, NODEID *b)
   return true;
 }
 
+// Not used 
 void initlinenuminfo(char *fname)
 {
   linenum = 1;
@@ -114,14 +115,14 @@ NODEID* spidcopy(NODEID* a, int size)
 
 void printlinepos()
 {
-  if (inputfilename) cerr << inputfilename << ":";
-  cerr << linenum << ":" << charnum << ": ";
+  // if (inputfilename) cerr << inputfilename << ":";
+  // cerr << linenum << ":" << charnum << ": ";
 }
 
 void expectTok(const char *tok, char *s, int p)
 {
   printlinepos();
-  cerr << "parse error - expected #" << tok << "#" << " after " << endl;
+  cerr << "parse error - expected <" << tok << ">" << " after " << endl;
   int x = p;
   if (x < 70) x = 0;
   else { x -= 70; cerr << "..."; }
@@ -133,6 +134,17 @@ void expectTok(const char *tok, char *s, int p)
   if (s[x]) cerr << "...";
   cerr << endl;
   exit(-1);
+}
+
+char* seeTok(char *s, int p, int num)
+{
+  int q = p;
+  int plinenum = linenum;
+  int pcharnum = charnum;
+  char *t = getTok(s, q, num);
+  linenum = plinenum;
+  charnum = pcharnum;
+  return t;
 }
 
 char* getTok(char *s, int &p, int num)
@@ -152,7 +164,7 @@ char* getTok(char *s, int &p, int num)
     inctok;
     return cur;
   }
-  if (num >= 0) cerr << "Tree nr " << num << ". ";
+  if (num >= 0) cerr << "tree/network nr " << num << ". ";
   printlinepos();
   cerr << " parse error - expected expected LABEL, '(', ')' or ','; found: '" << s[p]
        << "'. current string: <<" << cur << ">>" << endl;

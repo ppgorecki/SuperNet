@@ -8,7 +8,7 @@
  charged for it and provided that this copyright notice is not removed.
  *************************************************************************/
 
-const char *SUPNET = "0.10";
+const char *SUPNET = "0.11";
 
 #include <getopt.h>
 #include <stdio.h>
@@ -77,13 +77,15 @@ string flag_retidprefix = "";
 #define BUFSIZE 100000
 
 // Read trees from a given file
-void readtrees(char *fn, vector<char *> &stvec) {
+void readtrees(char *fn, vector<char *> &stvec) 
+{
   FILE *f;
   if (!strcmp(fn, "-"))
     f = stdin;
   else
     f = fopen(fn, "r");
-  if (!f) {
+  if (!f) 
+  {
     cerr << "Cannot open file " << fn << endl;
     exit(-1);
   }
@@ -649,7 +651,7 @@ int main(int argc, char **argv) {
 
   // Parse gene trees
   for (size_t i = 0; i < sgtvec.size(); i++) 
-  {
+  {    
     RootedTree *gtree = new RootedTree(sgtvec[i]);
     gtree->setid(i);
     gtvec.push_back(gtree);

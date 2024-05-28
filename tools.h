@@ -113,6 +113,7 @@ void expectTok(const char *, char *, int );
 char *mstrndup(const char *s, size_t n);
 
 char* getTok(char *s, int &p, int num);
+char* seeTok(char *s, int p, int num);
 int getspecies(char *s, int len);
 
 void randomizearr(NODEID*, int);
