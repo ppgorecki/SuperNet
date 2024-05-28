@@ -164,8 +164,7 @@ char* getTok(char *s, int &p, int num)
     inctok;
     return cur;
   }
-  if (num >= 0) cerr << "tree/network nr " << num << ". ";
-  printlinepos();
+  if (num >= 0) cerr << "tree/network nr " << num << ". ";  
   cerr << " parse error - expected expected LABEL, '(', ')' or ','; found: '" << s[p]
        << "'. current string: <<" << cur << ">>" << endl;
   exit(-1);
