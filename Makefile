@@ -1,6 +1,6 @@
 #VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
 VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck 
-CPPFLAGS = -Ofast -fomit-frame-pointer -g 
+CPPFLAGS = -std=c++17 -Ofast -fomit-frame-pointer -g 
 CC = g++ -Ofast -fomit-frame-pointer -g 
 MAKEFLAGS += -j10 # parallel
 

@@ -26,6 +26,7 @@ supnet ...
  - `--pnetworks`: print networks
  - `--pdisplaytrees`: print all display trees
  - `--pdisplaytreesext`: print all display trees with their ids
+ - `--pranddisplaytrees=NUM`: print NUM randomly chosen display trees
  - `--dot`: print dot representation of networks
 
 ### Gene tree(s)
@@ -81,6 +82,12 @@ Print all display trees with their ids '--pdisplaytreesext'.
 1 ((c,b),a)
 2 ((c,a),b)
 3 ((c,b),a)
+```
+
+Print 2 random display trees with ids '--pdisplaytreesext' (optional).
+
+```
+> supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' --pranddisplaytrees=2 --pdisplaytreesext
 ```
 
 Display tree usage stats after HC run:

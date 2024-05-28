@@ -232,6 +232,7 @@ int main(int argc, char **argv) {
   int hcstopclimb = 0;
   int flag_odtcost = 0;
   int flag_bestneworks = 0;
+  int pranddisplaytrees = 0;
   char *matchparam = NULL;
 
   char *opt_guideclusters = NULL;
@@ -261,6 +262,8 @@ int main(int argc, char **argv) {
       {"pgenetrees", no_argument, &flag_print_gene_trees, 1},
       {"pspeciestrees", no_argument, &flag_print_species_trees, 1},
       {"pdisplaytrees", no_argument, &flag_print_display_trees, 1},
+      {"pranddisplaytrees", required_argument, NULL, 'J'},
+      
       {"pdisplaytreesext", no_argument, &flag_print_display_trees_with_ids, 1},
       {"pnetworks", no_argument, &flag_print_networks, 1},
       {"pnetworkclusters", no_argument, &flag_print_network_clusters, 1},
@@ -365,6 +368,10 @@ int main(int argc, char **argv) {
 
     case 'z':
       randseed = (unsigned int)atoi(optarg);      
+      break;
+
+    case 'J':
+      pranddisplaytrees = (unsigned int)atoi(optarg);      
       break;
 
     case '1':
@@ -1117,7 +1124,7 @@ int main(int argc, char **argv) {
 
   } 
 
-  if (flag_print_display_trees || flag_print_display_trees_with_ids) 
+  if (flag_print_display_trees || (flag_print_display_trees_with_ids && !pranddisplaytrees)) 
   {
     for (auto &ntpos: netvec) 
     {
@@ -1133,6 +1140,29 @@ int main(int argc, char **argv) {
       }
     }
   }
+
+  if (pranddisplaytrees>0) 
+  {
+    for (auto &ntpos: netvec) 
+    {
+      DISPLAYTREEID mxid = ntpos->displaytreemaxid();
+      RootedTree *t = NULL;
+      for (int i=0; i<pranddisplaytrees; i++)
+      {      
+
+        DISPLAYTREEID tid = rand() % mxid;      
+
+        t = ntpos->gendisplaytree(tid, t);
+
+        if (flag_print_display_trees_with_ids)
+            cout << tid << " ";
+        t->printrepr() << endl;
+      }
+    }
+  }
+
+
+
 
   if (flag_testtreerepr) 
   {
