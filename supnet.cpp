@@ -60,7 +60,7 @@ int flag_saveextnewick = 0;
 int flag_autooutfiles = 0; 
 int flag_hcsavewhenimproved = 0;
 int flag_hcsamplerstats = 0;
-int flag_hcsamplingmaxnetstonextlevel = 0; // unlimited
+int flag_hcsamplingmaxnetstonextlevel = 3; 
 int flag_hcdetailedsummarydat = 0;
 float opt_hcstoptime = 0; 
 bool flag_hcignorecostgeq = 0; // if set 
@@ -73,6 +73,8 @@ typedef vector<RootedTree *> VecRootedTree;
 typedef vector<Network *> VecNetwork;
 
 string flag_retidprefix = "";
+
+TreeSpace *globaltreespace;
 
 #define BUFSIZE 100000
 
@@ -117,8 +119,221 @@ void insertstr(vector<char *> &v, const char *t) {
   free(y);
 }
 
+void testcomparedags(int reticulationcnt_R, int timeconsistency, int randnetuniform, int networkclass)
+{
 
-TreeSpace *globaltreespace;
+    int cnt = 0;
+    while (1) 
+    {
+      cnt++;
+      string r1 = randspeciestreestr();
+      string r2 = randspeciestreestr();
+      int EE = 0;
+      int e1, e2, e3;
+      if (!r1.length() || !r2.length()) {
+        cerr << "Cannot create initial random species tree" << endl;
+        exit(-1);
+      }
+      Network *n1 =
+          addrandreticulations(reticulationcnt_R, new Network(r1), networkclass,
+                               timeconsistency, randnetuniform, NULL, NULL);
+      Network *n2 =
+          addrandreticulations(reticulationcnt_R, new Network(r2), networkclass,
+                               timeconsistency, randnetuniform, NULL, NULL);
+
+      e1 = n1->eqdags(n2);
+      e2 = n1->eqdagsbypermutations(n2);
+
+      cout << (*n1) << "\t" << (*n2) << "\tE1=" << e1 << "\tE2=" << e2
+           << "\tError=" << (e1 != e2) << endl;
+
+      cerr << (*n1) << "\t" << (*n2) << "\tE1=" << e1 << "\tE2=" << e2
+           << "\tError=" << (e1 != e2) << endl;
+
+      delete n1;
+      delete n2;
+
+      if (e1 != e2)
+        break; // stop
+    }
+    exit(0);
+}
+
+void testtreerepr(VecNetwork &netvec)
+{
+  for (auto &ntpos: netvec) 
+    {
+      DISPLAYTREEID tid = 0;
+      SNode *t = NULL;
+      cout << *ntpos << endl;
+      while ((t = ntpos->gendisplaytree2(tid, t, globaltreespace)) != NULL) {
+        ppSNode(cout, t) << endl;
+        tid++;
+      }
+    }
+}
+
+void testcontract(int argc, char **argv, VecRootedTree &gtvec,  VecNetwork &netvec, CostFun *costfun)
+{
+
+    // Last two args: leftretusage rightretusage
+    // ./supnet -g "(a,(b,c))" -n "((b)#1,(((#2)#3,((#1)#2,(c,#3))),a))" -eXng 2
+    // 1
+    // ./dot -Tpdf contr.dot -o c.pdf && evince c.pdf
+
+    RETUSAGE retusage;
+    emptyretusage(retusage);
+
+    // ugly
+    if (optind + 1 <= argc) {
+      long us = atol(argv[optind]);
+
+      int rid = 0;
+      while (us) {
+        cout << "A" << us << " " << rid << endl;
+        if (us & 1)
+          addleftretusage(retusage, rid);
+        us = us >> 1;
+        rid++;
+      }
+    }
+
+    if (optind + 2 <= argc) {
+      long us = atol(argv[optind + 1]);
+      int rid = 0;
+      while (us) {
+        cout << "B" << us << " " << rid << endl;
+        if (us & 1)
+          addrightretusage(retusage, rid);
+        us = us >> 1;
+        rid++;
+      }
+    }
+
+    cout << "R" << retusage << endl;
+    cout << "Conflicted " << conflicted(retusage) << endl;
+    
+    for (int i = 0; i < netvec.size(); i++) 
+    {
+      Network *n1 = netvec[i];
+      std::stringstream ss;
+      n1->print(ss);
+      cout << ss.str() << endl;
+
+      ContractedNetwork *c = new ContractedNetwork(ss.str());
+
+      c->contract(retusage);
+
+      cout << "Rtcount " << c->rtcount() << " "
+           << "rt=" << n1->rtcount() << endl;
+      ;
+
+      for (auto &gtpos: gtvec)
+      {
+        cout << "retmindc:" << (c->approxmindce(*gtpos, *costfun)) << endl;
+      }
+
+      ofstream s("contr.dot");
+      std::ofstream sf;
+      sf.open("contr.dot", std::ofstream::out);
+      sf << "digraph SN {" << endl;
+      sf << " inp [label=\"InRT=" << retusage << "\"]" << endl;
+      c->gendot(sf);
+      c->gendotcontracted(sf);
+      sf << "}" << endl;
+      sf.close();
+      cout << c->newickrepr() << endl;
+
+      RootedTree *t = NULL;
+      DISPLAYTREEID tid = 0; // id of display tree
+
+      while ((t = c->gendisplaytree(tid, t)) != NULL) {
+        cout << tid << " " << (*t) << endl;
+        tid++;
+      }
+    }
+}
+
+void testeditnni(int flag_testeditnni, VecNetwork &netvec)
+{
+
+  if (flag_testeditnni==1)
+  {
+   for (auto &ntpos: netvec) 
+    {
+      std::ofstream dotf;
+      dotf.open("edit.dot", std::ofstream::out);
+
+      int cnt = 0;
+      dotf << "digraph SN {" << endl;
+
+      NNI nni;
+      nni.init(ntpos);
+
+      cout << *ntpos << " verify==" << ntpos->verifychildparent() << endl;
+      ntpos->printdeb(cout, 2);
+      ntpos->printdot(dotf, cnt++);
+
+      while (nni.next()) 
+      {
+        cout << "========" << endl << endl;
+        int err = ntpos->verifychildparent();
+
+        cout << *ntpos << " verify==" << err << endl;
+        ntpos->printdeb(cout, 2);
+        ntpos->printdot(dotf, cnt++);
+
+        if (err)
+        {
+          break;
+        }
+      }
+
+      dotf << "}" << endl;
+      dotf.close();
+    }
+  }
+
+  if (flag_testeditnni==2)
+  {
+    for (auto &ntpos: netvec) 
+    {
+      std::ofstream dotf;
+
+      dotf.open("tm.dot", std::ofstream::out);
+
+      int cnt = 0;
+      dotf << "digraph SN {" << endl;
+
+      TailMove tailmove(0);
+      tailmove.init(ntpos);
+
+      cout << *ntpos << " verify==" << ntpos->verifychildparent() << endl;
+      // (*ntpos)->printdeb(cout,2);
+      ntpos->printdot(dotf, cnt++);
+
+      while (tailmove.next()) 
+      {
+        cout << "========" << endl << endl;
+        int err = ntpos->verifychildparent();
+
+        cout << ntpos << " verify==" << err << endl;
+        // (*ntpos)->printdeb(cout,2);
+        ntpos->printdot(dotf, cnt++);
+
+        if (err)
+        {
+          break;
+        }
+      }
+
+      dotf << "}" << endl;
+      dotf.close();
+    }
+  }
+
+}
+
 
 int main(int argc, char **argv) {
   int opt;
@@ -1001,6 +1216,8 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
+   
+
   // ODT heuristic using HC, BB and DP
   if (flag_hcalgorithm || flag_bestneworks) 
   {
@@ -1040,7 +1257,9 @@ int main(int argc, char **argv) {
            << " tailmove=" << !flag_hcedit_nni << endl;
        }
 
-      NetIterator netiterator(netvec, randomnetworkscnt, 
+      NetIterator netiterator(
+                      netvec, 
+                      randomnetworkscnt, 
                       quasiconsensuscnt, genetreeclusters,
                       preserverootst, reticulationcnt_R, 
                       networkclass,
@@ -1161,23 +1380,6 @@ int main(int argc, char **argv) {
     }
   }
 
-
-
-
-  if (flag_testtreerepr) 
-  {
-    for (auto &ntpos: netvec) 
-    {
-      DISPLAYTREEID tid = 0;
-      SNode *t = NULL;
-      cout << *ntpos << endl;
-      while ((t = ntpos->gendisplaytree2(tid, t, globaltreespace)) != NULL) {
-        ppSNode(cout, t) << endl;
-        tid++;
-      }
-    }
-  }
-
   if (flag_comparedags) 
   {
     int cnt = 0, cntall = 0;
@@ -1204,200 +1406,30 @@ int main(int argc, char **argv) {
 
   // ----------------- DEBUGs -----------------------
 
-  if (flag_testeditnni==1) 
+  if (flag_testeditnni) 
   {
-    for (auto &ntpos: netvec) 
-    {
-      std::ofstream dotf;
-      dotf.open("edit.dot", std::ofstream::out);
-
-      int cnt = 0;
-      dotf << "digraph SN {" << endl;
-
-      NNI nni;
-      nni.init(ntpos);
-
-      cout << *ntpos << " verify==" << ntpos->verifychildparent() << endl;
-      ntpos->printdeb(cout, 2);
-      ntpos->printdot(dotf, cnt++);
-
-      while (nni.next()) 
-      {
-        cout << "========" << endl << endl;
-        int err = ntpos->verifychildparent();
-
-        cout << *ntpos << " verify==" << err << endl;
-        ntpos->printdeb(cout, 2);
-        ntpos->printdot(dotf, cnt++);
-
-        if (err)
-        {
-          break;
-        }
-      }
-
-      dotf << "}" << endl;
-      dotf.close();
-    }
+    testeditnni(flag_testeditnni, netvec);
   }
 
-  if (flag_testeditnni==2) 
-  {
-    for (auto &ntpos: netvec) 
-    {
-      std::ofstream dotf;
-
-      dotf.open("tm.dot", std::ofstream::out);
-
-      int cnt = 0;
-      dotf << "digraph SN {" << endl;
-
-      TailMove tailmove(0);
-      tailmove.init(ntpos);
-
-      cout << *ntpos << " verify==" << ntpos->verifychildparent() << endl;
-      // (*ntpos)->printdeb(cout,2);
-      ntpos->printdot(dotf, cnt++);
-
-      while (tailmove.next()) 
-      {
-        cout << "========" << endl << endl;
-        int err = ntpos->verifychildparent();
-
-        cout << ntpos << " verify==" << err << endl;
-        // (*ntpos)->printdeb(cout,2);
-        ntpos->printdot(dotf, cnt++);
-
-        if (err)
-        {
-          break;
-        }
-      }
-
-      dotf << "}" << endl;
-      dotf.close();
-    }
-  }
-
+  
   // Debug
   if (flag_testcomparedags) 
   {
-    int cnt = 0;
-    while (1) 
-    {
-      cnt++;
-      string r1 = randspeciestreestr();
-      string r2 = randspeciestreestr();
-      int EE = 0;
-      int e1, e2, e3;
-      if (!r1.length() || !r2.length()) {
-        cerr << "Cannot create initial random species tree" << endl;
-        exit(-1);
-      }
-      Network *n1 =
-          addrandreticulations(reticulationcnt_R, new Network(r1), networkclass,
-                               timeconsistency, randnetuniform, NULL, NULL);
-      Network *n2 =
-          addrandreticulations(reticulationcnt_R, new Network(r2), networkclass,
-                               timeconsistency, randnetuniform, NULL, NULL);
+    testcomparedags(reticulationcnt_R, timeconsistency, randnetuniform, networkclass);
 
-      e1 = n1->eqdags(n2);
-      e2 = n1->eqdagsbypermutations(n2);
-
-      cout << (*n1) << "\t" << (*n2) << "\tE1=" << e1 << "\tE2=" << e2
-           << "\tError=" << (e1 != e2) << endl;
-
-      cerr << (*n1) << "\t" << (*n2) << "\tE1=" << e1 << "\tE2=" << e2
-           << "\tError=" << (e1 != e2) << endl;
-
-      delete n1;
-      delete n2;
-
-      if (e1 != e2)
-        break; // stop
-    }
-    exit(0);
   }
 
   if (flag_testcontract) 
   {
-    // Last two args: leftretusage rightretusage
-    // ./supnet -g "(a,(b,c))" -n "((b)#1,(((#2)#3,((#1)#2,(c,#3))),a))" -eXng 2
-    // 1
-    // ./dot -Tpdf contr.dot -o c.pdf && evince c.pdf
 
-    RETUSAGE retusage;
-    emptyretusage(retusage);
-
-    // ugly
-    if (optind + 1 <= argc) {
-      long us = atol(argv[optind]);
-
-      int rid = 0;
-      while (us) {
-        cout << "A" << us << " " << rid << endl;
-        if (us & 1)
-          addleftretusage(retusage, rid);
-        us = us >> 1;
-        rid++;
-      }
-    }
-
-    if (optind + 2 <= argc) {
-      long us = atol(argv[optind + 1]);
-      int rid = 0;
-      while (us) {
-        cout << "B" << us << " " << rid << endl;
-        if (us & 1)
-          addrightretusage(retusage, rid);
-        us = us >> 1;
-        rid++;
-      }
-    }
-
-    cout << "R" << retusage << endl;
-    cout << "Conflicted " << conflicted(retusage) << endl;
-    
-    for (int i = 0; i < netvec.size(); i++) 
-    {
-      Network *n1 = netvec[i];
-      std::stringstream ss;
-      n1->print(ss);
-      cout << ss.str() << endl;
-
-      ContractedNetwork *c = new ContractedNetwork(ss.str());
-
-      c->contract(retusage);
-
-      cout << "Rtcount " << c->rtcount() << " "
-           << "rt=" << n1->rtcount() << endl;
-      ;
-
-      for (auto &gtpos: gtvec)
-      {
-        cout << "retmindc:" << (c->approxmindce(*gtpos, *costfun)) << endl;
-      }
-
-      ofstream s("contr.dot");
-      std::ofstream sf;
-      sf.open("contr.dot", std::ofstream::out);
-      sf << "digraph SN {" << endl;
-      sf << " inp [label=\"InRT=" << retusage << "\"]" << endl;
-      c->gendot(sf);
-      c->gendotcontracted(sf);
-      sf << "}" << endl;
-      sf.close();
-      cout << c->newickrepr() << endl;
-
-      RootedTree *t = NULL;
-      DISPLAYTREEID tid = 0; // id of display tree
-
-      while ((t = c->gendisplaytree(tid, t)) != NULL) {
-        cout << tid << " " << (*t) << endl;
-        tid++;
-      }
-    }
+    testcontract(argc, argv, gtvec, netvec, costfun);
   }
+
+  if (flag_testtreerepr) 
+  {
+    testtreerepr(netvec);    
+  }
+
 
   delete globaltreespace;
 

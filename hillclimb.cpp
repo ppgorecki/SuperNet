@@ -616,10 +616,16 @@ double HillClimb::climb(
 
 	if (verbosealg>=4) 
 	{
+
+		  cout << "HC run";
+		  if (displaytreesampling)
+		  		cout << " with DTsampling=" << displaytreesampling;	
+
 			if (!timeout)
-      	cout << "HC run completed: " << *net << " cost=" << optcost << endl;
+      	cout << " completed: " << *net;
      	else
-     		cout << "HC run stopped due to timeout, cost=" << optcost << endl;
+     		cout << " stopped due to timeout,";
+     	cout << " cost=" << optcost << endl;
   }
 
 
