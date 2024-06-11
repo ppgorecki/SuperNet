@@ -1,4 +1,4 @@
-
+	
 #include <random>
 
 #include "rtree.h"
@@ -222,7 +222,11 @@ double Network::odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool u
 
 	if ((displaytreesampling>0) || usenaive_oe || (runnaiveleqrt_t>rtcount()))
 	{		
+		//if (displaytreesampling>0)
 		res = odtcostnaive(genetrees, costfun, odtstats, displaytreesampling, cutwhendtimproved, externalbestcost);
+		// else
+		// 	res = odtcostnaiverev(genetrees, costfun, odtstats, cutwhendtimproved, externalbestcost);
+
 
 		if (verbosealg>=5) 
 		{ 
@@ -311,7 +315,111 @@ extern TreeSpace *globaltreespace;
 /*
  *  Compute cost via naive enumeration with optional displaytreesampling 
  */ 
-double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, ODTStats &odtstats, float displaytreesampling, bool cutwhendtimproved, double externalbestcost)
+
+std::random_device rd;
+std::mt19937 gen(rd());
+
+
+double Network::odtcostnaiverev(
+	vector<RootedTree*> &genetrees, 
+	CostFun &costfun, 
+	ODTStats &odtstats, 	
+	bool cutwhendtimproved, 
+	double externalbestcost)
+{
+    RootedTree tr(lf, lab);	
+    RootedTree *t = &tr;
+    DISPLAYTREEID tid = 0; // id of display tree
+    double mincost = 0;
+    NODEID *lcamaps[genetrees.size()];
+    double gtcost;
+    double lb;
+    
+    odtstats.startnaive();
+
+    // https://en.cppreference.com/w/cpp/numeric/random/exponential_distribution
+        
+    
+    
+    // cout << "LBN:" << externalbestcost << " :" << endl;
+    // for (int gt=0; gt<genetrees.size(); gt++)
+    // 	cout << lb[gt] << " ";    
+    // cout << endl;
+   
+	int lbcnt = 0;
+	
+#ifdef _PRINTNAIVESTATS_
+	clock_t start, end;
+	double stoplbratio = 1.0;
+
+	#define STARTCLOCK start = clock();
+	#define TERMCLOCK(var) var += clock() - start;
+#else
+	#define STARTCLOCK
+	#define TERMCLOCK(var)
+#endif  
+
+	SNode *s = NULL;
+
+	long dtgtcnt = 0;
+
+	for (int gt=0; gt<genetrees.size(); gt++)
+    {    		
+    	RootedTree *genetree = genetrees[gt];
+    	lb = costfun.lowerboundnet(*genetree, *this);    			    	    	
+    	gtcost = lb - 1;
+    	int treeid = genetree->getid();
+	#ifdef DTCACHE
+ 		while (1) 
+    	{         
+
+		
+			STARTCLOCK;
+    		if ((s = gendisplaytree2(tid, s, globaltreespace))==NULL) break;    
+    		TERMCLOCK(dtgen2); 
+    		odtstats.displaytreecnt++;
+    		COSTT curcost = s->cost[treeid] - 2*genetree->lf+2;
+
+    		if (gtcost>curcost)
+    		{
+    			gtcost = curcost;
+    			if (gtcost == lb)
+    				break; // lower bound reached
+    		}
+    	}
+    	mincost += gtcost;
+    			
+
+	
+	#else
+		exit(-1);
+	#endif
+       
+    } // for 
+
+#ifdef DTCACHE
+    	globaltreespace->treecompleted(); // inform treespace 
+#endif    	
+
+	odtstats.stopnaive();
+
+	if (verbosealg>=6)
+	{
+		cout << " --odtcostnaive cost=" << mincost 
+			 << " dt/gt_cost_pairs=" << dtgtcnt << endl;
+	}
+    return mincost;        
+}
+
+
+
+
+double Network::odtcostnaive(vector<RootedTree*> &genetrees, 
+	CostFun &costfun, 
+	ODTStats &odtstats, 
+	float displaytreesampling, 
+	bool cutwhendtimproved, 
+	double externalbestcost)
 {
     RootedTree tr(lf, lab);	
     RootedTree *t = &tr;
@@ -321,21 +429,24 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     double gtcost[genetrees.size()];
     double lb[genetrees.size()];
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-
-    std::exponential_distribution<> expdistr(displaytreesampling);
+	std::exponential_distribution<> expdistr(displaytreesampling);
+    	
     
     odtstats.startnaive();
 
     // https://en.cppreference.com/w/cpp/numeric/random/exponential_distribution
-    
+        
     for (int gt=0; gt<genetrees.size(); gt++)
     {    		
     	RootedTree *genetree = genetrees[gt];
-    	lb[gt]=costfun.lowerboundnet(*genetree,*this);    			    	
+    	lb[gt]=costfun.lowerboundnet(*genetree, *this);    			    	    	
     	gtcost[gt] = 0;
     }   
+    
+    // cout << "LBN:" << externalbestcost << " :" << endl;
+    // for (int gt=0; gt<genetrees.size(); gt++)
+    // 	cout << lb[gt] << " ";    
+    // cout << endl;
    
 	int lbcnt = 0;
 	
@@ -379,7 +490,8 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     	// Compute cost of the current tree vs all gene trees
     	lbcnt = 0;
     	for (int gt=0; gt<genetrees.size(); gt++)
-    	{   			
+    	{   	
+    	 	// Check if the lower bound is already reached		
 			if (tid && (gtcost[gt]==lb[gt]))
 			{
 				lbcnt++;
@@ -389,10 +501,8 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
 
 			dtgtcnt++;
 
-#ifdef DTCACHE
-
+#ifdef DTCACHE			
     		COSTT curcost = s->cost[genetree->getid()] - 2*genetree->lf+2;
-
 #else    		
     		 
 			NODEID *lcamap = lcamaps[gt];
@@ -420,7 +530,15 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     			
     			gtcost[gt] = curcost;  
 
-    			if (gtcost[gt]==lb[gt])  // check again lb
+    		// 	if (tid>0)
+    		// 	{
+    		// 	cout << "LBN: tid=" << tid << " ext=" << externalbestcost << " cur=" << mincost << "  -->";
+    		// 	for (int gt=0; gt<genetrees.size(); gt++)
+    		// 		cout << lb[gt] << ":" << gtcost[gt] << " ";    
+    		// 	cout << endl;
+    		// }
+
+    			if (curcost==lb[gt])  // check again lb
     			{
 #ifdef _PRINTNAIVESTATS_    				
     				stoplbratio -= (1.0-1.0*tid/displaytreemaxid())/genetrees.size();
@@ -453,7 +571,7 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     		else tid = nexttid;
 
     		if (cutwhendtimproved && (mincost < externalbestcost))
-    		{    			
+    		{    		    			
     			break;
     		}
     		
@@ -542,23 +660,116 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees, CostFun &costfun, O
     return mincost;        
 }
 
-Network* Network::addrandreticulation(string retid, int networktype, bool uniform)
-{
-	int len=nn+rt-1; 
-	NODEID esrc[len];        // source 
-	NODEID dsrc[len*len][2]; // cand pairs
-	
-	len=0;
-	for (NODEID i = 0; i<rtstartid; i++) 		
 
+int Network::_getsrcconnectors(int networkclass, NODEID *esrc)
+{
+	// int len=nn+rt-1; 
+	// NODEID esrc[len];        // source 	
+	int len=0;
+
+	// Src edges (from node i to parent)
+	for (NODEID i = 0; i<rtstartid; i++) 		
 		esrc[len++]=i;
 
-	if (networktype==NET_GENERAL)
+	// Add also reticulation edges 
+	if (networkclass==NET_GENERAL)
 		for (NODEID i = rtstartid; i < nn; i++) 
 		{	
-			esrc[len++]=i;
-			esrc[len++]=-i;
+			esrc[len++]=i;  // i to parent
+			esrc[len++]=-i; // i to retparent
 		}
+
+	return len; 
+
+}
+
+#define getvenc(nod,par) if (nod==root) { par=MAXNODEID; } else  { if (nod<0) { nod=-nod; par = retparent[nod]; } else { par = parent[nod]; } }
+
+
+void Network::_getdestconnectorsforedge(int networkclass, NODEID v, int &dsrclen, NODEID* dsrc)
+{
+
+	bool reachable[size()];	
+	NODEID vsrc = v;				
+	NODEID p;
+	getvenc(v,p);
+
+	// src edge (v,p)
+	// gen reachable 	
+	getreachableto(v, reachable);
+
+
+	for (NODEID i = 0; i<nn; i++)			
+		if (!reachable[i]) 
+		{
+			NODEID w = i; // candidate
+			if (networkclass==NET_TREECHILD)
+			{
+				// w, parent of w and sib w must be tree nodes/leaves
+				if (w<rtstartid && parent[w]<rtstartid)
+					if (sibling(w)<rtstartid)
+					{
+						dsrc[dsrclen++]=vsrc;			
+						dsrc[dsrclen++]=w;						
+					}
+			}
+			else if (networkclass==NET_CLASS1RELAXED)
+			{										
+				// w is a tree node or ret
+				// par tree node ->  sibling not ret. 
+				if (parent[w]>=rtstartid || sibling(w)<rtstartid)
+				{
+					
+					dsrc[dsrclen++]=vsrc;					
+					dsrc[dsrclen++]=w;						
+				}
+				
+
+				if (w>=rtstartid) 
+				{
+					// check second parent
+					if (retparent[w]>=rtstartid || retsibling(w)<rtstartid)
+					{
+						dsrc[dsrclen++]=vsrc;						
+						dsrc[dsrclen++]=-w;						
+					}
+				}										
+			}
+			else 
+				{					
+					dsrc[dsrclen++]=vsrc;		
+					dsrc[dsrclen++]=w;						
+					if (w>=rtstartid) 
+					{
+						dsrc[dsrclen++]=vsrc;		
+						dsrc[dsrclen++]=-w;	
+					}
+				}				
+		}		
+}
+
+int Network::_getdestconnectors(int networkclass, int len, NODEID *esrc, NODEID* dsrc, bool takefirstnonempty)
+{
+		
+	int dsrclen = 0;
+
+	for (auto i = 0; i<len; i++)
+	{		
+		_getdestconnectorsforedge(networkclass, esrc[i], dsrclen, dsrc);	
+		if (takefirstnonempty && dsrclen) break; // take the first non-empty set 		
+	}
+
+	return dsrclen;
+
+}
+	
+
+Network* Network::addrandreticulation(string retid, int networkclass, bool uniform)
+{
+	int len = nn+rt; 
+	NODEID esrc[len];        // source 
+
+	len = _getsrcconnectors(networkclass, esrc);	
 
 	if (!len)
 	{
@@ -568,96 +779,21 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 	
 	// shuffle nodes for randomness
 	shuffle(esrc, len);	
-	bool reachable[size()];
 
 
-// set v and parent
+	NODEID dsrc[len*len*2]; // cand pairs	
+	auto dsrclen = _getdestconnectors(networkclass, len, esrc, dsrc, !uniform);
 
-#define getvenc(nod,par) if (nod==root) { par=MAXNODEID; } else  { if (nod<0) { nod=-nod; par = retparent[nod]; } else { par = parent[nod]; } }
+	if (!dsrclen) return NULL;
 
-	// printdeb(cout,2) << endl;
-	NODEID dlen = 0;
-	NODEID v,p,w,q;
-	
-	for (NODEID i = 0; i<len; i++)
-	{		
-		v = esrc[i];
-		NODEID vsrc = v;		
-		if (!uniform) dlen=0;  // initialize after each iteration
-		NODEID p;
+	int pair = rand()%(dsrclen/2);
+	 
+	NODEID p, v = dsrc[pair*2];
+	NODEID q, w = dsrc[pair*2+1];
 
-		getvenc(v,p);
-		
-		// src edge (v,p)
-		// gen reachable 	
-		getreachableto(v, reachable);
-
-		// cout << "CAND v=" << v << " ::" << p << endl;
-
-		for (NODEID i = 0; i<nn; i++)			
-			if (!reachable[i]) 
-			{
-				NODEID w = i; // candidate
-				if (networktype==NET_TREECHILD)
-				{
-					// w, parent of w and sib w must be tree nodes/leaves
-					if (w<rtstartid && parent[w]<rtstartid)
-						if (sibling(w)<rtstartid)
-						{
-							dsrc[dlen][0]=vsrc;			
-							dsrc[dlen++][1]=w;						
-						}
-				}
-				else if (networktype==NET_CLASS1RELAXED)
-				{										
-					// w is a tree node or ret
-					// par tree node ->  sibling not ret. 
-					if (parent[w]>=rtstartid || sibling(w)<rtstartid)
-					{
-						
-						dsrc[dlen][0]=vsrc;					
-						dsrc[dlen++][1]=w;						
-					}
-					
-
-					if (w>=rtstartid) 
-					{
-						// check second parent
-						if (retparent[w]>=rtstartid || retsibling(w)<rtstartid)
-						{
-							dsrc[dlen][0]=vsrc;						
-							dsrc[dlen++][1]=-w;						
-						}
-					}										
-				}
-				else 
-					{					
-						dsrc[dlen][0]=vsrc;		
-						dsrc[dlen++][1]=w;						
-						if (w>=rtstartid) 
-						{
-							dsrc[dlen][0]=vsrc;		
-							dsrc[dlen++][1]=-w;	
-						}
-					}				
-			}		
-
-		if (!uniform && dlen) break; // take the first non-empty set 
-			
-	}
-
-	if (!dlen) return NULL;
-
-
-	int pair = rand()%dlen;
-
-	v = dsrc[pair][0];
-	w = dsrc[pair][1];
 	getvenc(v,p);		
 	getvenc(w,q);
-		
-			
-	// yeah, connect (v,p) --> (w,q)
+
 
 #ifdef RNDDEBUG		
 		cout << " dlen=" << dlen << endl;
@@ -672,9 +808,9 @@ Network* Network::addrandreticulation(string retid, int networktype, bool unifor
 		cout << v << " " << p << " -> " << w << " " << q << endl;
 #endif	
 
+	// yeah, connect (v,p) --> (w,q)
 	return new Network(this, v, p, w, q, retid);
-	
-	
+
 }
 
 
