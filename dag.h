@@ -10,8 +10,9 @@
 #define NET_CLASS1RELAXED 1    // int node has >=1 tree node/leaf child
 #define NET_TREECHILD 0  // int node has <=1 ret. child
 
-#define TIMECONSISTENT 1
-#define NOTIMECONSISTENT 2
+#define NET_ANY 0
+#define NET_TIMECONSISTENT 1
+#define NET_NOTIMECONSISTENT 2
 
 // TODO: cycles are allowed; add top. sort.
 
@@ -230,6 +231,34 @@ public:
   bool belongtoclass(int netclass);
 
   bool istimeconsistent();
+
+  bool checktimeconsistency(int timeconsistency, bool printinfo=false)
+  {   
+      if (timeconsistency==NET_ANY) return true; // no constraint
+
+      bool tc = istimeconsistent();
+
+      if (timeconsistency==NET_TIMECONSISTENT)
+      {
+         if (printinfo && !tc)
+         {
+            cerr << "Network " << *this << "is not time consistent" << endl;
+         }
+         return tc;
+      }
+
+      if (timeconsistency==NET_NOTIMECONSISTENT)
+      {
+         if (printinfo && tc)
+         {
+            cerr << "Network " << *this << "is time consistent" << endl;
+         }
+         return !tc;
+      }
+
+      return false; // Unknown?
+
+  }
 
   bool eqdags(Dag *d, bool maplabels=true);
   bool eqdagstc1(Dag *d); // only tree child and class 1 testing (to be proved)

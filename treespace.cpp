@@ -343,7 +343,7 @@ void SNode::computecost2(SNode *snodeleft, SNode *snoderight, TreeSpace *treespa
 	 	cost[i]+=snoderight->cost[i];
 	 	
 	 	
-		if (!INTERSECTION(g->cluster,cluster)) continue; // disjoint clusters; 	 	
+		if (!INTERSECTION(g->cluster, cluster)) continue; // disjoint clusters; 	 	
 		if (ISSUBSET(g->cluster, leftcluster)) continue;  // g maps to a child or below
 		if (ISSUBSET(g->cluster, rightcluster)) continue; // g maps to a child or below
 

@@ -8,7 +8,7 @@
  charged for it and provided that this copyright notice is not removed.
  *************************************************************************/
 
-const char *SUPNET = "0.11";
+const char *SUPNET = "0.12";
 
 #include <getopt.h>
 #include <stdio.h>
@@ -41,6 +41,7 @@ using namespace std;
 #include "tools.h"
 #include "topsort.h"
 #include "treespace.h"
+#include "testers.h"
 using namespace std;
 
 double weightloss = 1.0; // Unused
@@ -68,9 +69,6 @@ float opt_hcignorecostgeq = 0;
 int flag_hcsavefinalodt = 0; // ignore hcignorecostgeq for final files
 
 int print_repr_inodtnaive = 0;
-
-typedef vector<RootedTree *> VecRootedTree;
-typedef vector<Network *> VecNetwork;
 
 string flag_retidprefix = "";
 
@@ -119,220 +117,6 @@ void insertstr(vector<char *> &v, const char *t) {
   free(y);
 }
 
-void testcomparedags(int reticulationcnt_R, int timeconsistency, int randnetuniform, int networkclass)
-{
-
-    int cnt = 0;
-    while (1) 
-    {
-      cnt++;
-      string r1 = randspeciestreestr();
-      string r2 = randspeciestreestr();
-      int EE = 0;
-      int e1, e2, e3;
-      if (!r1.length() || !r2.length()) {
-        cerr << "Cannot create initial random species tree" << endl;
-        exit(-1);
-      }
-      Network *n1 =
-          addrandreticulations(reticulationcnt_R, new Network(r1), networkclass,
-                               timeconsistency, randnetuniform, NULL, NULL);
-      Network *n2 =
-          addrandreticulations(reticulationcnt_R, new Network(r2), networkclass,
-                               timeconsistency, randnetuniform, NULL, NULL);
-
-      e1 = n1->eqdags(n2);
-      e2 = n1->eqdagsbypermutations(n2);
-
-      cout << (*n1) << "\t" << (*n2) << "\tE1=" << e1 << "\tE2=" << e2
-           << "\tError=" << (e1 != e2) << endl;
-
-      cerr << (*n1) << "\t" << (*n2) << "\tE1=" << e1 << "\tE2=" << e2
-           << "\tError=" << (e1 != e2) << endl;
-
-      delete n1;
-      delete n2;
-
-      if (e1 != e2)
-        break; // stop
-    }
-    exit(0);
-}
-
-void testtreerepr(VecNetwork &netvec)
-{
-  for (auto &ntpos: netvec) 
-    {
-      DISPLAYTREEID tid = 0;
-      SNode *t = NULL;
-      cout << *ntpos << endl;
-      while ((t = ntpos->gendisplaytree2(tid, t, globaltreespace)) != NULL) {
-        ppSNode(cout, t) << endl;
-        tid++;
-      }
-    }
-}
-
-void testcontract(int argc, char **argv, VecRootedTree &gtvec,  VecNetwork &netvec, CostFun *costfun)
-{
-
-    // Last two args: leftretusage rightretusage
-    // ./supnet -g "(a,(b,c))" -n "((b)#1,(((#2)#3,((#1)#2,(c,#3))),a))" -eXng 2
-    // 1
-    // ./dot -Tpdf contr.dot -o c.pdf && evince c.pdf
-
-    RETUSAGE retusage;
-    emptyretusage(retusage);
-
-    // ugly
-    if (optind + 1 <= argc) {
-      long us = atol(argv[optind]);
-
-      int rid = 0;
-      while (us) {
-        cout << "A" << us << " " << rid << endl;
-        if (us & 1)
-          addleftretusage(retusage, rid);
-        us = us >> 1;
-        rid++;
-      }
-    }
-
-    if (optind + 2 <= argc) {
-      long us = atol(argv[optind + 1]);
-      int rid = 0;
-      while (us) {
-        cout << "B" << us << " " << rid << endl;
-        if (us & 1)
-          addrightretusage(retusage, rid);
-        us = us >> 1;
-        rid++;
-      }
-    }
-
-    cout << "R" << retusage << endl;
-    cout << "Conflicted " << conflicted(retusage) << endl;
-    
-    for (int i = 0; i < netvec.size(); i++) 
-    {
-      Network *n1 = netvec[i];
-      std::stringstream ss;
-      n1->print(ss);
-      cout << ss.str() << endl;
-
-      ContractedNetwork *c = new ContractedNetwork(ss.str());
-
-      c->contract(retusage);
-
-      cout << "Rtcount " << c->rtcount() << " "
-           << "rt=" << n1->rtcount() << endl;
-      ;
-
-      for (auto &gtpos: gtvec)
-      {
-        cout << "retmindc:" << (c->approxmindce(*gtpos, *costfun)) << endl;
-      }
-
-      ofstream s("contr.dot");
-      std::ofstream sf;
-      sf.open("contr.dot", std::ofstream::out);
-      sf << "digraph SN {" << endl;
-      sf << " inp [label=\"InRT=" << retusage << "\"]" << endl;
-      c->gendot(sf);
-      c->gendotcontracted(sf);
-      sf << "}" << endl;
-      sf.close();
-      cout << c->newickrepr() << endl;
-
-      RootedTree *t = NULL;
-      DISPLAYTREEID tid = 0; // id of display tree
-
-      while ((t = c->gendisplaytree(tid, t)) != NULL) {
-        cout << tid << " " << (*t) << endl;
-        tid++;
-      }
-    }
-}
-
-void testeditnni(int flag_testeditnni, VecNetwork &netvec)
-{
-
-  if (flag_testeditnni==1)
-  {
-   for (auto &ntpos: netvec) 
-    {
-      std::ofstream dotf;
-      dotf.open("edit.dot", std::ofstream::out);
-
-      int cnt = 0;
-      dotf << "digraph SN {" << endl;
-
-      NNI nni;
-      nni.init(ntpos);
-
-      cout << *ntpos << " verify==" << ntpos->verifychildparent() << endl;
-      ntpos->printdeb(cout, 2);
-      ntpos->printdot(dotf, cnt++);
-
-      while (nni.next()) 
-      {
-        cout << "========" << endl << endl;
-        int err = ntpos->verifychildparent();
-
-        cout << *ntpos << " verify==" << err << endl;
-        ntpos->printdeb(cout, 2);
-        ntpos->printdot(dotf, cnt++);
-
-        if (err)
-        {
-          break;
-        }
-      }
-
-      dotf << "}" << endl;
-      dotf.close();
-    }
-  }
-
-  if (flag_testeditnni==2)
-  {
-    for (auto &ntpos: netvec) 
-    {
-      std::ofstream dotf;
-
-      dotf.open("tm.dot", std::ofstream::out);
-
-      int cnt = 0;
-      dotf << "digraph SN {" << endl;
-
-      TailMove tailmove(0);
-      tailmove.init(ntpos);
-
-      cout << *ntpos << " verify==" << ntpos->verifychildparent() << endl;
-      // (*ntpos)->printdeb(cout,2);
-      ntpos->printdot(dotf, cnt++);
-
-      while (tailmove.next()) 
-      {
-        cout << "========" << endl << endl;
-        int err = ntpos->verifychildparent();
-
-        cout << ntpos << " verify==" << err << endl;
-        // (*ntpos)->printdeb(cout,2);
-        ntpos->printdot(dotf, cnt++);
-
-        if (err)
-        {
-          break;
-        }
-      }
-
-      dotf << "}" << endl;
-      dotf.close();
-    }
-  }
-
-}
 
 
 int main(int argc, char **argv) {
@@ -368,7 +152,6 @@ int main(int argc, char **argv) {
   int flag_dot = 0;
   int flag_print_display_trees = 0;
   int flag_print_display_trees_with_ids = 0;
-  int flag_testcomparedags = 0;
   int flag_comparedags = 0;
   int flag_dagshapes = 0;
   int flag_uniquedags = 0;
@@ -376,12 +159,11 @@ int main(int argc, char **argv) {
   int flag_uniquedagscnts = 0;
 
   int flag_preserveroot = 0;
-  int flag_testeditnni = 0;
+  
 
   int flag_extra_visible_node_stats = 0;
   int flag_extra_visible_leaf_stats = 0;
-  int flag_dpalgorithm = 0;
-  int flag_testcontract = 0;
+  int flag_dpalgorithm = 0;  
   int flag_bbalgorithm = 0;
   int flag_bbalgorithmSTATS = 0;
 
@@ -418,7 +200,7 @@ int main(int argc, char **argv) {
 
   int flag_timeconsistent = 0;
   int flag_notimeconsistent = 0;
-  int timeconsistency = 0;  // 0 - no restrictions, 1-timeconsistent, 2-notimeconsistent
+  int timeconsistency = NET_ANY;  // NET_ANY no restrictions, 1-timeconsistent, 2-notimeconsistent
   
   int flag_ptreecostext = 0;
   int flag_noodtfiles = 0;
@@ -429,7 +211,6 @@ int main(int argc, char **argv) {
   int flag_runnaiveleqrt = 0;
   int flag_hcedit_nni = 0;
   int flag_detectclass = 0;
-  int flag_testtreerepr = 0;
   int flag_hcrunstats = 0;
   int flag_hcrunstatsext = 0;
   int flag_hcrunstatsalways = 0;
@@ -439,6 +220,7 @@ int main(int argc, char **argv) {
   int flag_match_atpos = 0;
   int flag_print_network_clusters = 0;
   int flag_cutwhendtimproved = 0;
+  int flag_netretiterator = 0;
 
   int testdisplaytreesampling = 0;
 
@@ -452,6 +234,8 @@ int main(int argc, char **argv) {
 
   char *opt_guideclusters = NULL;
   char *opt_guidetree = NULL;
+
+  string opt_tester = "";
   
   costfun = new CFDeepCoalescence();
 
@@ -509,6 +293,7 @@ int main(int argc, char **argv) {
       {"reachablenodescnt", no_argument, &flag_extra_visible_node_stats, 1},
       {"reachableleavescnt", no_argument, &flag_extra_visible_leaf_stats, 1},
       {"pdetailed", no_argument, &flag_extra_print_detailed, 1},
+      {"netretiterator", no_argument, &flag_netretiterator, 1},
 
       {"DP", no_argument, &flag_dpalgorithm, 1},
 
@@ -553,19 +338,11 @@ int main(int argc, char **argv) {
       {"matchparam", required_argument, NULL, 'l'},
 
       // debug
-      {"testtreerepr", no_argument, &flag_testtreerepr, 1},
-      {"testcontract", no_argument, &flag_testcontract, 1},
-      {"testcomparedags", no_argument, &flag_testcomparedags, 1},
-      {"testeditnni", no_argument, &flag_testeditnni, 1},
-      {"testedittailmove", no_argument, &flag_testeditnni, 2},
-
+      {"test", required_argument, NULL, 'T'},
       {"guideclusters", required_argument, NULL, 'u'},
       {"guidetree", required_argument, NULL, 'e'},
-
       {"globaldagcache", no_argument, &flag_globaldagcache, 1 },
-
       {"saveextnewick", no_argument, &flag_saveextnewick, 1 },
-
       {"retidprefix", required_argument, NULL, 'Q'},
 
       {0, 0, 0, 0}
@@ -573,7 +350,7 @@ int main(int argc, char **argv) {
   };
 
   const char *optstring =
-      "c:z:b:U:g:s:G:S:N:n:R:t:m:V:X:Y:Z:l:q:r:A:L:D:O:v:C:1:Wu:e:P:;";
+      "c:z:b:U:g:s:G:S:N:n:R:t:m:V:X:Y:Z:l:q:r:A:L:D:O:v:C:1:Wu:e:P:T:;";
 
   while ((opt = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) {
     switch (opt) {
@@ -658,6 +435,12 @@ int main(int argc, char **argv) {
     case 'O': 
     {
       opt_outfiles = optarg;      
+      break;
+    }
+
+    case 'T': 
+    {
+      opt_tester = optarg;      
       break;
     }
 
@@ -851,12 +634,12 @@ int main(int argc, char **argv) {
   // Apply time consistent flags
   if (flag_timeconsistent)
   {
-    timeconsistency = TIMECONSISTENT;
+    timeconsistency = NET_TIMECONSISTENT;
   }
   else 
     if (flag_notimeconsistent) 
     {
-      timeconsistency = NOTIMECONSISTENT;
+      timeconsistency = NET_NOTIMECONSISTENT;
     }
 
   // Parse species trees
@@ -1101,6 +884,20 @@ int main(int argc, char **argv) {
   {
     for (auto &ntpos: netvec)
       ntpos->visibilenodestats(2, cout) << endl;
+  }
+
+  if (flag_netretiterator) 
+  {
+      for (auto &ntpos: netvec) 
+      {        
+        NetworkRetIterator netretit((*ntpos), networkclass, timeconsistency, guideclusters, guidetree, "");
+
+        Network *n;
+        while ((n = netretit.next())!=NULL)
+        {
+          cout << *n << endl;
+        }
+      }
   }
 
   // Generate dot file with networks and trees
@@ -1406,29 +1203,33 @@ int main(int argc, char **argv) {
 
   // ----------------- DEBUGs -----------------------
 
-  if (flag_testeditnni) 
+  if (opt_tester=="editnni") 
   {
-    testeditnni(flag_testeditnni, netvec);
+    testeditnni(netvec);
   }
 
-  
-  // Debug
-  if (flag_testcomparedags) 
+  if (opt_tester=="edittailmove") 
+  {
+    testedittailmove(netvec);
+  }
+
+  if (opt_tester=="comparedags") 
   {
     testcomparedags(reticulationcnt_R, timeconsistency, randnetuniform, networkclass);
 
   }
 
-  if (flag_testcontract) 
+  if (opt_tester=="contract") 
   {
-
     testcontract(argc, argv, gtvec, netvec, costfun);
   }
 
-  if (flag_testtreerepr) 
+  if (opt_tester=="treerepr") 
   {
     testtreerepr(netvec);    
   }
+
+  
 
 
   delete globaltreespace;

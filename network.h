@@ -28,7 +28,6 @@ class Network;
 typedef vector<RootedTree*> VecRootedTree;
 typedef vector<Network*> VecNetwork;
 
-
 class AdaptiveBB;
 
 #if MAXRTNODES < 33
@@ -83,7 +82,6 @@ void initbitmask();
 struct SNode;
 class TreeSpace;
 
-
 class Network: public Dag
 {
 
@@ -99,6 +97,10 @@ protected:
 
 	virtual bool _skiprtedge(NODEID i, NODEID iparent, DISPLAYTREEID id);
 	virtual void initdid();
+
+	void _getdestconnectorsforedge(int networkclass, NODEID v, int &dsrclen, NODEID* dsrc);
+	int _getsrcconnectors(int networkclass, NODEID *esrc);
+	int _getdestconnectors(int networkclass, int len, NODEID *esrc, NODEID* dsrc, bool uniform);
 
 public:
 	
@@ -129,7 +131,7 @@ public:
 	// 
 	// Returns NULL if such a network cannot be created
 
-	Network *addrandreticulation(string retid, int networktype, bool unform=false);
+	Network *addrandreticulation(string retid, int networkclass, bool uniform=false);
 		
 	
 	// Generate id'th display tree; 
@@ -155,7 +157,14 @@ public:
 
 	// Compute min cost vs. gene tree via enumeration of all display trees
 	double odtcostnaive(RootedTree *genetree, CostFun &costfun, ODTStats &odtstats, float sampling = 0);
-
+	
+	double odtcostnaiverev(
+		vector<RootedTree*> &genetrees, 
+		CostFun &costfun, 
+		ODTStats &odtstats, 	
+		bool cutwhendtimproved, 
+		double externalbestcost);
+	
 	// Compute min cost vs. gene trees via DP&BB alg.	
 	// Only for DC
 	double odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, int runnaiveleqrt_t, ODTStats &odtstats);
@@ -196,11 +205,89 @@ public:
 	friend class TailMove;	
 
 	friend class DP_DC;
+	friend class NetworkRetIterator;
 
 };
 
 
+class NetworkRetIterator
+{
 
+	protected:
+		Network &net;
+
+		int pair; 
+		NODEID *esrc;   
+		NODEID *dsrc;   
+		int esrclen;
+		int currentpair;
+		int currentesrc;
+		int dsrclen;
+		string retid;
+		int networkclass;
+		int timeconsistency;
+		Clusters *guidetree;
+		Clusters *guideclusters;
+
+
+	public: 
+		NetworkRetIterator(Network &n, int _networkclass, int _timeconsistency, Clusters *_guideclusters=NULL, Clusters *_guidetree=NULL, string _retid="") : 
+			net(n), pair(0), retid(_retid), networkclass(_networkclass), timeconsistency(_timeconsistency), guideclusters(_guideclusters), guidetree(_guidetree)
+		{
+	 		int len=net.nn+net.rt; 
+	 		esrc = new NODEID[len];        
+	 		esrclen = net._getsrcconnectors(networkclass, esrc);	
+	 		dsrc = new NODEID[len*2]; // cand pairs	
+			currentpair = 0;
+			currentesrc = -1;		
+			dsrclen = 0;						
+		}
+		
+		Network *_next()
+		{					
+			while (dsrclen==currentpair)
+			{
+				currentesrc++;
+				if (currentesrc>=esrclen) return NULL;
+				dsrclen = 0;
+				net._getdestconnectorsforedge(networkclass, esrc[currentesrc], dsrclen, dsrc);	
+				currentpair = 0;		  		
+			}	
+
+			NODEID p, v = dsrc[currentpair];
+			NODEID q, w = dsrc[currentpair+1];		
+			currentpair+=2;
+
+#define getvencnet(nod,par) if (nod==net.root) { par=MAXNODEID; } else  { if (nod<0) { nod=-nod; par = net.retparent[nod]; } else { par = net.parent[nod]; } }
+
+			getvencnet(v,p);		
+			getvencnet(w,q);
+
+			return new Network(&net, v, p, w, q, retid);						
+		}
+
+		Network *next()
+		{
+			Network *n;
+			
+			while ((n = _next())!=NULL)
+			{
+				if (!n->checktimeconsistency(timeconsistency)) continue;
+				if (guideclusters && !n->hasclusters(guideclusters)) continue;
+				if (guidetree && !n->hastreeclusters(guidetree)) continue;
+				return n;
+			}
+
+			return NULL;
+
+		}
+		
+		~NetworkRetIterator() { 
+			delete[] esrc; 
+			delete[] dsrc; 
+		}
+	
+};
 
 #endif
 

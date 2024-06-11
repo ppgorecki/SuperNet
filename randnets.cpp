@@ -2,7 +2,7 @@
 #include "network.h"
 #include "randnets.h"
 
-// How many tries to obrain time consistent network
+// How many tries to obtain time consistent network
 #define RANDCNTREPEAT 100 
 
 Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass, int timeconsistency, bool uniform, Clusters *guideclusters, Clusters *guidetree)
@@ -13,15 +13,9 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass,
   for (auto k=0; k<RANDCNTREPEAT; k++)
   {
 
-    if (timeconsistency)
-    {
-      bool tc = n->istimeconsistent();
-
-      if (timeconsistency==TIMECONSISTENT && !tc)
-      {
-        cerr << "Network " << *n << " is not time consistent" << endl;
-        exit(-1);
-      }            
+    if (!n->checktimeconsistency(timeconsistency, true))
+    {      
+        exit(-1);                
     }
 
     for (auto i=0; i<reticulationcnt; i++)
@@ -80,7 +74,7 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass,
           break;
 
 
-        if (timeconsistency==TIMECONSISTENT)
+        if (timeconsistency==NET_TIMECONSISTENT)
         {
             bool tc = n->istimeconsistent();
             if (tc)
@@ -112,7 +106,7 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass,
 
     } // for 
 
-    if ((timeconsistency==NOTIMECONSISTENT) && n->istimeconsistent())      
+    if ((timeconsistency==NET_NOTIMECONSISTENT) && n->istimeconsistent())      
     {
         //revert  
         n = src;
