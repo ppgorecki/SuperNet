@@ -124,4 +124,20 @@ void supnetheuristic(
 		bool cutwhendtimproved
 		);
 
+void iterativeretinsertionoptimizer(		
+		vector<RootedTree*> &gtvec,				
+		Network *startnet,		
+		CostFun *costfun,		
+		int printstats,						
+		bool usenaive, 
+		int runnaiveleqrt_t, 				
+		NetworkHCStatsGlobal *globalstats, // could be sampler
+		bool cutwhendtimproved,
+		int networkclass, 
+		int timeconsistency, 
+		Clusters *guideclusters=NULL, 
+		Clusters *guidetree=NULL, 
+		string _retid=""
+		);
+
 #endif

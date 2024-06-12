@@ -214,6 +214,76 @@ double HillClimb::climb(
 
 extern int flag_hcsamplerstats;
 
+
+void iterativeretinsertionoptimizer(		
+		vector<RootedTree*> &gtvec,				
+		Network *startnet,		
+		CostFun *costfun,		
+		int printstats,						
+		bool usenaive, 
+		int runnaiveleqrt_t, 				
+		NetworkHCStatsGlobal *globalstats, // could be sampler
+		bool cutwhendtimproved,
+		int networkclass, 
+		int timeconsistency, 
+		Clusters *guideclusters, 
+		Clusters *guidetree, 
+		string _retid
+		)
+
+{
+ 	  DagSet visiteddags;		
+		NetworkHCStats nhcstats(visiteddags, globalstats);  
+		float displaytreesampling = globalstats->getsampling();
+
+
+	  double optcost = startnet->odtcost(gtvec, *costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats(), displaytreesampling);
+
+	  nhcstats.addnewbest(*startnet, optcost); // save the first network
+
+		NetworkRetIterator netretit(*startnet, networkclass, timeconsistency, guideclusters, guidetree, "");
+   	Network *net;
+   	   	
+    while ((net = netretit.next())!=NULL)
+    {
+      	double curcost = net->odtcost(gtvec, *costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats(), displaytreesampling);
+
+				// Equal cost network
+				if (curcost==optcost)
+				{
+					if (verbosehccost>=2)					
+					{
+						cout << "   =: " << *net << " cost=" << curcost << endl;				
+					}
+					
+					nhcstats.addeq(*net);	    
+				}
+				
+			// Yeah, new better network
+			if (curcost<optcost)
+			{
+					optcost = curcost; 						
+					if (verbosehccost>=1)
+					{
+						cout << "   >: " << *net << " cost=" << optcost << endl;	
+					}
+
+					// new optimal; forget old   
+					nhcstats.addnewbest(*net, optcost);					
+
+					
+					// improvementscnt++;
+				  // noimprovementstep = 0; // reset counter
+
+				  // reset 
+				  // lasthcimprovementtime = gettime();
+					
+			}
+
+      	// cout << cost << " " << *n << endl;
+    }
+}
+
 void supnetheuristic(		
 		vector<RootedTree*> &gtvec,				
 		NetIterator *netiterator,

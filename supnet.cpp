@@ -77,7 +77,7 @@ TreeSpace *globaltreespace;
 #define BUFSIZE 100000
 
 // Read trees from a given file
-void readtrees(char *fn, vector<char *> &stvec) 
+void readtrees(char *fn, vector<char *> &speciestreesv) 
 {
   FILE *f;
   if (!strcmp(fn, "-"))
@@ -93,7 +93,7 @@ void readtrees(char *fn, vector<char *> &stvec)
   while (1) {
     if (!fgets(buf, BUFSIZE, f))
       break;
-    stvec.push_back(strdup(buf));
+    speciestreesv.push_back(strdup(buf));
   }
   fclose(f);
 }
@@ -125,8 +125,8 @@ int main(int argc, char **argv) {
   if (argc < 2)
     usage(argc, argv);
 
-  VecRootedTree stvec, gtvec;
-  VecNetwork netvec;
+  VecRootedTree speciestreesv, genetreesv;
+  VecNetwork networksv;
 
   struct timeval time;
   gettimeofday(&time, NULL);
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
 
   
   
-  vector<char *> sgtvec, sstvec, snetvec;
+  vector<char *> sgenetreesv, sspeciestreesv, snetworksv;
 
   COSTT bbstartscore = 0;
   int bbstartscoredefined = 0;
@@ -221,7 +221,8 @@ int main(int argc, char **argv) {
   int flag_print_network_clusters = 0;
   int flag_cutwhendtimproved = 0;
   int flag_netretiterator = 0;
-
+  int flag_iterativeretinsertion = 0;
+  int flag_pnetworkretnodescnt = 0;
   int testdisplaytreesampling = 0;
 
   int hcmaximprovements = 0;
@@ -292,6 +293,7 @@ int main(int argc, char **argv) {
       {"pstsubtrees", no_argument, &flag_printstsubtrees, 1},
       {"reachablenodescnt", no_argument, &flag_extra_visible_node_stats, 1},
       {"reachableleavescnt", no_argument, &flag_extra_visible_leaf_stats, 1},
+      {"pnetworkretnodescnt", no_argument, &flag_pnetworkretnodescnt, 1},
       {"pdetailed", no_argument, &flag_extra_print_detailed, 1},
       {"netretiterator", no_argument, &flag_netretiterator, 1},
 
@@ -306,6 +308,8 @@ int main(int argc, char **argv) {
       {"bbtsvstats", no_argument, &flag_bbtsvstats, 1},
       {"bbtimestats", no_argument, &flag_bbtimestats, 1},
       {"bbstartscore", required_argument, NULL, '1'},
+
+      {"iterativeretinsertion", no_argument, &flag_iterativeretinsertion, 1},
 
       {"HC", optional_argument, &flag_hcalgorithm, 'o'},
       {"runnaiveleqrt", required_argument, &flag_runnaiveleqrt, 't'},
@@ -352,7 +356,10 @@ int main(int argc, char **argv) {
   const char *optstring =
       "c:z:b:U:g:s:G:S:N:n:R:t:m:V:X:Y:Z:l:q:r:A:L:D:O:v:C:1:Wu:e:P:T:;";
 
-  while ((opt = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) 
+  {
+
+    
     switch (opt) {
     case 'V':
       maxdisplaytreecachesize = atoi(optarg);
@@ -393,11 +400,12 @@ int main(int argc, char **argv) {
       break;
 
     case 'g':
-      insertstr(sgtvec, optarg);
+      insertstr(sgenetreesv, optarg);
       break;
 
     case 'R':
       reticulationcnt_R = atoi(optarg);
+      cout << reticulationcnt_R<< endl;
       break;
 
     case 't':
@@ -420,15 +428,15 @@ int main(int argc, char **argv) {
     }
 
     case 's':
-      insertstr(sstvec, optarg);
+      insertstr(sspeciestreesv, optarg);
       break;
 
     case 'n':
-      insertstr(snetvec, optarg);
+      insertstr(snetworksv, optarg);
       break;
 
     case 'G': {
-      readtrees(optarg, sgtvec);
+      readtrees(optarg, sgenetreesv);
       break;
     }
 
@@ -451,12 +459,12 @@ int main(int argc, char **argv) {
     }
 
     case 'S': {
-      readtrees(optarg, sstvec);
+      readtrees(optarg, sspeciestreesv);
       break;
     }
 
     case 'N': {
-      readtrees(optarg, snetvec);
+      readtrees(optarg, snetworksv);
       break;
     }
 
@@ -509,10 +517,9 @@ int main(int argc, char **argv) {
     case 'q':
       opt_quasiconsensus = 1;
       if (sscanf(optarg, "%d", &quasiconsensuscnt) != 1) {
-        cerr << "Number expected in -w" << endl;
+        cerr << "Number expected in -q" << endl;
         exit(-1);
       }
-
       break;
 
     // Gen random trees/networks
@@ -608,9 +615,12 @@ int main(int argc, char **argv) {
     default:
       cerr << "Unknown option: " << ((char)opt) << endl;
       exit(-1);
-    }
+    } // switch 
 
-  } // for
+    // cout << ((char)opt) << " " << optarg << ' ' << flag_print_networks << endl;
+
+
+  } // while
 
   srand(randseed);
 
@@ -619,6 +629,7 @@ int main(int argc, char **argv) {
   {
     networkclass = NET_GENERAL;
   }
+
   if (net_relaxed)
   {
     networkclass = NET_CLASS1RELAXED;
@@ -643,39 +654,23 @@ int main(int argc, char **argv) {
     }
 
   // Parse species trees
-  for (size_t i = 0; i < sstvec.size(); i++) 
+  for (size_t i = 0; i < sspeciestreesv.size(); i++) 
   {
-    RootedTree *s = new RootedTree(sstvec[i]);
+    RootedTree *s = new RootedTree(sspeciestreesv[i]);
     if (!s->bijectiveleaflabelling()) {
       cerr << "Bijective leaf labelling expected in a species tree: " << *s
            << endl;
       exit(-1);
     }
-    stvec.push_back(s);
+    speciestreesv.push_back(s);
   }
 
   // Parse gene trees
-  for (size_t i = 0; i < sgtvec.size(); i++) 
+  for (size_t i = 0; i < sgenetreesv.size(); i++) 
   {    
-    RootedTree *gtree = new RootedTree(sgtvec[i]);
+    RootedTree *gtree = new RootedTree(sgenetreesv[i]);
     gtree->setid(i);
-    gtvec.push_back(gtree);
-  }
-
-  globaltreespace = new TreeSpace(gtvec, maxdisplaytreecachesize);
-
-  // Add random reticulations
-  for (size_t i = 0; i < snetvec.size(); i++) 
-  {
-    Network *n = new Network(snetvec[i]);
-    if (!n->bijectiveleaflabelling()) 
-    {
-      cerr << "Bijective leaf labelling expected in a network: " << *n << endl;
-      exit(-1);
-    }
-
-    netvec.push_back(addrandreticulations(reticulationcnt_R, n, networkclass,
-                                          timeconsistency, randnetuniform, NULL, NULL));
+    genetreesv.push_back(gtree);
   }
 
   // Print species names
@@ -689,9 +684,12 @@ int main(int argc, char **argv) {
   if (opt_quasiconsensus || opt_randnetworks) 
   {
     genetreeclusters = new Clusters();
-    for (auto & gtpos: gtvec) 
+    for (auto & gtpos: genetreesv) 
       genetreeclusters->adddag(gtpos);    
   }
+
+  // Initialize clusters
+  globaltreespace = new TreeSpace(genetreesv, maxdisplaytreecachesize);
 
   Clusters *guideclusters = NULL;
   if (opt_guideclusters)
@@ -707,15 +705,32 @@ int main(int argc, char **argv) {
     guidetree->addtree(opt_guidetree);    
   }
 
-  // Gen quasi consensus trees and insert into netvec as networks
+  // Initialize networks  
+  for (size_t i = 0; i < snetworksv.size(); i++) 
+  {
+    Network *n = new Network(snetworksv[i]);
+
+    if (!n->bijectiveleaflabelling()) 
+    {
+      cerr << "Bijective leaf labelling expected in a network: " << *n << endl;
+      exit(-1);
+    }
+
+
+    networksv.push_back(addrandreticulations(reticulationcnt_R, n, networkclass,
+                                           timeconsistency, randnetuniform, NULL, NULL));
+  }
+
+  // Gen quasi consensus trees and insert into networksv as networks
   // Add reticulations if -R is set
+  // Ignored if flag_hcalgorithm is set
   RootedTree *preserverootst = NULL;
   if (opt_quasiconsensus) 
   {
     if (flag_preserveroot) 
     {
-      if (stvec.size() > 0)
-        preserverootst = stvec[0];
+      if (speciestreesv.size() > 0)
+        preserverootst = speciestreesv[0];
       else 
       {
         cout << "Exactly one species tree should be defined for "
@@ -725,7 +740,7 @@ int main(int argc, char **argv) {
       }
     }
 
-    if (!gtvec.size() && !guideclusters && !guidetree) 
+    if (!genetreesv.size() && !guideclusters && !guidetree) 
     {
         cout << "Gene trees (-g/-G), a guide tree (--guidetree) or guide clusters (--guideclusters) are required to infer quasi consensus" << endl;
         return -1;
@@ -736,15 +751,16 @@ int main(int argc, char **argv) {
     {
       
       for (int i = 0; i < quasiconsensuscnt; i++)
-        netvec.push_back(randquasiconsnetwork(reticulationcnt_R, networkclass,
+        networksv.push_back(randquasiconsnetwork(reticulationcnt_R, networkclass,
                                               timeconsistency, genetreeclusters,
                                               preserverootst, 
                                               guideclusters,
                                               guidetree));
-    }
+    } 
   }
 
-  // Random networks generated on the fly
+  // Stats on random networks generated on the fly
+  // Ignores other options and exits when completed
   if (flag_uniquedags || flag_uniquedagscnts) 
   {
     DagSet dagset(flag_uniquedagscnts, flag_dagshapes);
@@ -753,7 +769,7 @@ int main(int argc, char **argv) {
     long int i = -1;
 
     Dag *src;
-    NetIterator netiterator(netvec, randomnetworkscnt, quasiconsensuscnt, genetreeclusters,
+    NetIterator netiterator(networksv, randomnetworkscnt, quasiconsensuscnt, genetreeclusters,
                           preserverootst, reticulationcnt_R, networkclass,
                           timeconsistency, randnetuniform, guideclusters, 
                            guidetree);
@@ -761,15 +777,15 @@ int main(int argc, char **argv) {
        dagset.add(n, &src);
 
     cout << dagset;
-    cerr << "unique=" << dagset.size() << " all=" << netvec.size() << endl;
+    cerr << "unique=" << dagset.size() << " all=" << networksv.size() << endl;
     exit(0); 
-    // ignore rest opt
+    // ignore other options
   }
 
-  // Just printing
+  // Print species trees
   if (flag_print_species_trees) 
   {
-    for (auto & stpos : stvec) 
+    for (auto & stpos : speciestreesv) 
     {
       if (flag_print_species_trees == 2) 
       {
@@ -781,28 +797,30 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Print subtrees of species trees
   if (flag_printstsubtrees) 
   {
-    for (auto &stpos : stvec) 
+    for (auto &stpos : speciestreesv) 
     {
       stpos->printsubtrees(cout);
     }
   }
 
+  // Print gene trees
   if (flag_print_gene_trees) 
   {
-    for (auto gtpos : gtvec) 
+    for (auto gtpos : genetreesv) 
     {
       cout << *gtpos << endl;
     }
   }
 
-
+  // Gene tree vs. species tree cost
   if (flag_ptreecost || flag_ptreecostext) 
   {
-    for (auto &stpos : stvec) 
+    for (auto &stpos : speciestreesv) 
     {
-      for (auto &gtpos : gtvec) 
+      for (auto &gtpos : genetreesv) 
       {
         if (flag_ptreecostext) 
         {
@@ -814,21 +832,22 @@ int main(int argc, char **argv) {
     }
   }
 
-  // Gen random trees and store in netvec
+  // Gen random trees and store in networksv
   // Add reticulations if -R is set
   if (opt_randnetworks && !flag_hcalgorithm) 
   {
 
     for (int i = 0; i < randomnetworkscnt; i++)
     {
-      netvec.push_back(randnetwork(reticulationcnt_R, networkclass,
+      networksv.push_back(randnetwork(reticulationcnt_R, networkclass,
                                    timeconsistency, randnetuniform));
     }
   }
 
+  // Print networks (opt. clusters)
   if (flag_print_networks) 
   {
-    for (auto &ntpos: netvec) 
+    for (auto &ntpos: networksv) 
     {
       //(*ntpos)->printdeb(cout,2) << endl;
       cout << *ntpos << endl;
@@ -839,56 +858,70 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Print retnodes counts in networks 
+  if (flag_pnetworkretnodescnt) 
+  {
+    for (auto &ntpos: networksv) 
+    {      
+      cout << (*ntpos).rtcount() << endl;
+      
+    }
+  }
+  
+  // More printing
   if (flag_extra_print_detailed) 
   {
-    if (stvec.size())
+    if (speciestreesv.size())
     {
       cout << "Species trees:" << endl;
     }
 
-    for (auto &stpos: stvec)
+    for (auto &stpos: speciestreesv)
     {
       stpos->printdeb(cout, 2) << endl;
     }
 
-    if (gtvec.size())
+    if (genetreesv.size())
     {
       cout << "Gene trees:" << endl;
     }
 
-    for (auto &gtpos: gtvec)
+    for (auto &gtpos: genetreesv)
     {
       gtpos->printdeb(cout, 2) << endl;
     }
 
-    if (netvec.size())
+    if (networksv.size())
     {
       cout << "Networks:" << endl;
     }
 
-    for (auto &ntpos: netvec)
+    for (auto &ntpos: networksv)
     {
       ntpos->printdeb(cout, 2) << endl;
     }
   }
 
+  // Print stats on visible nodes in networks
   if (flag_extra_visible_node_stats) 
   {
-    for (auto &ntpos: netvec)
+    for (auto &ntpos: networksv)
     {
       ntpos->visibilenodestats(1, cout) << endl;
     }
   }
 
+  // Print stats on visible leaves in networks
   if (flag_extra_visible_leaf_stats) 
   {
-    for (auto &ntpos: netvec)
+    for (auto &ntpos: networksv)
       ntpos->visibilenodestats(2, cout) << endl;
   }
 
+  // For every network print all network after inserting one reticulation
   if (flag_netretiterator) 
   {
-      for (auto &ntpos: netvec) 
+      for (auto &ntpos: networksv) 
       {        
         NetworkRetIterator netretit((*ntpos), networkclass, timeconsistency, guideclusters, guidetree, "");
 
@@ -907,17 +940,17 @@ int main(int argc, char **argv) {
     int dagnum = 0;
     s << "digraph SN {" << endl;
 
-    for (auto &stpos: stvec)
+    for (auto &stpos: speciestreesv)
     {
       stpos->printdot(s, dagnum++) << endl;
     }
 
-    for (auto &gtpos: gtvec)
+    for (auto &gtpos: genetreesv)
     {
       gtpos->printdot(s, dagnum++) << endl;
     }
 
-    for (auto &ntpos: netvec)
+    for (auto &ntpos: networksv)
     {
       ntpos->printdot(s, dagnum++) << endl;
     }
@@ -936,13 +969,13 @@ int main(int argc, char **argv) {
   {
     DISPLAYTREEID optid;
     ODTStats odtstats;
-    for (auto &ntpos: netvec) 
+    for (auto &ntpos: networksv) 
     {
       if (flag_odt_naive_gtvsnet == 2) 
       {
         cout << *ntpos << " ";
       }
-      cout << ntpos->odtcostnaive(gtvec, *costfun, odtstats, 0)
+      cout << ntpos->odtcostnaive(genetreesv, *costfun, odtstats, 0)
            << endl;
     }
   }
@@ -953,9 +986,9 @@ int main(int argc, char **argv) {
     DagSet visiteddags;
     NetworkHCStatsBase *stats =
         new NetworkHCStatsBase(networkclass, timeconsistency, visiteddags, randseed);
-    for (auto &net: netvec) 
+    for (auto &net: networksv) 
     {
-      double cost = net->odtcost(gtvec, *costfun, flag_hcusenaive, hcrunnaiveleqrt_t, stats->getodtstats());
+      double cost = net->odtcost(genetreesv, *costfun, flag_hcusenaive, hcrunnaiveleqrt_t, stats->getodtstats());
       cout << cost << " " << *net << endl;
     }
     exit(0);
@@ -964,9 +997,9 @@ int main(int argc, char **argv) {
   // Run DP algorithm to compute approx DCE
   if (flag_dpalgorithm) 
   {
-    for (auto &ntpos: netvec) 
+    for (auto &ntpos: networksv) 
     {
-      for (auto &gtpos: gtvec) 
+      for (auto &gtpos: genetreesv) 
       {
         cout << ntpos->approxmindce(*gtpos, *costfun) << endl;
       }
@@ -980,9 +1013,9 @@ int main(int argc, char **argv) {
     BBTreeStats bbtreestats;
     ODTStats odtstats;
 
-    for (auto &ntpos: netvec)
+    for (auto &ntpos: networksv)
     {
-      for (auto &gtpos: gtvec) 
+      for (auto &gtpos: genetreesv) 
       {
         double tm = gettime();
         COSTT dce =
@@ -1013,6 +1046,11 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
+  int printstats = 0;
+  if (flag_hcrunstats) printstats = 1;
+  else if (flag_hcrunstatsext) printstats = 2;
+  else if (flag_hcrunstatsalways) printstats = 3;
+
    
 
   // ODT heuristic using HC, BB and DP
@@ -1040,10 +1078,7 @@ int main(int argc, char **argv) {
         globalstats->setoutfiles(opt_outdirectory, opt_outfiles, odtlabelled);
       }
 
-      int printstats = 0;
-      if (flag_hcrunstats) printstats = 1;
-      else if (flag_hcrunstatsext) printstats = 2;
-      else if (flag_hcrunstatsalways) printstats = 3;
+
 
       if (verbosealg >= 4) 
       {
@@ -1055,12 +1090,15 @@ int main(int argc, char **argv) {
        }
 
       NetIterator netiterator(
-                      netvec, 
+                      networksv, 
                       randomnetworkscnt, 
-                      quasiconsensuscnt, genetreeclusters,
-                      preserverootst, reticulationcnt_R, 
+                      quasiconsensuscnt, 
+                      genetreeclusters,
+                      preserverootst, 
+                      reticulationcnt_R, 
                       networkclass,
-                      timeconsistency, randnetuniform, 
+                      timeconsistency, 
+                      randnetuniform, 
                       guideclusters,
                       guidetree);
 
@@ -1095,7 +1133,7 @@ int main(int argc, char **argv) {
         }
     
      supnetheuristic(   
-        gtvec,       
+        genetreesv,       
         &netiterator,
         editop,
         costfun,
@@ -1142,7 +1180,7 @@ int main(int argc, char **argv) {
 
   if (flag_print_display_trees || (flag_print_display_trees_with_ids && !pranddisplaytrees)) 
   {
-    for (auto &ntpos: netvec) 
+    for (auto &ntpos: networksv) 
     {
       DISPLAYTREEID tid = 0;      
       RootedTree *t = NULL;
@@ -1159,7 +1197,7 @@ int main(int argc, char **argv) {
 
   if (pranddisplaytrees>0) 
   {
-    for (auto &ntpos: netvec) 
+    for (auto &ntpos: networksv) 
     {
       DISPLAYTREEID mxid = ntpos->displaytreemaxid();
       RootedTree *t = NULL;
@@ -1180,13 +1218,13 @@ int main(int argc, char **argv) {
   if (flag_comparedags) 
   {
     int cnt = 0, cntall = 0;
-    for (int i = 0; i < netvec.size(); i++) 
+    for (int i = 0; i < networksv.size(); i++) 
     {      
-      Network *n1 = netvec[i];
+      Network *n1 = networksv[i];
       cout << endl;
-      for (int j = i + 1; j < netvec.size(); j++) 
+      for (int j = i + 1; j < networksv.size(); j++) 
       {
-        Network *n2 = netvec[j];
+        Network *n2 = networksv[j];
         bool e1 = n1->eqdags(n2, !flag_dagshapes);
         cout << *(n1) << "\t" << *(n2) << "\t" << e1 << endl;
       }
@@ -1195,7 +1233,7 @@ int main(int argc, char **argv) {
 
   if (flag_detectclass) 
   {    
-    for (auto &ntpos: netvec) 
+    for (auto &ntpos: networksv) 
     {      
       cout << ntpos->istimeconsistent() <<  " " << ntpos->istreechild() << " " << ntpos->isrelaxed()  << " " << *ntpos << endl;
     }
@@ -1205,12 +1243,12 @@ int main(int argc, char **argv) {
 
   if (opt_tester=="editnni") 
   {
-    testeditnni(netvec);
+    testeditnni(networksv);
   }
 
   if (opt_tester=="edittailmove") 
   {
-    testedittailmove(netvec);
+    testedittailmove(networksv);
   }
 
   if (opt_tester=="comparedags") 
@@ -1221,35 +1259,102 @@ int main(int argc, char **argv) {
 
   if (opt_tester=="contract") 
   {
-    testcontract(argc, argv, gtvec, netvec, costfun);
+    testcontract(argc, argv, genetreesv, networksv, costfun);
   }
 
   if (opt_tester=="treerepr") 
   {
-    testtreerepr(netvec);    
+    testtreerepr(networksv);    
   }
+
+  if (opt_tester=="iiopt")
+  {
+    
+    DagSet visiteddags;
+    NetworkHCStatsGlobal *globalstats =
+       new NetworkHCStatsGlobal(networkclass, timeconsistency, visiteddags, randseed);
+
+    if (opt_outfiles.length()) 
+    {
+        globalstats->setoutfiles(opt_outdirectory, opt_outfiles, odtlabelled);
+    }
+
+
+    for (int i = 0; i < networksv.size(); i++) 
+    {
+        cout << *networksv[i] << endl;
+      iterativeretinsertionoptimizer(    
+        genetreesv,
+        networksv[i],
+        costfun,   
+        printstats,           
+        flag_hcusenaive,
+        hcrunnaiveleqrt_t,        
+        globalstats, // could be sampler
+        flag_cutwhendtimproved,
+        networkclass, 
+        timeconsistency, 
+        guideclusters,
+        guidetree          
+      );
+    }
+
+    vector<NetworkHCStatsGlobal*> globalstatsarr;
+
+    // merge all data and save odt/dat file(s); optional     
+    globalstats->savedatmerged(verbosealg >= 4, globalstatsarr, true);     
+
+    // best dags to file
+    globalstats->savebestdags(verbosealg >= 4, true);
+
+    // print summary
+    globalstats->print();
+    globalstats->printnetworkinfo();     
+    cout << endl;
+
+
+
+
+  }
+
+    //  supnetheuristic(   
+    //     genetreesv,       
+    //     &netiterator,
+    //     editop,
+    //     costfun,
+    //     printstats,       
+    //     hcstopinit,
+    //     hcstopclimb,
+    //     flag_hcusenaive,
+    //     hcrunnaiveleqrt_t,    
+    //     hcmaximprovements,
+    //     globalstatsarr,
+    //     flag_cutwhendtimproved
+    // );
 
   
 
 
   delete globaltreespace;
 
-  for (auto &stpos: sgtvec)  
+  for (auto &stpos: sgenetreesv)  
     free(stpos);
 
-  for (auto &sst: sstvec)  
+  for (auto &sst: sspeciestreesv)  
     free(sst);  
 
-  for (auto &stpos: stvec)  
+  for (auto &stpos: speciestreesv)  
     free(stpos);
 
   delete genetreeclusters; // Clean Clusters
 
-  for (auto &gtpos: gtvec)
+  for (auto &gtpos: genetreesv)
     delete gtpos;
 
-  for (auto &n: netvec)
+  for (auto &n: networksv)
     delete n;
 
   cleanspecies();
+
+  return 0;
 }

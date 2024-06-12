@@ -372,10 +372,7 @@ class NetworkHCStats: public NetworkHCStatsBase
 			Dag * src = NetworkHCStatsBase::addeq(n);
 			globalstats->addglobal(src, optcost);
 			return 1;
-		}
-
-		
-		
+		}		
 
 };
 

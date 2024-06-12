@@ -5,6 +5,12 @@
 
 Network *addrandreticulations(int reticulationcnt, Network *n, int networktype, int timeconsistency, bool uniform, Clusters *guideclusters, Clusters *guidetree);
 
+
+// Network iterator 
+//   - returns all networks from netvec
+//   - returns randomnetworkscnt (-1 infinity) nets with reticulationcnt reticulations
+//   - returns quasiconsensus nets (-1 infinity), i.e., quasi cons trees +  reticulationcnt random reticulations
+
 class NetIterator
 {
   long i;

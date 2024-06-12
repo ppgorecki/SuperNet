@@ -275,6 +275,7 @@ bool NetworkHCStatsGlobal::_checkoutfilename(bool finalfiles)
 
   if (flag_hcignorecostgeq && (optcost>=opt_hcignorecostgeq))
   {
+    cout << "HERE" << endl;
     if (finalfiles==false || flag_hcsavefinalodt==false)
       return false; // ignore
   }
@@ -350,8 +351,10 @@ void NetworkHCStatsGlobal::addglobal(Dag *src, double cost)
 
 void NetworkHCStatsGlobal::savebestdags(bool printinfo, bool finalfiles)
 {   
+
     if (_checkoutfilename(finalfiles))      
     { 
+      
       ostringstream ss;     
       ss << *bestdags;    
       if (flag_saveextnewick)  
