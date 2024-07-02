@@ -1,6 +1,8 @@
 #ifndef _DAG_SET_H
 #define _DAG_SET_H
 
+#include <queue>
+
 #include "rtree.h"
 #include "network.h"
 #include "tools.h"
@@ -147,6 +149,74 @@ public:
 
 };
 
+
+
+class DagScored 
+{
+ 
+public:
+	Dag *dag;
+    COSTT cost;
+    
+    DagScored(Dag *dag, COSTT cost)
+        : 
+        dag(dag),
+        cost(cost)
+    {}
+ 
+    bool operator<(const DagScored& p) const
+    {        
+        return this->cost < p.cost;
+    }
+};
+
+class DagScoredQueue
+{
+	int maxsize;
+	priority_queue<DagScored> Q;
+
+public:
+	DagScoredQueue(int maxsize) : maxsize(maxsize), Q() {}
+
+	Dag* push(Dag *dag, COSTT cost)
+	{
+		Dag *removed = NULL;
+		if (Q.size()>=maxsize)		
+		{
+			if (Q.top().cost <= cost)
+			{				
+				return dag; // no update needed
+			}
+			else
+				{
+					removed = Q.top().dag;
+					Q.pop();
+				}
+		}		
+		Q.push(DagScored(dag, cost));
+		return removed; 
+	}	
+
+	DagScored top() { return Q.top(); }
+	void pop() { Q.pop(); }
+
+	bool empty() { return Q.empty(); }
+
+
+	friend ostream& operator<<(ostream& os, const DagScoredQueue& dsg)
+	{	
+		auto Q=dsg.Q;
+	    for (; !Q.empty(); Q.pop())
+	    {	    
+	    	auto &d = Q.top();	
+	        os << d.cost << " " << *d.dag<< ' ';
+	        // os << d.cost << ";";
+	    }
+	    return os << endl;
+
+	}	
+
+};
 
 
 #endif

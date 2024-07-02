@@ -6,36 +6,34 @@
 #include "hillclimb.h"
 
 
-void NetworkHCStatsBase::print()
+void ClimbStatsBase::print()
 {
     cout << " Steps:" << steps 
      << " Climbs:" << improvements;     
 }
 
 
-
-
-void NetworkHCStatsGlobal::print()
+void ClimbStatsGlobal::print()
 {
     cout << "Cost:" << optcost
-         << " TopNetworks:" << topnetworks;      
+         << " TopNets:" << topnetworks;      
 
-    NetworkHCStatsBase::print();
+    ClimbStatsBase::print();
 
     cout 
-        << " HCruns:" << startingnets 
-        << " HCTime:" << hctime;
+        << " CRuns:" << startingnets 
+        << " CTime:" << climbtime;
         // << " MergeTime:" << mergetime;     // usually low
         odtstats.print();
 }
 
-void NetworkHCStatsGlobalSampler::print()
+void ClimbStatsGlobalSampler::print()
 {
-    NetworkHCStatsBase::print();
+    ClimbStatsBase::print();
 
     cout 
-        << " HCruns:" << startingnets 
-        << " HCTime:" << hctime;
+        << " CRuns:" << startingnets 
+        << " CTime:" << climbtime;
         // << " MergeTime:" << mergetime;     // usually low
         odtstats.print();
 }
@@ -50,7 +48,7 @@ void NetworkHCStatsGlobalSampler::print()
 // printstats = 2 - improvements and new nets
 // printstats = 3 - always
 
-int NetworkHCStatsBase::merge(NetworkHCStatsBase &nhc, int printstats, bool fullmerge) 
+int ClimbStatsBase::merge(ClimbStatsBase &nhc, int printstats, bool fullmerge) 
 {
 	double mtime = gettime();
 	int res = 0;
@@ -58,7 +56,7 @@ int NetworkHCStatsBase::merge(NetworkHCStatsBase &nhc, int printstats, bool full
   startingnets++;
   improvements += nhc.improvements;
   steps += nhc.steps;    
-  hctime += nhc.hctime;
+  climbtime += nhc.climbtime;
 
   odtstats.merge(nhc.getodtstats());
 
@@ -109,17 +107,17 @@ int NetworkHCStatsBase::merge(NetworkHCStatsBase &nhc, int printstats, bool full
 
 	nhc.improvements = 0;
   nhc.steps = 0;  
-  nhc.hctime = 0;
+  nhc.climbtime = 0;
 
   return res; 
    
 }
 
 
-int NetworkHCStatsGlobal::merge(NetworkHCStatsBase &nhc, int printstats, bool fullmerge) 
+int ClimbStatsGlobal::merge(ClimbStatsBase &nhc, int printstats, bool fullmerge) 
 {
 
-  int res = NetworkHCStatsBase::merge(nhc, printstats, fullmerge);
+  int res = ClimbStatsBase::merge(nhc, printstats, fullmerge);
 
   if (!fullmerge)
   {
@@ -148,17 +146,17 @@ int NetworkHCStatsGlobal::merge(NetworkHCStatsBase &nhc, int printstats, bool fu
   return res;
 }
 
-void NetworkHCStatsBase::_savedat(ostream &odtf, bool labelled, bool partial)
+void ClimbStatsBase::_savedat(ostream &odtf, bool labelled, bool partial)
 {
     
     if (labelled) odtf << "optcost=";
     odtf << optcost << endl; // cost
 
   	if (labelled) odtf << "time=";
-    odtf << (hctime + mergetime) << endl; // time
+    odtf << (climbtime + mergetime) << endl; // time
 
-  	if (labelled) odtf << "hctime=";
-    odtf << hctime << endl; // hill climbing time 
+  	if (labelled) odtf << "climbtime=";
+    odtf << climbtime << endl; // hill climbing time 
 
   	if (labelled) odtf << "mergetime=";
     odtf << mergetime << endl; // merge time
@@ -224,13 +222,13 @@ void NetworkHCStatsBase::_savedat(ostream &odtf, bool labelled, bool partial)
     
 }
 
-NetworkHCStatsBase::NetworkHCStatsBase(int _networkclass, int _timeconsistency, DagSet &_visiteddags, unsigned int _randseed) : visiteddags(_visiteddags), randseed(_randseed)
+ClimbStatsBase::ClimbStatsBase(int _networkclass, int _timeconsistency, DagSet *_visiteddagscache, unsigned int _randseed) : visiteddagscache(_visiteddagscache), randseed(_randseed)
 { 
     networkclass= _networkclass;
     timeconsistency = _timeconsistency;
     bestdags = new DagSet();
     improvements = 0; 
-    hctime = 0;
+    climbtime = 0;
     steps = 0;
     startingnets = 0;
     mergetime = 0;
@@ -240,28 +238,29 @@ NetworkHCStatsBase::NetworkHCStatsBase(int _networkclass, int _timeconsistency, 
 
 extern int flag_autooutfiles;
 
-void NetworkHCStatsGlobal::setoutfiles(string _outdirectory, string _outfiles,  bool _odtlabelled)
+void ClimbStatsGlobal::setoutfiles(string _outdirectory, string _outfiles,  bool _odtlabelled)
 { 
+
+    // cout << _outfiles << "---" << _outdirectory << endl;
+
     if (flag_autooutfiles && _outfiles == ODTBASENAME)
       _outfiles = "";
 
     if (_outdirectory.length())
     {
       std::filesystem::create_directories(_outdirectory);    
-      outfile = _outdirectory + filesystem::path::preferred_separator;    
-      if (_outfiles.length())
-        baseoutfiles = string(".")+_outfiles;
-      else
-        baseoutfiles = "";
+      outdirectory = _outdirectory + filesystem::path::preferred_separator;    
     }
-    else      
+    else
     {
-      outfile = _outfiles;    
-    }
+      outdirectory = "";
+    }  
+
+    outfile = _outfiles;    
 
     odtlabelled = _odtlabelled;
     curoutfile = "";    
-    curoutfilecost = 0;
+    firstrun = true;     
 }
 
 extern bool flag_hcignorecostgeq;
@@ -269,54 +268,59 @@ extern int flag_hcsavefinalodt;
 extern float opt_hcignorecostgeq;
 
 // Set new based on cost
-bool NetworkHCStatsGlobal::_checkoutfilename(bool finalfiles)
+bool ClimbStatsGlobal::_checkoutfilename(bool finalfiles)
 {
-
-
+  
   if (flag_hcignorecostgeq && (optcost>=opt_hcignorecostgeq))
-  {
-    cout << "HERE" << endl;
+  {    
     if (finalfiles==false || flag_hcsavefinalodt==false)
       return false; // ignore
   }
-
+  
   if (flag_autooutfiles)
   { 
     string newoutfile = curoutfile;
+    
     char buf[1000];
 
-    if (curoutfilecost != optcost)
+    if (firstrun || (curoutfilecost != optcost))
     {
+      firstrun = false;
       curoutfilecost = optcost;
       sprintf(buf,"%g", optcost);      
       int cnt = 1;
 
-      newoutfile = outfile + buf + baseoutfiles;
+      newoutfile = outdirectory + outfile + buf;
+
       // find new file name
       while (filesystem::exists(newoutfile+".dat"))
       {
-        newoutfile = outfile + buf + string(".") + to_string(cnt++);            
+        newoutfile = outdirectory + outfile + buf  + string(".") + to_string(cnt++);            
       }      
     }
+
     if ((newoutfile != curoutfile) && curoutfile.length())
     {            
       remove((curoutfile+".dat").c_str());
+
       if (flag_saveextnewick)
         remove((curoutfile+".tre").c_str());
       else remove((curoutfile+".log").c_str());
+      
     }
+
     curoutfile = newoutfile;    
   }
   else
-  {
-    curoutfile = outfile;    
-  }
+  {      
+    curoutfile = outdirectory + outfile;        
+  }  
 
   return true;
 }
 
 
-void NetworkHCStatsGlobal::addglobal(Dag *src, double cost)
+void ClimbStatsGlobal::addglobal(Dag *src, double cost)
 {
     Dag *_;   
     if (!bestdags->size() || optcost > cost)
@@ -325,7 +329,7 @@ void NetworkHCStatsGlobal::addglobal(Dag *src, double cost)
       bestdags->add(*src, &_);        
       _newoptimal = true;
       _improvements++;      
-      if (flag_hcsavewhenimproved)
+      if (savewhenimproved)
       {
         if (_checkoutfilename())
         { 
@@ -337,7 +341,7 @@ void NetworkHCStatsGlobal::addglobal(Dag *src, double cost)
     else if (optcost == cost)
     {
       if (bestdags->add(*src, &_)) _improvements++;           
-      if (flag_hcsavewhenimproved)
+      if (savewhenimproved)
       {
         if (_checkoutfilename())
         {
@@ -349,7 +353,7 @@ void NetworkHCStatsGlobal::addglobal(Dag *src, double cost)
 }
 
 
-void NetworkHCStatsGlobal::savebestdags(bool printinfo, bool finalfiles)
+void ClimbStatsGlobal::savebestdags(bool printinfo, bool finalfiles)
 {   
 
     if (_checkoutfilename(finalfiles))      
@@ -365,17 +369,17 @@ void NetworkHCStatsGlobal::savebestdags(bool printinfo, bool finalfiles)
     }    
 }
 
-void NetworkHCStatsGlobal::savedat(bool printinfo)
+void ClimbStatsGlobal::savedat(bool printinfo)
 {       
-    if (outfile.length()) 
+    if (curoutfile.length()) 
     { 
       ostringstream ss;
       _savedat(ss, odtlabelled);    
-      _save(curoutfile+".dat", ss.str(), printinfo, "Stats");
+      _save(curoutfile + ".dat", ss.str(), printinfo, "Stats");
     }
 }
 
-void NetworkHCStatsGlobal::_save(string filename, string s, bool printinfo, string sinfo)
+void ClimbStatsGlobal::_save(string filename, string s, bool printinfo, string sinfo)
 {
     ofstream f;
     f.open(filename, ofstream::out);  
@@ -398,7 +402,7 @@ void NetworkHCStatsGlobal::_save(string filename, string s, bool printinfo, stri
 
 extern int flag_hcdetailedsummarydat;
 
-void NetworkHCStatsGlobal::savedatmerged(bool printinfo,  vector<NetworkHCStatsGlobal*> globalstatsarr, bool finalfiles)
+void ClimbStatsGlobal::savedatmerged(bool printinfo,  vector<ClimbStatsGlobal*> globalstatsarr, bool finalfiles)
 {   
 
     bool savefiles = _checkoutfilename(finalfiles);
@@ -471,7 +475,7 @@ void NetworkHCStatsGlobal::savedatmerged(bool printinfo,  vector<NetworkHCStatsG
 }
 
 
-Dag* NetworkHCStatsBase::addeq(Dag &n)
+Dag* ClimbStatsBase::addeq(Dag &n)
 {
     Dag *src;
     if (bestdags->add(n, &src)) 
@@ -483,7 +487,7 @@ Dag* NetworkHCStatsBase::addeq(Dag &n)
     return src;     
 }
 
-Dag* NetworkHCStatsBase::addnewbest(Dag &n, double cost) 
+Dag* ClimbStatsBase::addnewbest(Dag &n, double cost) 
 { 
     setcost(cost);        
     Dag *src;

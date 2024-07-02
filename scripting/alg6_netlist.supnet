@@ -1,0 +1,25 @@
+"""
+List of networks
+
+netlist(...) 
+
+Parameters, all optional: 
+   - count - how many networks 
+   - cleanunused is set, then the networks will be cleaned after usage
+
+Other parameters:
+   - lists of networks return from calls of storebest, quasiconsensus, addreticulations etc
+   - list of strings from read(FILENAME)
+   - string of semicolon separated networks in newick notation
+
+Returns a generator networks
+"""
+
+a = netlist("(a,(b,c))")
+println("List a", a)
+
+b = netlist("(f,(g,h));(d,e)", randtrees(count=2))
+println("List b", b)
+
+n = netlist("(x,y);(z,x)", a, b)
+println("Joined two trees, list a and list b", n)

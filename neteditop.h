@@ -5,7 +5,7 @@
 #include "network.h"
 // #include "tools.h"
 // #include "costs.h"
-// #include "randnets.h"
+// #include "netgen.h"
 
 
 // Network neighbourhood iterator using edfit operation; in situ

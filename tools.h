@@ -5,7 +5,6 @@
  *      Author: gorecki
  */
 
-// #define _VISNETS_
 
 #ifndef TOOLS_H_
 #define TOOLS_H_
@@ -72,6 +71,8 @@ using namespace std;
 #include <fstream>
 #include <random>
 
+#define ERR_NOSPECIESDEFINED "No species are defined."
+
 class GTCluster;
 
 extern vector<string> specnames;
@@ -115,6 +116,8 @@ char *mstrndup(const char *s, size_t n);
 char* getTok(char *s, int &p, int num);
 char* seeTok(char *s, int p, int num);
 int getspecies(char *s, int len);
+int getspecies(string s);
+void setspecies(int spcnt);
 
 void randomizearr(NODEID*, int);
 

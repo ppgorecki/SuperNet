@@ -1,7 +1,7 @@
-#VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck
+
 VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck 
-CPPFLAGS = -std=c++17 -Ofast -fomit-frame-pointer
-#CPPFLAGS = -std=c++17 -g 
+#CPPFLAGS = -std=c++17 -Ofast -fomit-frame-pointer
+CPPFLAGS = -std=c++17 #-g 
 CC = g++ -Ofast -fomit-frame-pointer
 MAKEFLAGS += -j10 # parallel
 
@@ -11,10 +11,9 @@ MAKEFLAGS += -j10 # parallel
 
 all: supnet
 
-OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o bitcluster.o treespace.o hcstats.o odtstats.o topsort.o randnets.o testers.o neteditop.o
+OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o bitcluster.o treespace.o hcstats.o odtstats.o topsort.o netgen.o testers.o neteditop.o algotok.o
 
-SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp topsort.cpp randnets.cpp testers.cpp neteditop.o
-
+SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp topsort.cpp netgen.cpp testers.cpp neteditop.cpp algotok.cpp
 
 
 supnet: $(OBJS)
@@ -30,6 +29,7 @@ _supnet_nodtcache: network.o
 _supnet_nodtcache: CPPFLAGS += -D NODTCACHE
 _supnet_nodtcache: $(OBJS) 
 	$(CC) $(LFLAGS) -o supnet_nodtcache ${OBJS}
+
 
 tools.o: tools.cpp tools.h bb.h clusters.h network.h dag.h rtree.h \
  bitcluster.h treespace.h stats.h dagset.h
@@ -48,10 +48,10 @@ network.o: network.cpp rtree.h tools.h clusters.h dag.h network.h bb.h \
  treespace.h bitcluster.h stats.h dagset.h dp.h costs.h
 hillclimb.o: hillclimb.cpp hillclimb.h rtree.h tools.h clusters.h dag.h \
  network.h bb.h treespace.h bitcluster.h stats.h dagset.h costs.h \
- randnets.h
+ netgen.h
 supnet.o: supnet.cpp bb.h tools.h bitcluster.h clusters.h contrnet.h \
  network.h dag.h rtree.h treespace.h stats.h dagset.h costs.h hillclimb.h \
- randnets.h topsort.h testers.h
+ netgen.h topsort.h testers.h algotok.h
 iso.o: iso.cpp tools.h dag.h clusters.h
 contrnet.o: contrnet.cpp rtree.h tools.h clusters.h dag.h network.h bb.h \
  treespace.h bitcluster.h stats.h dagset.h contrnet.h
@@ -61,13 +61,18 @@ treespace.o: treespace.cpp treespace.h bitcluster.h tools.h clusters.h \
 odtstats.o: odtstats.cpp stats.h bb.h tools.h dagset.h rtree.h clusters.h \
  dag.h network.h treespace.h bitcluster.h
 hcstats.o: hcstats.cpp stats.h bb.h tools.h dagset.h rtree.h clusters.h \
- dag.h network.h treespace.h bitcluster.h hillclimb.h costs.h randnets.h
+ dag.h network.h treespace.h bitcluster.h hillclimb.h costs.h netgen.h
 topsort.o: topsort.cpp dag.h tools.h clusters.h topsort.h
-randnets.o: randnets.cpp network.h dag.h tools.h clusters.h bb.h rtree.h \
- bitcluster.h treespace.h stats.h dagset.h randnets.h
+netgen.o: netgen.cpp network.h dag.h tools.h clusters.h bb.h rtree.h \
+ bitcluster.h treespace.h stats.h dagset.h netgen.h
 testers.o: testers.cpp testers.h network.h dag.h tools.h clusters.h bb.h \
- rtree.h bitcluster.h treespace.h stats.h dagset.h contrnet.h randnets.h \
+ rtree.h bitcluster.h treespace.h stats.h dagset.h contrnet.h netgen.h \
  neteditop.h
+neteditop.o: neteditop.cpp neteditop.h network.h dag.h tools.h clusters.h \
+ bb.h rtree.h bitcluster.h treespace.h stats.h dagset.h
+algotok.o: algotok.cpp algotok.h netgen.h network.h dag.h tools.h \
+ clusters.h bb.h rtree.h bitcluster.h treespace.h stats.h dagset.h \
+ hillclimb.h costs.h
 
 
 gdb: clean  
@@ -86,7 +91,7 @@ supnet_minlb:
 	g++ -D USE_PRIORITY_QUEUE_MINLB -O3 -o supnet_minlb ${SRC}
 
 clean:
-	rm -f supnet supnet_bfs supnet_minlb supnet_minrt *.o  *.old *~ x *.log *.gcov *.gcda *.gcno
+	rm -f supnet supnet_bfs supnet_minlb supnet_minrt *.o  *.old *~ *.log *.gcov *.gcda *.gcno
 
 o1g: clean 
 	g++ -g -O1 -o supnet ${SRC}
@@ -135,6 +140,10 @@ valgrindgu:
 
 valgrinddg: 	
 	${VALGRIND} --log-file=valgrinddg.log supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 --HC --hcrunstats
+
+valgrindalg: 	
+	${VALGRIND} --log-file=valgrindalg.log supnet -A4 -E alg9.supnet
+
 
 # profiler: 
 # 	g++ -Wall -pg -O3 -o supnet ${SRC}	

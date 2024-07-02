@@ -1,11 +1,11 @@
 
 #include "network.h"
-#include "randnets.h"
+#include "netgen.h"
 
 // How many tries to obtain time consistent network
 #define RANDCNTREPEAT 100 
 
-Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass, int timeconsistency, bool uniform, Clusters *guideclusters, Clusters *guidetree)
+Network *addrandreticulations(int reticulations, Network *n, int networkclass, int timeconsistency, bool uniform, Clusters *guideclusters, Clusters *guidetree, bool keepsource)
 {   
 
   Network *src = n;
@@ -15,10 +15,11 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass,
 
     if (!n->checktimeconsistency(timeconsistency, true))
     {      
+        cerr << "Time consistency condition is not satisfied" << endl;
         exit(-1);                
     }
 
-    for (auto i=0; i<reticulationcnt; i++)
+    for (auto i=0; i<reticulations; i++)
     {
       Network *prev = n;
       int addrandcnt = RANDCNTREPEAT;
@@ -30,7 +31,7 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass,
         n = n->addrandreticulation("", networkclass, uniform);
         if (!n)
         {
-          cerr << "Cannot insert random " << (i+1) << "-th reticulation into " << *prev << endl;
+          cerr << "Cannot insert random " << (i+prev->rtcount()+1) << "-th reticulation into " << *prev << endl;
           exit(-1);
         }                
 
@@ -113,7 +114,7 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass,
     }
     else 
     {
-      if (src != n)
+      if (src != n && keepsource==false)
         delete src;
 
       return n;
@@ -126,7 +127,7 @@ Network *addrandreticulations(int reticulationcnt, Network *n, int networkclass,
 }
 
 
-Network *randnetwork(int reticulationcnt, int networkclass, int timeconsistency, bool uniform)
+Network *randnetwork(int reticulations, int networkclass, int timeconsistency, bool uniform)
 {
 
     string r = randspeciestreestr();
@@ -135,44 +136,53 @@ Network *randnetwork(int reticulationcnt, int networkclass, int timeconsistency,
       cerr << "Cannot create initial random species tree" << endl;
       exit(-1);
     }        
-    return addrandreticulations(reticulationcnt, new Network(r), networkclass, timeconsistency, uniform, NULL, NULL);        
+    Network *n = new Network(r);
+    return addrandreticulations(reticulations, n, networkclass, timeconsistency, uniform, NULL, NULL);        
 }
 
-Network *randquasiconsnetwork(int reticulationcnt, int networkclass, int timeconsistency, Clusters *genetreeclusters, RootedTree *preserverootst, 
+extern float opt_genetreessimilarity;
+
+Network *randquasiconsnetwork(int reticulations, int networkclass, int timeconsistency, Clusters *genetreeclusters, RootedTree *preserverootst, 
   Clusters *guideclusters, Clusters *guidetree)
 {
-    string r = genetreeclusters->genrootedquasiconsensus(preserverootst, guideclusters, guidetree);
+    string r = genetreeclusters->genrootedquasiconsensus(preserverootst, guideclusters, guidetree, opt_genetreessimilarity);
     if (!r.length())
     {
       cerr << "Cannot create initial quasi consensus species tree" << endl;
       exit(-1);
     }      
 
-    return addrandreticulations(reticulationcnt, new Network(r), networkclass, timeconsistency, false, guideclusters, guidetree);
+    return addrandreticulations(reticulations, new Network(r), networkclass, timeconsistency, false, guideclusters, guidetree);
 
 }
 
 
 // interator over networks
-Network* NetIterator::next()
-{
+Network* NetGenerator::next()
+{  
+  current++;
   
-  i++;
 
-  if (netvec.size()>0 && i<netvec.size())  
-      return new Network(*netvec[i]);
-    
-  if (randomnetworkscnt!=0)   // with -1 infitite 
+  if (netvec && (netvec->size()>0 && current<netvec->size()))
+      return new Network(*(*netvec)[current]);    
+
+  if (nextgenerator)
+  {
+      Network *n  = nextgenerator->next();
+      if (n) return n;
+  }
+  
+  if (randomnetworks!=0)   // with -1 infitite 
   { 
-    if (randomnetworkscnt>0)  randomnetworkscnt--;             
+    if (randomnetworks>0)  randomnetworks--;             
 
-    return randnetwork(reticulationcnt, networkclass, timeconsistency, randnetuniform);
+    return randnetwork(reticulations, networkclass, timeconsistency, randnetuniform);
   }
 
-  if (quasiconsensuscnt!=0)  // with -1 infitite 
+  if (quasiconsensusnetworks!=0)  // with -1 infitite 
   { 
-      if (quasiconsensuscnt>0) quasiconsensuscnt--;              
-      return randquasiconsnetwork(reticulationcnt, networkclass, timeconsistency, gtc, preserverootst, guideclusters, guidetree);                     
+      if (quasiconsensusnetworks>0) quasiconsensusnetworks--;              
+      return randquasiconsnetwork(reticulations, networkclass, timeconsistency, gtc, preserverootst, guideclusters, guidetree);                     
   }
 
   return NULL;

@@ -840,6 +840,7 @@ ostream& Dag::printdeb(ostream&s, int gse, string tn)
 
 Dag::Dag(Dag *d, NODEID v, NODEID p, NODEID w, NODEID q, string retid, double dagweight)
 {
+    
     init(d->lf,d->rt+1); 
 
     for (NODEID i=0; i<d->lf; i++) lab[i] = d->lab[i]; 
@@ -935,6 +936,7 @@ Dag::Dag(Dag *d, NODEID v, NODEID p, NODEID w, NODEID q, string retid, double da
 // Copy constructor (includes shallow copy)
 Dag::Dag(const Dag &d, bool shallowcopy)
 {
+
   if (shallowcopy)
   {
     shallow = true;
@@ -1290,6 +1292,7 @@ void Dag::_getclusters(NODEID v, GTCluster **res, Clusters *clusters)
       else spclu = res[i]->spcluster;
       cnt++;      
   }
+
   GTCluster *gc = clusters->has(spclu);
   
   if (gc)
@@ -1302,6 +1305,7 @@ void Dag::_getclusters(NODEID v, GTCluster **res, Clusters *clusters)
       // cnt>1, (otherwise cluster was present)
       gc = clusters->add(spclu);
   }
+  gc->usagecnt++; 
   res[v] = gc;
 }
 

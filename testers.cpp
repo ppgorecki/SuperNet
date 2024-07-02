@@ -3,7 +3,7 @@
 #include "network.h"
 #include "contrnet.h"
 #include "treespace.h"
-#include "randnets.h"
+#include "netgen.h"
 #include "neteditop.h"
 
 extern TreeSpace *globaltreespace;

@@ -3,6 +3,9 @@
 #include <algorithm>
 #include "clusters.h"
 #include "rtree.h"
+#include "tools.h"
+
+extern double opt_genetreessimilarity;
 
 bool compcnt(const GTCluster *a, const GTCluster *b)
 { 
@@ -47,10 +50,17 @@ bool propercompatiblecluster(GTCluster *candcluster, GTCluster *basecluster)
 
 // Generate quasi consensus tree
 // If preserveroottree is given, the root split will be taken from the tree
-string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters *guideclusters, Clusters *guidetree)
+string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters *guideclusters, 
+  Clusters *guidetree, float genetreessimilarity)
 {
   
   vector<GTCluster*> candidates, compclusters;  
+
+  if (!specnames.size())
+  {
+      cerr << ERR_NOSPECIESDEFINED << endl;
+      exit(-1);
+  }
 
   for (NODEID i = 0; i < specnames.size(); i++)
   {    
@@ -80,7 +90,11 @@ string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters 
     // TODO: Clean array t
   }
 
-  int maxcnt=candidates[0]->usagecnt;
+
+  int maxcnt=1;
+  if (candidates.size()>0) 
+    maxcnt = candidates[0]->usagecnt;
+
   float minusage=0.01*maxcnt;
 
 #ifdef _CLUDEBUG_
@@ -164,12 +178,16 @@ string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters 
     }
   }
 
-
   for (auto &cand: candidates)
   {       
         // randomize     
-        if (cand->spcluster[0]>1 && (cand->spcluster[0]>0.7*specnames.size() || 
-            cand->usagecnt<minusage)) continue;
+
+        if (cand->spcluster[0]>1 && (cand->spcluster[0]>genetreessimilarity*specnames.size() || 
+            cand->usagecnt<minusage)) 
+        {
+            // ignore
+            continue;
+        }
 
         int ok=1;        
         
@@ -195,8 +213,6 @@ string Clusters::genrootedquasiconsensus(RootedTree *preserveroottree, Clusters 
   for (size_t i=0; i<compclusters.size(); i++)   
   {
     GTCluster *c = compclusters[i];
-
-    // cout << "  CUR=" << *c << endl;
 
     if (c->spcluster[0]==1) // leaf
     {
@@ -288,6 +304,7 @@ GTCluster* Clusters::add(NODEID *s)
 
 GTCluster* Clusters::get(NODEID *s)
 {
+
     GTCluster *gc = has(s);
 
     if (!gc)
@@ -368,4 +385,13 @@ bool Clusters::hasall(Clusters* clusters)
         if (!has(pairObj.second->spcluster)) return false;
     }
     return true;
+}
+
+
+Clusters::Clusters(vector<RootedTree*> &genetreesv)
+{
+  for (auto gtree: genetreesv) 
+  {
+     adddag(gtree);    
+  }
 }

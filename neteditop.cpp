@@ -1,7 +1,7 @@
 #include "neteditop.h"
 #include "network.h"
 // #include "costs.h"
-// #include "randnets.h"
+// #include "netgen.h"
 
 void EditOp::init(Network *net) 
 { 

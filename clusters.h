@@ -4,6 +4,7 @@
 
 #include "tools.h"
 
+
 class RootedTree;
 class Dag;
 class Network;
@@ -49,6 +50,7 @@ public:
     _usagecnt = 0;        
   }
 
+ 
   ~Clusters()
   {    
       for (auto& pair: t)
@@ -76,12 +78,16 @@ public:
 
   GTCluster *_parse(char *s, int &p, int num);
 
-  string genrootedquasiconsensus(RootedTree *preserveroottree, Clusters *guideclusters, Clusters *guidetree);
+  string genrootedquasiconsensus(RootedTree *preserveroottree, Clusters *guideclusters, Clusters *guidetree, float genetreessimilarity);
 
   friend ostream& operator<<(ostream&s, Clusters &c);
   GTCluster *addleafcluster(NODEID i);
 
   bool hasall(Clusters* clusters);
+
+  Clusters(vector<RootedTree*> &genetreesv);
+  
+
 
 };
 

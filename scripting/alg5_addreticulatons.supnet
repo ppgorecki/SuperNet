@@ -1,0 +1,36 @@
+"""
+Generator of networks obtained from networks/trees by inserting random reticulations
+
+addreticulations(...) 
+
+Parameters, all optional: 
+ - source - a collection of trees/networks
+ - reticulations - number of reticulations to be added; default=1
+ - samplespernet - how many networks from a single input network; default=1
+
+r = addreticulations(source=q, reticulations=1, samplespernet=100)	
+
+Used variables from command line option:
+- preserverootst
+- guideclusters 
+- guidetree 
+
+Returns a generator of networks with inserted reticulations
+Note that reading more one time may produce different results
+
+Requires: defined species (e.g., via genetrees, -A, -G, -g, or setspecies)
+
+"""
+
+# Define some gene trees 
+genetrees="(a,(b,c));(a,b)"
+
+# Prepare 2 trees
+r = quasiconsensustrees(count=2)
+
+# Add reticulations; result 2x3 = 6 networks
+netr = addreticulations(source=r, reticulations=1, samplespernet=3)	
+println(netr) # print 6 networks with 1 reticulation
+
+
+

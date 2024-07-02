@@ -31,101 +31,17 @@ GNode *copytree(NODEID n, RootedTree *gt)
 
 void TreeSpace::addgenetree(RootedTree* gt)
 {		 
+	if (used())
+	{
+		cerr << "Tree space already initialized. Set all gene trees before cost computations" << endl;
+		exit(-1);
+	}
 	gtrees.push_back(copytree(gt->getroot(),gt));
 	gtreesclusters.push_back(gt->getbitclusterrepr());
 	gtreessrc.push_back(gt);
 	if (gt->sizelf() > maxgenetreesize) maxgenetreesize = gt->sizelf();
 }
 
-// TreeSpace::TreeSpace(vector<RootedTree*> &genetrees)
-// {
-// 	vector<RootedTree*>::iterator gt;
-// 	for (gt = genetrees.begin(); gt != genetrees.end(); ++gt)    
-// 		addgenetree(*gt);
-
-// 	for (auto & cge : gtclu) 	
-// 	{
-// 		ppstclusterspecies(cout, cge.parent) << " --> ";
-// 		ppstclusterspecies(cout, cge.child);
-// 		cout << " #" << cge.usagecnt;
-// 		cout << endl;
-// 	}
-
-// }
-
-// COSTT TreeSpace::dcerepr(RootedTree *s, bitcluster *stclu, int genetreeid)
-// {
-
-//     NODEID i;
-//    	COSTT c = 0;
-//    	RootedTree* gt = gtreessrc[genetreeid];
-//    	bitcluster* gtclu = gtreesclusters[genetreeid];
-//    	NODEID root = gt->getroot();
-//    	// cout << "SPECIESTREE " << *s << endl;
- 
-//    	for (i=s->sizelf(); i<s->size(); i++)        
-//    	{   		
-//     	NODEID x = s->getleftchild(i);
-//     	NODEID y = s->getrightchild(i);	
-    
-// 	 	for (int j=0; j<gt->size(); j++) 	
-// 	 	{
-// 	 		if (j==root) continue;
-
-// 	 		NODEID p = gt->getparent(j);
-
-// 	 		// cout << "G:";
-// 	 		// ppbitclusterspecies(cout,gtclu[p]) << "->"; 
-// 	 		// ppbitclusterspecies(cout,gtclu[j]) << " S:";
-// 	 		// ppbitclusterspecies(cout,stclu[i]) << "->"; 
-// 	 		// ppbitclusterspecies(cout,stclu[x]) << "|";
-// 	 		// ppbitclusterspecies(cout,stclu[y]);
-    
-   
-//    SPECIESTREE ((c,b),a)
-
-// G:abc->a S:bc->c|b
-// G:bc->b S:bc->c|b +Y
-// G:bc->c S:bc->c|b +X
-// G:abc->bc S:bc->c|b
-
-// OK
-
-// G:abc->a S:abc->bc|a +Y
-
-// G:bc->b S:abc->bc|a +X ZLE!
-// G:bc->c S:abc->bc|a +X ZLE
-
-// G:abc->bc S:abc->bc|a +X
-
-// 0.0000  6.0000  2.0000
-
-   
-// 		 	if (ISSUBSET(gtclu[j],stclu[x]))
-//  			{
-//  				//cout << " inx" << bool(INTERSECTION(gtclu[p],stclu[y])) <<  " " << DIFFERENCE(gtclu[p],stclu[i]) << " " ;
-//  				if (INTERSECTION(gtclu[p],stclu[y]) || DIFFERENCE(gtclu[p],stclu[i])) { 
-//  					c++;
-//  					//cout << " +X ";
-//  					//ppbitclusterspecies(cout,DIFFERENCE(gtclu[p],stclu[i]));
-//  				}
-// 	 		}	
-// 	 		else if (ISSUBSET(gtclu[j],stclu[y]))
-// 	 		{
-// 	 			if (INTERSECTION(gtclu[p],stclu[x]) || DIFFERENCE(gtclu[p],stclu[i])) { 
-// 	 				c++;
-// 	 				//cout << " +Y ";
-// 	 				//ppbitclusterspecies(cout,DIFFERENCE(gtclu[p],stclu[i]));
-// 	 			}
-// 	 		}
-// 	 		//cout << endl;
-// 		}
-// 	}	
-// 	return c;
-
-// }
-
-// #define CACHE_STATS
 
 void TreeSpace::initleaves()
 {

@@ -204,8 +204,12 @@ string getstringn(char *s, int len)
 
 int getspecies(char *_s, int len)
 {
-  string s = getstringn(_s,len);
+  return getspecies(getstringn(_s,len));
+}
 
+
+int getspecies(string s)
+{
   if (specnames2id.count(s)) return specnames2id[s];
 
   int num;
@@ -714,7 +718,19 @@ unsigned long get_memory_size()
   //                 dt         (7) dirty pages (unused since Linux 2.6; always 0)
 }
 
-
-
-
-
+void setspecies(int spcnt)
+{
+  int mx = 'z' - 'a' + 1;
+  if (spcnt)
+  string s;
+  for (int i = 0; i < spcnt; i++) 
+  {
+    std::ostringstream ss;
+    ss << (char)((i%mx)+'a');
+    if (i/mx)
+    {
+      ss << (i/mx);
+    }
+    getspecies(ss.str());
+  }
+}

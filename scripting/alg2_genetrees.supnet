@@ -1,0 +1,16 @@
+
+# A special variable genetrees contains a list of gene trees
+# Originally it contains gene trees defined by option -g/-G
+# Assignments to genetrees allow only inserts trees into the list.
+
+# Add new trees from a file:
+genetrees=read("examples/gtrees.txt")	
+
+println(genetrees)
+
+# By direct statement 
+genetrees = "(a,(b,c));(b,c)"
+
+println(genetrees)
+
+# Note: genetrees cannot be updated after cost compuations due to limitations of tree space data structure that requires a fix set of gene trees. To be corrected in future.

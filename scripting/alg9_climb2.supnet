@@ -1,0 +1,40 @@
+"""
+
+Printing global stats info
+
+showstats()
+
+"""
+
+# Read gene trees 
+genetrees=read("scripting/10_r5_network_22.txt")
+
+# Prepare trees
+
+stopatcost=0
+
+cands = netlist()
+for i=1 to 20
+{  
+    print("Generating candidate",i)
+    r = quasiconsensustrees(count=100,  genetreessimilarity=1.0)
+    for j=1 to 5
+    {        
+        r = addreticulations(source=r, reticulations=1, samplespernet=20)   
+        r = storebest(source=r, count=5)           
+    }
+    cands = netlist( cands, storebest(source=r, count=1))    
+}
+
+println("Candidates", cands)
+
+showstats()
+
+println("Climbing!")
+
+# Climb max 10 times
+netr = climb(source=cands, stopinit=4, stopclimb=2000)
+
+
+
+

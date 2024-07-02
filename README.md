@@ -162,7 +162,7 @@ Random and quasi consensus tree/network generators
  - `-r NUM`: generate `NUM` random networks; if `NUM=-1` generator is infinite
  - `-q NUM`: generate `NUM` quasi-consensus networks; if `NUM=-1` generator is infinite
  - `-R NUM`: insert NUM reticulation nodes into networks from `-q`, `-r`, `-n`, `-N`; default is `0`
- - `-A SPECIESNUM`: define `SPECIESNUM` species a,b,... [TODO: expand label range]
+ - `-A SPECIESNUM`: define `SPECIESNUM` species a,b,...z, a1,b1, ..., z1, a2, b2,...
  - `--uniformedgesampling`: draw uniformly a pair of edges to create random reticulation; the default: first draw the source edge, then the uniformly the - destination edge given the source
  - `--preserveroot`: preserve root in quasi-consensus and in HC algorithm
  - `--randseed, -z SEED`: set seed for random generator (srand)
@@ -1264,10 +1264,10 @@ Cost:19 TopNetworks:68 Steps:8367 Climbs:46 HCruns:1 HCTime:1.83863 Naive:8368 N
 
 ### Save odt files after each improvement
 
-Use `--hcsavewhenimproved`. Note that stats may be not reliable, before the end of computation.
+Use `--savewhenimproved`. Note that stats may be not reliable, before the end of computation.
 
 ```
-> supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 -v4 --HC --hcrunstats --hcstoptime=0.5 --randseed 13 --hcsavewhenimproved
+> supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 -v4 --HC --hcrunstats --hcstoptime=0.5 --randseed 13 --savewhenimproved
 HC start: hcusenaive=0 runnaiveleqrt=13 tailmove=1
    i: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,((((((i)#4,(#7,(#2,g))))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=49
    >: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,(((((((#2,i))#4,(#7,g)))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=48
@@ -1313,7 +1313,7 @@ In such a scenario, the HC algorithm will engage in a sequence of N+1 iterative 
 (due to the integer sampler implementation the number of sampled trees for parameters >=1 will be smaller than expected). Setting the value `PAR=0.25` will yield roughly a quater of display trees and so on. Parameters should be monotonically increasing.
 
 ```
-> supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 -v4 --HC --hcrunstats --hcstoptime=0.5 --randseed 13 --hcsavewhenimproved --displaytreesampling="0.125 0.25 0.5"
+> supnet -g "((i,c),((a,d),(f,(b,((g,(e,j)),h)))));((i,h),((c,f),((a,(d,e)),(j,(g,b)))));(((f,(b,d)),((j,g),(e,i))),(c,(h,a)));(((f,(i,(j,d))),(c,b)),(((h,a),g),e));((((h,e),((c,f),a)),(d,b)),((g,i),j))" -R8 -q1 -v4 --HC --hcrunstats --hcstoptime=0.5 --randseed 13 --savewhenimproved --displaytreesampling="0.125 0.25 0.5"
 HC start: hcusenaive=0 runnaiveleqrt=13 tailmove=1
    i: ((((((d)#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,((((((i)#4,(#7,(#2,g))))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=54
    >: (((((((#7,d))#3,((((#3,((a)#7,h)))#6,c),#8)))#5,e))#2,((((((i)#4,(#2,g)))#1,(b,(#1,(#4,((j)#8,f))))),#5),#6)) cost=51
@@ -1376,9 +1376,90 @@ Use `--hcdetailedsummary` to print summary on each sampling level.
 Use `--hcdetailedsummarydat` to write additional summary dat file.
 
 
-## Automatic names of outfiles
+## Output files
 
 Configure the `--autooutfiles` option to generate filenames with the cost value followed by `dat` or `log` In the event of naming conflicts, increment numbers will be added, such as COST.1.dat, COST.2.dat, and so forth. Try with '--outdirectory'.
+
+Output: sp/odt.dat and sp/odt.log 
+```
+> rm -f sp/* && supnet -g '(a,(b,(c,d)));((a,b),(c,a));((b,c),(d,a))' -q1 -R3 --HC --outdirectory sp && ls sp
+   i: (((d)#1,(#3,(((((b)#2,c),#1))#3,a))),#2) cost=2
+   >: (((d)#1,(#3,((((b)#2,(c,#1)))#3,a))),#2) cost=1
+   >: ((#3,((d)#1,((((b)#2,(c,#1)))#3,a))),#2) cost=0
+Cost:0 TopNetworks:7 Steps:173 Climbs:6 HCruns:1 HCTime:0.000956059 Naive:174 Naivetime:0.000338316 DTcnt:1392 Class:TreeChild TimeConsistency:0
+odt.dat
+odt.log
+```
+
+Output: test.dat and test.log
+```
+> supnet -g '(a,(b,(c,d)));((a,b),(c,a));((b,c),(d,a))' -q1 -R3 --HC --outdirectory sp --outfiles=test && ls sp
+   i: (((#1,b))#3,((#2,((a)#2,((d)#1,c))),#3)) cost=4
+   >: (((#1,b))#3,(#2,(((a)#2,((d)#1,c)),#3))) cost=3
+   >: ((b)#3,(#2,(#1,(((a)#2,((d)#1,c)),#3)))) cost=1
+   >: (#1,(#2,(((((((b)#3,a))#2,d))#1,c),#3))) cost=0
+Cost:0 TopNetworks:7 Steps:255 Climbs:8 HCruns:1 HCTime:0.00172853 Naive:256 Naivetime:0.000469923 DTcnt:2048 Class:TreeChild TimeConsistency:0
+odt.dat
+odt.log
+test.dat
+test.log
+```
+
+Output: 0.dat and 0.log, where 0 is the resulting optimal cost
+```
+> supnet -g '(a,(b,(c,d)));((a,b),(c,a));((b,c),(d,a))' -q1 -R3 --HC --outdirectory sp --autooutfiles && ls sp
+   i: ((#1,(((b,#3))#1,((c)#2,((a)#3,d)))),#2) cost=3
+   >: ((#1,(((b)#1,((c)#2,((a)#3,d))),#3)),#2) cost=2
+   >: ((((b)#1,(((#1,c))#2,((a)#3,d))),#3),#2) cost=1
+   >: (((b)#1,(((#1,c))#2,(((a,#2))#3,d))),#3) cost=0
+Cost:0 TopNetworks:1 Steps:54 Climbs:8 HCruns:1 HCTime:0.000233412 Naive:55 Naivetime:0.000112534 DTcnt:440 Class:TreeChild TimeConsistency:0
+0.dat
+0.log
+odt.dat
+odt.log
+test.dat
+test.log
+```
+
+Output: 0.1.dat and 0.1.log
+```
+> supnet -g '(a,(b,(c,d)));((a,b),(c,a));((b,c),(d,a))' -q1 -R3 --HC --outdirectory sp --autooutfiles && ls sp
+   i: ((a)#1,((((c)#2,((d,#2),#1)))#3,(#3,b))) cost=2
+   >: ((a)#1,((((c)#2,(d,#1)))#3,(#3,(b,#2)))) cost=1
+   >: ((((c)#2,(d,#1)))#3,((a)#1,(#3,(b,#2)))) cost=0
+Cost:0 TopNetworks:6 Steps:176 Climbs:6 HCruns:1 HCTime:0.000854969 Naive:177 Naivetime:0.000364065 DTcnt:1416 Class:TreeChild TimeConsistency:0
+0.1.dat
+0.1.log
+0.dat
+0.log
+odt.dat
+odt.log
+test.dat
+test.log
+```
+
+Output: 0.2.dat and 0.2.log
+```
+> supnet -g '(a,(b,(c,d)));((a,b),(c,a));((b,c),(d,a))' -q1 -R3 --HC --outdirectory sp --autooutfiles && ls sp
+   i: ((a)#3,((((#1,((b)#1,(c,#3))))#2,d),#2)) cost=2
+   >: ((a)#3,((#1,((((b)#1,(c,#3)))#2,d)),#2)) cost=1
+   >: (((#1,((((b)#1,(c,#3)))#2,d)),(a)#3),#2) cost=0
+Cost:0 TopNetworks:3 Steps:106 Climbs:6 HCruns:1 HCTime:0.000407219 Naive:107 Naivetime:0.000201464 DTcnt:856 Class:TreeChild TimeConsistency:0
+0.1.dat
+0.1.log
+0.2.dat
+0.2.log
+0.dat
+0.log
+odt.dat
+odt.log
+test.dat
+test.log
+```
+
+
+
+
 
 ## More examples
 
@@ -1394,11 +1475,11 @@ To print the minimum total cost for 10 random gene trees versus random tree-chil
 ## Coronavirus dataset processing
 
 Infering tree-child networks without time-consistency, start from 10 networks `-q10`.
-Use: `--hcsavewhenimproved` to save odt files after each improvement
+Use: `--savewhenimproved` to save odt files after each improvement
 and  `--hcstoptime=30` to stop a single HC if there is no improvement after 30 seconds.
 
 ```
-supnet -G corona.txt -R7 -q10 --HC --hcrunstats --outfiles corona --hcstoptime=30  --hcsavewhenimproved
+supnet -G corona.txt -R7 -q10 --HC --hcrunstats --outfiles corona --hcstoptime=30  --savewhenimproved
 ```
 Results in `corona.log` and `corona.dat`.
 
@@ -1409,9 +1490,9 @@ supnet -G corona.txt -R7 -q10 --HC --hcrunstats --timeconsistent --relaxed --out
 
 <!-- Inferring relaxed time-consistent networks, start from 10 networks `-q10`, save networks to #first.log.
 ```
-supnet -G corona.txt -R7 -q10 --HC -v1 --timeconsistent --relaxed --outfiles first --hcsavewhenimproved
-supnet -G corona.txt -N first.log --hcsavewhenimproved  
-supnet -G corona.txt -N first.log --HC -v1 --timeconsistent --relaxed --hcsavewhenimproved
+supnet -G corona.txt -R7 -q10 --HC -v1 --timeconsistent --relaxed --outfiles first --savewhenimproved
+supnet -G corona.txt -N first.log --savewhenimproved  
+supnet -G corona.txt -N first.log --HC -v1 --timeconsistent --relaxed --savewhenimproved
 ``` -->
 
 ### Parallel processing 
@@ -1420,7 +1501,7 @@ TODO: multithreaded supnet
 
 Use parallel with 10 jobs to run 20 supnet computations.
 ```
-parallel --jobs 10 --ungroup supnet -G corona.txt -R7 -q1 --HC --hcrunstats --outdirectory corona --hcstoptime 1 --hcsavewhenimproved --odtlabelled --autooutfiles ::: {1..20}
+parallel --jobs 10 --ungroup supnet -G corona.txt -R7 -q1 --HC --hcrunstats --outdirectory corona --hcstoptime 1 --savewhenimproved --odtlabelled --autooutfiles ::: {1..20}
 ```
 
 Extracting best networks from log files using supnet:
@@ -1527,12 +1608,12 @@ Print cost + networks with sort:
 
 Using sampling and output directory wheat_guided. Single run with 10 initial networks.
 ```
-supnet -G wheat_trees_clean -R6 -q10 -v4 --HC --hcstoptime=4 --hcrunstatsext --relaxed --hcsavewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --outdirectory wheat_guided --displaytreesampling="0.001 0.01 0.03 0.05 0.1" --hcsamplerstats --hcsamplingmaxnetstonextlevel=1  --hcdetailedsummary  --autooutfiles
+supnet -G wheat_trees_clean -R6 -q10 -v4 --HC --hcstoptime=4 --hcrunstatsext --relaxed --savewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --outdirectory wheat_guided --displaytreesampling="0.001 0.01 0.03 0.05 0.1" --hcsamplerstats --hcsamplingmaxnetstonextlevel=1  --hcdetailedsummary  --autooutfiles
 ```   
 
 In parallel with 10 cores and 20 runs:
 ```
-parallel -q --jobs 10 --ungroup supnet -G wheat_trees_clean -R6 -q1 -v4 --HC --hcstoptime=4 --hcrunstatsext --relaxed --hcsavewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --outdirectory wheat_guided --displaytreesampling="0.001 0.01 0.03 0.05 0.1" --hcsamplerstats --hcsamplingmaxnetstonextlevel=1  --hcdetailedsummary  --autooutfiles --outfile={1} ::: {1..20}
+parallel -q --jobs 10 --ungroup supnet -G wheat_trees_clean -R6 -q1 -v4 --HC --hcstoptime=4 --hcrunstatsext --relaxed --savewhenimproved --odtlabelled --guidetree "(1,2,3,4);(5,6,7,8);(9,10,11,12);(13,14,15);(16,17,18);(19,20,21);(22,23,24);(25,26);(27,28,29);(30,31,32,33);(34,35);(36,37,38,39);(40,41,42,43)" --outdirectory wheat_guided --displaytreesampling="0.001 0.01 0.03 0.05 0.1" --hcsamplerstats --hcsamplingmaxnetstonextlevel=1  --hcdetailedsummary  --autooutfiles --outfile={1} ::: {1..20}
 ```
 
 Results in wheat_guided directory.
@@ -1540,5 +1621,8 @@ Results in wheat_guided directory.
 cat wheat_guided/*.log | supnet -G wheat_trees_clean -N- --bestnetworks -v4
 cat odt.log
 ```
+
+
+### Parallel processing from mulitple dir files
 
 

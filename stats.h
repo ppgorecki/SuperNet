@@ -15,7 +15,7 @@
 #define BB_PARENTCUT 64
 
 extern int flag_globaldagcache;
-extern int flag_hcsavewhenimproved;
+extern int flag_savewhenimproved;
 
 struct bbnode {
     int rtnumber;
@@ -104,12 +104,12 @@ typedef struct ODTStats
 
 } ODTStats;
 
-class NetworkHCStatsGlobal; 
+class ClimbStatsGlobal; 
 
 
-class NetworkHCStatsBase
+class ClimbStatsBase
 {
-protected:
+public:
 
 	// Save to dat file
 	void _savedat(ostream &odtf, bool labelled=false, bool partial=false);
@@ -118,7 +118,7 @@ protected:
 
 	double optcost;
 	long improvements;
-	double hctime;
+	double climbtime;
 	double mergetime;
 	long steps; 
 	long startingnets;
@@ -130,7 +130,7 @@ protected:
 		
 	ODTStats odtstats;
 
-	DagSet &visiteddags;
+	DagSet *visiteddagscache;
 
 	vector<Dag*> eqdags;
 
@@ -141,9 +141,9 @@ protected:
 
 public:
  
-	NetworkHCStatsBase(int networkclass, int timeconsistency, DagSet &visiteddags, unsigned int randseed);
+	ClimbStatsBase(int networkclass, int timeconsistency, DagSet *visiteddagscache, unsigned int randseed);
 
-	~NetworkHCStatsBase()
+	~ClimbStatsBase()
 	{ 
     	if (bestdags)
       	delete bestdags;
@@ -176,7 +176,7 @@ public:
 	
 	void finalize()
 	{
-		hctime = gettime()-hctime;
+		climbtime = gettime()-climbtime;
 	}
 
 
@@ -184,19 +184,19 @@ public:
 
 	void start()
 	{
-		 hctime = gettime();
+		 climbtime = gettime();
 	}
 
 	// Print stats
 	virtual void print();
 
 	// Merge HC results
-	int merge(NetworkHCStatsBase &nhc, int printstats, bool fullmerge);
+	int merge(ClimbStatsBase &climbstats, int printstats, bool fullmerge);
 
 	bool alreadyvisited(Dag &n)
 	{
 		Dag *src;
-		return visiteddags.add(&n, &src);
+		return visiteddagscache->add(&n, &src);
 	}
 
 	bool haseqdags()
@@ -223,7 +223,7 @@ public:
 
 	
 
-	friend class NetworkHCStatsGlobal;
+	friend class ClimbStatsGlobal;
 
 	void printnetworkinfo()
 	{
@@ -242,23 +242,26 @@ public:
 
 }; 
 
-class NetworkHCStatsGlobal: public NetworkHCStatsBase
+class ClimbStatsGlobal: public ClimbStatsBase
 {
 
 	protected:
 
 		string outfile = "";  		  	
-		string baseoutfiles = "";  		  	
+		string outdirectory = "";  		  	
 		string curoutfile = "";
-		double curoutfilecost = 0;
+		double curoutfilecost = -100000;
+		bool firstrun = true;
 
   		void _save(string filename, string s, bool printinfo, string sinfo="");
 		virtual bool _checkoutfilename(bool finalfiles=false);
 
+		bool savewhenimproved;
+
 	public: 
 
-	NetworkHCStatsGlobal(int networkclass, int timeconsistency, DagSet &visiteddags, unsigned int randseed) : 
-	NetworkHCStatsBase(networkclass, timeconsistency, visiteddags, randseed) {}
+	ClimbStatsGlobal(int networkclass, int timeconsistency, DagSet *visiteddagscache, unsigned int randseed, bool savewhenimproved) : 
+	ClimbStatsBase(networkclass, timeconsistency, visiteddagscache, randseed), savewhenimproved(savewhenimproved) {}
 
 	void globalstart()
 	{		
@@ -273,9 +276,11 @@ class NetworkHCStatsGlobal: public NetworkHCStatsBase
 
 	void addglobal(Dag *src, double cost);
 
-	int merge(NetworkHCStatsBase &nhc, int printstats, bool fullmerge);
+	void setsavewhenimproved(bool _savewhenimproved) { savewhenimproved = _savewhenimproved; }
 
-	void savedatmerged(bool printinfo,  vector<NetworkHCStatsGlobal*> globalstatsarr, bool finalfiles);
+	int merge(ClimbStatsBase &nhc, int printstats, bool fullmerge);
+
+	void savedatmerged(bool printinfo,  vector<ClimbStatsGlobal*> globalstatsarr, bool finalfiles);
 	
 
 	void setoutfiles(string _outdirectory, string _outfiles,  bool _odtlabelled);
@@ -293,7 +298,7 @@ class NetworkHCStatsGlobal: public NetworkHCStatsBase
 
 };
 
-class NetworkHCStatsGlobalSampler: public NetworkHCStatsGlobal
+class ClimbStatsGlobalSampler: public ClimbStatsGlobal
 {
 	protected:
 		float displaytreesampling;
@@ -301,8 +306,8 @@ class NetworkHCStatsGlobalSampler: public NetworkHCStatsGlobal
 		bool _checkoutfilename(bool finalfiles=false) { return false; }
 
 	public:
-		NetworkHCStatsGlobalSampler(int networkclass, int timeconsistency, DagSet &visiteddags, unsigned int randseed, float sampling) 
-		: NetworkHCStatsGlobal(networkclass, timeconsistency, visiteddags, randseed), displaytreesampling(sampling)
+		ClimbStatsGlobalSampler(int networkclass, int timeconsistency, DagSet *visiteddagscache, unsigned int randseed, float sampling) 
+		: ClimbStatsGlobal(networkclass, timeconsistency, visiteddagscache, randseed, false), displaytreesampling(sampling)
 	{}
 
 	void saveglobal(bool printinfo = false) {}
@@ -344,32 +349,32 @@ class NetworkHCStatsGlobalSampler: public NetworkHCStatsGlobal
 };
 
 
-class NetworkHCStats: public NetworkHCStatsBase
+class ClimbStats: public ClimbStatsBase
 {
 
 	protected:
-		NetworkHCStatsGlobal *globalstats;
+		ClimbStatsGlobal *globalstats;
 	
 	public:
-		NetworkHCStats(DagSet &_visiteddags, NetworkHCStatsGlobal*_globalstats) :  NetworkHCStatsBase(_globalstats->getnetworkclass(), _globalstats->gettimeconsistency(), visiteddags, _globalstats->getrandseed()), globalstats(_globalstats)
+		ClimbStats(DagSet &_visiteddagscache, ClimbStatsGlobal*_globalstats) :  ClimbStatsBase(_globalstats->getnetworkclass(), _globalstats->gettimeconsistency(), visiteddagscache, _globalstats->getrandseed()), globalstats(_globalstats)
 		{}		
 
 		void start()
 		{
-			  NetworkHCStatsBase::start();  
+			  ClimbStatsBase::start();  
   			  globalstats->globalstart();
 		}
 
 		int addnewbest(Dag &n, double cost) 
 		{     
-    		Dag *src = NetworkHCStatsBase::addnewbest(n, cost);
+    		Dag *src = ClimbStatsBase::addnewbest(n, cost);
     		globalstats->addglobal(src, optcost);
     		return 1;     
 		}
 
 		int addeq(Dag &n)
 		{
-			Dag * src = NetworkHCStatsBase::addeq(n);
+			Dag * src = ClimbStatsBase::addeq(n);
 			globalstats->addglobal(src, optcost);
 			return 1;
 		}		

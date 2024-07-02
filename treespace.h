@@ -304,6 +304,11 @@ class TreeSpace
     		for (const auto& element : tmp) 
     			repr2node.insert(element);
 		}
+
+		bool used()
+		{	
+			return n_missed || n_present;
+		}
 };
 
 ostream& ppSNode(ostream& os, SNode *s);

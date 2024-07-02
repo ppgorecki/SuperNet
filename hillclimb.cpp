@@ -1,7 +1,7 @@
 #include "hillclimb.h"
 #include "network.h"
 #include "costs.h"
-#include "randnets.h"
+#include "netgen.h"
 
 
 extern int verbosehccost;
@@ -16,19 +16,20 @@ double HillClimb::climb(
 		EditOp &op, 
 		Network *net, 
 		CostFun &costfun, 
-		NetworkHCStats &nhcstats, 
+		ClimbStats &nhcstats, 
 		bool usenaive, 
 		int runnaiveleqrt_t, 		
 		int hcmaximprovements,
 		int hcstopclimb,
 		float displaytreesampling,
-		bool cutwhendtimproved
+		bool cutwhendtimproved,
+		bool stopatcostdefined,
+		float stopatcost
 		)
 {
 
 	double lasthcimprovementtime = gettime();
 	int timeconsistency = nhcstats.gettimeconsistency();
-	
 
 	if (timeconsistency!=NET_ANY)
 	{
@@ -65,6 +66,8 @@ double HillClimb::climb(
 	bool first = true;
 	bool timeout = false;
 
+
+	if (!stopatcostdefined || (stopatcost<optcost))			
 	while (1)
 	{
 		op.init(net);
@@ -120,6 +123,9 @@ double HillClimb::climb(
 				 
 			nhcstats.step();
 
+
+
+
 			// Worse cost
 			if ((verbosehccost==3) && (curcost>optcost))
 			{
@@ -160,14 +166,21 @@ double HillClimb::climb(
 				  lasthcimprovementtime = gettime();
 
 					// search in a new neighbourhood
-					op.reset();			
+					op.reset();	
+
+					if (stopatcostdefined)		
+					{
+						if (stopatcost>=optcost)
+							break;
+					}
 			}
 			else
 			{
 					noimprovementstep++;
 			}
+			
 
-			if (hcstopclimb && (noimprovementstep==hcstopclimb))
+			if (hcstopclimb && (noimprovementstep>=hcstopclimb))
 			{
 			 	 break;
 			}
@@ -222,7 +235,7 @@ void iterativeretinsertionoptimizer(
 		int printstats,						
 		bool usenaive, 
 		int runnaiveleqrt_t, 				
-		NetworkHCStatsGlobal *globalstats, // could be sampler
+		ClimbStatsGlobal *globalstats, // could be sampler
 		bool cutwhendtimproved,
 		int networkclass, 
 		int timeconsistency, 
@@ -233,20 +246,19 @@ void iterativeretinsertionoptimizer(
 
 {
  	  DagSet visiteddags;		
-		NetworkHCStats nhcstats(visiteddags, globalstats);  
+		ClimbStats climbstats(visiteddags, globalstats);  
 		float displaytreesampling = globalstats->getsampling();
 
+	  double optcost = startnet->odtcost(gtvec, *costfun, usenaive, runnaiveleqrt_t, climbstats.getodtstats(), displaytreesampling);
 
-	  double optcost = startnet->odtcost(gtvec, *costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats(), displaytreesampling);
-
-	  nhcstats.addnewbest(*startnet, optcost); // save the first network
+	  climbstats.addnewbest(*startnet, optcost); // save the first network
 
 		NetworkRetIterator netretit(*startnet, networkclass, timeconsistency, guideclusters, guidetree, "");
    	Network *net;
    	   	
     while ((net = netretit.next())!=NULL)
     {
-      	double curcost = net->odtcost(gtvec, *costfun, usenaive, runnaiveleqrt_t, nhcstats.getodtstats(), displaytreesampling);
+      	double curcost = net->odtcost(gtvec, *costfun, usenaive, runnaiveleqrt_t, climbstats.getodtstats(), displaytreesampling);
 
 				// Equal cost network
 				if (curcost==optcost)
@@ -256,7 +268,7 @@ void iterativeretinsertionoptimizer(
 						cout << "   =: " << *net << " cost=" << curcost << endl;				
 					}
 					
-					nhcstats.addeq(*net);	    
+					climbstats.addeq(*net);	    
 				}
 				
 			// Yeah, new better network
@@ -269,7 +281,7 @@ void iterativeretinsertionoptimizer(
 					}
 
 					// new optimal; forget old   
-					nhcstats.addnewbest(*net, optcost);					
+					climbstats.addnewbest(*net, optcost);					
 
 					
 					// improvementscnt++;
@@ -280,13 +292,18 @@ void iterativeretinsertionoptimizer(
 					
 			}
 
+
       	// cout << cost << " " << *n << endl;
     }
+
+		climbstats.finalize();
+
+		globalstats->merge(climbstats, printstats, false);
 }
 
 void supnetheuristic(		
 		vector<RootedTree*> &gtvec,				
-		NetIterator *netiterator,
+		NetGen *netgenerator,
 		EditOp *op,
 		CostFun *costfun,		
 		int printstats,				
@@ -295,8 +312,12 @@ void supnetheuristic(
 		bool usenaive, 
 		int runnaiveleqrt_t, 		
 		int hcmaximprovements,		
-		vector<NetworkHCStatsGlobal*> globalstatsarr,
-		bool cutwhendtimproved
+		vector<ClimbStatsGlobal*> globalstatsarr,
+		bool cutwhendtimproved,
+		int multipleoptima,
+		bool stopatcostdefined,
+		float stopatcost,
+		DagScoredQueue *scoreddags
 		)
 {
       
@@ -316,7 +337,7 @@ void supnetheuristic(
         break; // stop
 
       // get next initial network
-      Network *n = netiterator->next();
+      Network *n = netgenerator->next();
       
       if (!n)
       {
@@ -345,7 +366,7 @@ void supnetheuristic(
 
 
 					DagSet visiteddags;				
-					NetworkHCStatsGlobal *globalstats = globalstatsarr[p.second];
+					ClimbStatsGlobal *globalstats = globalstatsarr[p.second];
 
 					if (flag_hcsamplerstats)
 					{
@@ -353,8 +374,8 @@ void supnetheuristic(
 						globalstats->info(cout) <<  endl;
 					}
 
-					NetworkHCStats nhcstats(visiteddags, globalstats);      
-					nhcstats.start();					
+					ClimbStats nhcstats(visiteddags, globalstats);      
+					nhcstats.start();	
 
 					double cost = hc.climb(*op, p.first, *costfun, nhcstats, 
 														 usenaive,
@@ -362,7 +383,24 @@ void supnetheuristic(
                              hcmaximprovements, 
                              hcstopclimb,
                              globalstats->getsampling(),
-                             cutwhendtimproved);
+                             cutwhendtimproved,
+                             stopatcostdefined,
+														 stopatcost);
+
+
+
+					if (scoreddags && !globalstats->issampler())
+					{
+							
+						  // insert best from 						  
+						  int cnt=multipleoptima;
+						  for (auto a : *nhcstats.getbestdags())
+						  {
+						  	 cnt--;
+								 scoreddags->push(a, cost);
+								 if (!cnt) break;
+							}
+					}
 
 					if (globalstats->issampler())
 					{
@@ -372,13 +410,14 @@ void supnetheuristic(
 						int nextsampler = p.second + 1;
 
 						int ncnt = 0;
-						for (std::vector<Dag*>::iterator a = dagset->begin(); a!=dagset->end(); a++ )			
+						//for (std::vector<Dag*>::iterator a = dagset->begin(); a!=dagset->end(); a++ )			
+						for (auto a : *dagset)
 						{													
 								if ((flag_hcsamplingmaxnetstonextlevel>0) && ncnt == flag_hcsamplingmaxnetstonextlevel)
 									break;
 								ncnt++;
 
-								Network *net = new Network(**a, false);			
+								Network *net = new Network(*a, false);			
 								//cout << *net << endl;
 								samplerarr.push_back(make_pair(net, nextsampler));
 						}
@@ -397,7 +436,7 @@ void supnetheuristic(
 
 					if (!globalstats->issampler())
 					{
-						 hccnt++;
+						 hccnt++; // Double hccnt++ TODO - check
 					}
 
 					if (globalstats->merge(nhcstats, printstats, false)) 
@@ -412,4 +451,10 @@ void supnetheuristic(
       
       
     } 
+
+    
 }
+
+
+
+

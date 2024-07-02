@@ -8,7 +8,7 @@
  charged for it and provided that this copyright notice is not removed.
  *************************************************************************/
 
-const char *SUPNET = "0.12";
+const char *SUPNET = "0.13";
 
 #include <getopt.h>
 #include <stdio.h>
@@ -36,12 +36,13 @@ using namespace std;
 #include "costs.h"
 #include "hillclimb.h"
 #include "network.h"
-#include "randnets.h"
+#include "netgen.h"
 #include "rtree.h"
 #include "tools.h"
 #include "topsort.h"
 #include "treespace.h"
 #include "testers.h"
+#include "algotok.h"
 using namespace std;
 
 double weightloss = 1.0; // Unused
@@ -55,11 +56,12 @@ int verbosealg = 3;    // <4 quiet
 
 string opt_outfiles = ODTBASENAME;
 string opt_outdirectory = "";
+double opt_genetreessimilarity = 0.7;
 
 int flag_globaldagcache = 0; 
 int flag_saveextnewick = 0; 
 int flag_autooutfiles = 0; 
-int flag_hcsavewhenimproved = 0;
+int flag_savewhenimproved = 0;
 int flag_hcsamplerstats = 0;
 int flag_hcsamplingmaxnetstonextlevel = 3; 
 int flag_hcdetailedsummarydat = 0;
@@ -67,6 +69,10 @@ float opt_hcstoptime = 0;
 bool flag_hcignorecostgeq = 0; // if set 
 float opt_hcignorecostgeq = 0;
 int flag_hcsavefinalodt = 0; // ignore hcignorecostgeq for final files
+int maxdisplaytreecachesize = 1000000;
+
+int randomnetworkscnt = 0;
+int timeconsistency = NET_ANY;
 
 int print_repr_inodtnaive = 0;
 
@@ -78,7 +84,7 @@ TreeSpace *globaltreespace;
 
 // Read trees from a given file
 void readtrees(char *fn, vector<char *> &speciestreesv) 
-{
+{ 
   FILE *f;
   if (!strcmp(fn, "-"))
     f = stdin;
@@ -97,6 +103,14 @@ void readtrees(char *fn, vector<char *> &speciestreesv)
   }
   fclose(f);
 }
+
+string readscript(string fn) 
+{    
+  std::ifstream ifs(fn);
+  return string((std::istreambuf_iterator<char>(ifs)),
+                  (std::istreambuf_iterator<char>()));
+}
+
 
 // Read trees/networks from a string; trees/networks are separated by semicolon
 void insertstr(vector<char *> &v, const char *t) {
@@ -144,8 +158,6 @@ int main(int argc, char **argv) {
   int flag_print_networks = 0;
   int flag_print_species_trees = 0;
 
-
-
   int flag_ptreecost = 0;
   int flag_extra_print_detailed = 0;
   int flag_extra_print_species_dictionary = 0;
@@ -169,13 +181,12 @@ int main(int argc, char **argv) {
 
   int flag_odt_naive_gtvsnet = 0;
 
-  int randomnetworkscnt = 0;
   int quasiconsensuscnt = 0;
 
   int reticulationcnt_R = 0;
   int networkclass = NET_TREECHILD; // default network type
 
-  int hcrunnaiveleqrt_t = 13; // default for DC, based on experiments
+  int runnaiveleqrt_t = 13; // default for DC, based on experiments
 
   int odtlabelled = 0;
 
@@ -189,7 +200,7 @@ int main(int argc, char **argv) {
   int bbstartscoredefined = 0;
   string displaytreesampling = "";
 
-  int maxdisplaytreecachesize = 1000000;
+  
 
   int flag_hcusenaive = 0;
   
@@ -200,7 +211,7 @@ int main(int argc, char **argv) {
 
   int flag_timeconsistent = 0;
   int flag_notimeconsistent = 0;
-  int timeconsistency = NET_ANY;  // NET_ANY no restrictions, 1-timeconsistent, 2-notimeconsistent
+  timeconsistency = NET_ANY;  // NET_ANY no restrictions, 1-timeconsistent, 2-notimeconsistent
   
   int flag_ptreecostext = 0;
   int flag_noodtfiles = 0;
@@ -225,6 +236,8 @@ int main(int argc, char **argv) {
   int flag_pnetworkretnodescnt = 0;
   int testdisplaytreesampling = 0;
 
+  int flag_icalgorithm = 0;
+
   int hcmaximprovements = 0;
   int hcstopinit = 0;
   int hcstopclimb = 0;
@@ -237,6 +250,7 @@ int main(int argc, char **argv) {
   char *opt_guidetree = NULL;
 
   string opt_tester = "";
+  string opt_script = "";
   
   costfun = new CFDeepCoalescence();
 
@@ -319,12 +333,14 @@ int main(int argc, char **argv) {
       {"hcsamplerstats", no_argument, &flag_hcsamplerstats, 1},
       {"hcrunstatsext", no_argument, &flag_hcrunstatsext, 1},
       {"hcrunstatsalways", no_argument, &flag_hcrunstatsalways, 1},
-      {"hcsavewhenimproved", no_argument, &flag_hcsavewhenimproved, 1},
+      {"savewhenimproved", no_argument, &flag_savewhenimproved, 1},
       {"hcsamplingmaxnetstonextlevel", required_argument, NULL, '3'},
       {"hcdetailedsummary", no_argument, &flag_hcdetailedsummary, 1},
       {"hcdetailedsummarydat", no_argument, &flag_hcdetailedsummarydat, 1},
       {"autooutfiles", no_argument, &flag_autooutfiles, 1},
       {"cutwhendtimproved", no_argument, &flag_cutwhendtimproved, 1},
+
+      {"IC", optional_argument, &flag_icalgorithm, 'i'},
 
       {"bestnetworks", no_argument, &flag_bestneworks, 1},
       
@@ -335,11 +351,14 @@ int main(int argc, char **argv) {
       {"hcstopclimb", required_argument, NULL, 'Z'},
       {"hcstoptime", required_argument, NULL, 'P'},
 
+      {"run",required_argument, NULL, 'E'},
+
       // TODO: implement rules
       {"matchafter", no_argument, &flag_match_after, 1},
       {"matchbefore", no_argument, &flag_match_before, 1},
       {"matchatpos", no_argument, &flag_match_atpos, 1},
       {"matchparam", required_argument, NULL, 'l'},
+
 
       // debug
       {"test", required_argument, NULL, 'T'},
@@ -348,13 +367,14 @@ int main(int argc, char **argv) {
       {"globaldagcache", no_argument, &flag_globaldagcache, 1 },
       {"saveextnewick", no_argument, &flag_saveextnewick, 1 },
       {"retidprefix", required_argument, NULL, 'Q'},
+      {"genetreessimilarity", required_argument, NULL, 'p'},
 
       {0, 0, 0, 0}
 
   };
 
   const char *optstring =
-      "c:z:b:U:g:s:G:S:N:n:R:t:m:V:X:Y:Z:l:q:r:A:L:D:O:v:C:1:Wu:e:P:T:;";
+      "c:z:b:U:g:s:G:S:N:n:R:t:m:V:X:Y:Z:l:q:r:A:L:D:O:v:C:1:Wu:e:E:P:T:Q:u:p:i:;";
 
   while ((opt = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) 
   {
@@ -375,6 +395,10 @@ int main(int argc, char **argv) {
 
     case '1':
       bbstartscore = atof(optarg);
+      break;
+
+    case 'p':
+      opt_genetreessimilarity = atof(optarg);
       break;
 
     case 'U':
@@ -404,8 +428,7 @@ int main(int argc, char **argv) {
       break;
 
     case 'R':
-      reticulationcnt_R = atoi(optarg);
-      cout << reticulationcnt_R<< endl;
+      reticulationcnt_R = atoi(optarg);      
       break;
 
     case 't':
@@ -449,6 +472,13 @@ int main(int argc, char **argv) {
     case 'T': 
     {
       opt_tester = optarg;      
+      break;
+    }
+
+    case 'E': 
+    {
+      opt_script = readscript(optarg);
+
       break;
     }
 
@@ -533,24 +563,17 @@ int main(int argc, char **argv) {
       break;
 
     // define letter based species a,b,c,...
-    case 'A': {
-      int spcnt = 0;
-      if (sscanf(optarg, "%d", &spcnt) != 1) {
-        cerr << "Number expected in -A" << endl;
-        exit(-1);
+    case 'A': 
+      {
+        int spcnt = 0;
+        if (sscanf(optarg, "%d", &spcnt) != 1) {
+          cerr << "Number expected in -A" << endl;
+          exit(-1);
+        }
+        setspecies(spcnt);      
+        break;
       }
-      if (spcnt > 'z' - 'a' + 1) {
-        cerr << "Too many species in -A" << endl;
-        exit(-1);
-      }
-
-      char buf[2] = {'a', 0};
-      for (int i = 0; i < spcnt; i++) {
-        getspecies(buf, 0);
-        buf[0]++;
-      }
-      break;
-    }
+    
 
     // Loss weight
     case 'L':
@@ -678,14 +701,12 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < specnames2id.size(); i++)
       cout << i << " " << specnames[i] << endl;
 
-  Clusters *genetreeclusters = NULL;
+  Clusters *genetreeclusters = NULL; 
 
   // Prepare clusters
   if (opt_quasiconsensus || opt_randnetworks) 
   {
-    genetreeclusters = new Clusters();
-    for (auto & gtpos: genetreesv) 
-      genetreeclusters->adddag(gtpos);    
+    genetreeclusters = new Clusters(genetreesv);     
   }
 
   // Initialize clusters
@@ -716,10 +737,10 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-
     networksv.push_back(addrandreticulations(reticulationcnt_R, n, networkclass,
                                            timeconsistency, randnetuniform, NULL, NULL));
   }
+
 
   // Gen quasi consensus trees and insert into networksv as networks
   // Add reticulations if -R is set
@@ -746,8 +767,7 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-
-    if (!flag_hcalgorithm) // odt generated separately
+    if (!flag_hcalgorithm && !flag_bestneworks && !opt_script.length()) // quasi cons. generated separately
     {
       
       for (int i = 0; i < quasiconsensuscnt; i++)
@@ -769,11 +789,11 @@ int main(int argc, char **argv) {
     long int i = -1;
 
     Dag *src;
-    NetIterator netiterator(networksv, randomnetworkscnt, quasiconsensuscnt, genetreeclusters,
+    NetGenerator netgenerator(&networksv, randomnetworkscnt, quasiconsensuscnt, genetreeclusters,
                           preserverootst, reticulationcnt_R, networkclass,
                           timeconsistency, randnetuniform, guideclusters, 
                            guidetree);
-    while ((n = netiterator.next()) != NULL)
+    while ((n = netgenerator.next()) != NULL)
        dagset.add(n, &src);
 
     cout << dagset;
@@ -983,12 +1003,12 @@ int main(int argc, char **argv) {
   // Compute ODT cost 
   if (flag_odtcost) 
   {
-    DagSet visiteddags;
-    NetworkHCStatsBase *stats =
-        new NetworkHCStatsBase(networkclass, timeconsistency, visiteddags, randseed);
+    DagSet *visiteddags = new DagSet();
+    ClimbStatsBase *stats =
+        new ClimbStatsBase(networkclass, timeconsistency, visiteddags, randseed);
     for (auto &net: networksv) 
     {
-      double cost = net->odtcost(genetreesv, *costfun, flag_hcusenaive, hcrunnaiveleqrt_t, stats->getodtstats());
+      double cost = net->odtcost(genetreesv, *costfun, flag_hcusenaive, runnaiveleqrt_t, stats->getodtstats());
       cout << cost << " " << *net << endl;
     }
     exit(0);
@@ -1062,10 +1082,8 @@ int main(int argc, char **argv) {
         opt_hcstoptime = -1; // no climb employed
       }
 
-      DagSet visiteddags;
-
-      NetworkHCStatsGlobal *globalstats =
-        new NetworkHCStatsGlobal(networkclass, timeconsistency, visiteddags, randseed);
+      ClimbStatsGlobal *globalstats =
+        new ClimbStatsGlobal(networkclass, timeconsistency, new DagSet, randseed, flag_savewhenimproved);
 
       EditOp *editop;
       if (flag_hcedit_nni)
@@ -1074,7 +1092,7 @@ int main(int argc, char **argv) {
         editop = new TailMove(networkclass, guideclusters, guidetree);
 
       if (opt_outfiles.length()) 
-      {
+      {                
         globalstats->setoutfiles(opt_outdirectory, opt_outfiles, odtlabelled);
       }
 
@@ -1085,12 +1103,12 @@ int main(int argc, char **argv) {
         cout << "HC"
            << " start:"
            << " hcusenaive=" << flag_hcusenaive
-           << " runnaiveleqrt=" << hcrunnaiveleqrt_t
+           << " runnaiveleqrt=" << runnaiveleqrt_t
            << " tailmove=" << !flag_hcedit_nni << endl;
        }
 
-      NetIterator netiterator(
-                      networksv, 
+      NetGenerator netgenerator(
+                      &networksv, 
                       randomnetworkscnt, 
                       quasiconsensuscnt, 
                       genetreeclusters,
@@ -1103,10 +1121,7 @@ int main(int argc, char **argv) {
                       guidetree);
 
 
-     vector<NetworkHCStatsGlobal*> globalstatsarr;
-
-     DagSet visiteddags1;
-     DagSet visiteddags2;
+     vector<ClimbStatsGlobal*> globalstatsarr;     
      
      if (displaytreesampling.length())
      {
@@ -1116,7 +1131,9 @@ int main(int argc, char **argv) {
         
         for (auto samplingvalue: v)
         {
-          globalstatsarr.push_back(new NetworkHCStatsGlobalSampler(networkclass, timeconsistency, visiteddags2, randseed, samplingvalue));    
+          globalstatsarr.push_back(new ClimbStatsGlobalSampler(networkclass, 
+            timeconsistency, 
+            new DagSet(), randseed, samplingvalue));    
         }        
       }
 
@@ -1134,14 +1151,14 @@ int main(int argc, char **argv) {
     
      supnetheuristic(   
         genetreesv,       
-        &netiterator,
+        &netgenerator,
         editop,
         costfun,
         printstats,       
         hcstopinit,
         hcstopclimb,
         flag_hcusenaive,
-        hcrunnaiveleqrt_t,    
+        runnaiveleqrt_t,    
         hcmaximprovements,
         globalstatsarr,
         flag_cutwhendtimproved
@@ -1239,6 +1256,68 @@ int main(int argc, char **argv) {
     }
   }
 
+
+  if (opt_script.length())
+  {
+       
+      // AlgTokenizer s(opt_script);
+      // int tokentype;
+      
+
+      // while ((tokentype = s.next())!=0)
+      // {   
+      //     string token = s.get();
+      //     cout << tokentype << ": " << token << endl;
+
+      //     if (tokentype==TLABEL && token=="randnetwork")
+      //     {
+      //         command = token;
+      //     }
+      // }
+
+    ExprList *e = parsescript(opt_script);
+
+    Env *env = new Env(genetreesv, 
+        networksv,
+        costfun,                                    
+        guideclusters,
+        guidetree,
+        preserverootst
+        );
+
+    env->set("reticulations",reticulationcnt_R);
+    env->set("networkclass",networkclass);
+    env->set("timeconsistency", timeconsistency);
+    env->set("randnetuniform", randnetuniform);
+    env->set("randomnetworks", randomnetworkscnt);
+    env->set("quasiconsensusnetworks", quasiconsensuscnt);
+    env->set("cutwhendtimproved", flag_cutwhendtimproved);
+    env->set("runnaiveleqrt", runnaiveleqrt_t);
+    env->set("usenaive", flag_hcusenaive);
+    env->set("printstats", printstats);
+    env->set("randseed", randseed);
+    env->set("outdirectory", opt_outdirectory);
+    env->set("outfiles",         opt_outfiles);
+    env->set("odtlabelled", odtlabelled);
+    env->set("verbosealg",verbosealg);
+    env->set("verbosehccost",verbosehccost);
+    env->set("genetreessimilarity",opt_genetreessimilarity);
+
+    env->set("stopclimb",hcstopclimb);
+    env->set("stopinit",hcstopinit);
+    env->set("hceditnni",flag_hcedit_nni);
+    env->set("maximprovements",hcmaximprovements);
+    env->set("hcdetailedsummary",flag_hcdetailedsummary);    
+    env->set("verbosealg", verbosealg);
+    env->set("savewhenimproved", flag_savewhenimproved);
+        
+    e->eval(*env);
+
+    env->finalizestats();
+        
+
+  }
+
   // ----------------- DEBUGs -----------------------
 
   if (opt_tester=="editnni") 
@@ -1270,26 +1349,25 @@ int main(int argc, char **argv) {
   if (opt_tester=="iiopt")
   {
     
-    DagSet visiteddags;
-    NetworkHCStatsGlobal *globalstats =
-       new NetworkHCStatsGlobal(networkclass, timeconsistency, visiteddags, randseed);
-
+    DagSet *visiteddags = new DagSet();
+    ClimbStatsGlobal *globalstats =
+       new ClimbStatsGlobal(networkclass, timeconsistency, visiteddags, randseed, flag_savewhenimproved);
+        
     if (opt_outfiles.length()) 
     {
         globalstats->setoutfiles(opt_outdirectory, opt_outfiles, odtlabelled);
     }
 
-
     for (int i = 0; i < networksv.size(); i++) 
     {
-        cout << *networksv[i] << endl;
-      iterativeretinsertionoptimizer(    
+        // cout << *networksv[i] << endl;
+        iterativeretinsertionoptimizer(    
         genetreesv,
         networksv[i],
         costfun,   
         printstats,           
         flag_hcusenaive,
-        hcrunnaiveleqrt_t,        
+        runnaiveleqrt_t,        
         globalstats, // could be sampler
         flag_cutwhendtimproved,
         networkclass, 
@@ -1299,7 +1377,7 @@ int main(int argc, char **argv) {
       );
     }
 
-    vector<NetworkHCStatsGlobal*> globalstatsarr;
+    vector<ClimbStatsGlobal*> globalstatsarr;
 
     // merge all data and save odt/dat file(s); optional     
     globalstats->savedatmerged(verbosealg >= 4, globalstatsarr, true);     
@@ -1311,22 +1389,36 @@ int main(int argc, char **argv) {
     globalstats->print();
     globalstats->printnetworkinfo();     
     cout << endl;
+  }
 
+  if (opt_tester=="rnets")
+  {
+    Network *n; 
 
+    // QuasiConsTreeGenerator qct(10, preserverootst, guideclusters, guidetree, new Clusters(genetreesv));
+    // while ((n=qct.next())!=0)
+    //   cout << *n << endl;
+
+    QuasiConsTreeGenerator qct2(10, preserverootst, guideclusters, guidetree, new Clusters(genetreesv), opt_genetreessimilarity);
+
+    NetRetGenerator rn(&qct2, reticulationcnt_R, NET_TREECHILD, timeconsistency, randnetuniform, -1, 1, guideclusters, guidetree);
+    
+    while ((n=rn.next())!=0)
+      cout << *n << endl;
 
 
   }
 
     //  supnetheuristic(   
     //     genetreesv,       
-    //     &netiterator,
+    //     &netgenerator,
     //     editop,
     //     costfun,
     //     printstats,       
     //     hcstopinit,
     //     hcstopclimb,
     //     flag_hcusenaive,
-    //     hcrunnaiveleqrt_t,    
+    //     runnaiveleqrt_t,    
     //     hcmaximprovements,
     //     globalstatsarr,
     //     flag_cutwhendtimproved

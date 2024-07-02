@@ -5,7 +5,7 @@
 #include "network.h"
 #include "tools.h"
 #include "costs.h"
-#include "randnets.h"
+#include "netgen.h"
 
 #define ODTBASENAME "odt"
 
@@ -98,19 +98,22 @@ public:
 	// Returns optimal cost 
 	// TODO: additional info (stats, more optimal solutions, etc.) 
 	double climb(EditOp &op, Network *net, CostFun &costfun, 
-		NetworkHCStats &nhcstats, 
+		ClimbStats &nhcstats, 
 		bool usenaive, 
 		int runnaiveleqrt_t, 		
 		int hcmaximprovements = 0,
 		int hcstopclimb = 0,
 		float displaytreesampling=0,
-		bool cutwhendtimproved=false);
+		bool cutwhendtimproved=false,
+		bool stopatcostdefined=false,
+		float stopatcost=0
+		);
 
 };
 
 void supnetheuristic(		
 		vector<RootedTree*> &gtvec,				
-		NetIterator *netiterator,
+		NetGen *netgenerator,
 		EditOp *op,
 		CostFun *costfun,
 
@@ -120,8 +123,12 @@ void supnetheuristic(
 		bool usenaive, 
 		int runnaiveleqrt_t, 		
 		int hcmaximprovements,		
-		vector<NetworkHCStatsGlobal*> globalstatsrarr,
-		bool cutwhendtimproved
+		vector<ClimbStatsGlobal*> globalstatsrarr,
+		bool cutwhendtimproved,
+		int multipleoptima=0,
+		bool stopatcostdefined=false,
+		float stopatcost=0,
+		DagScoredQueue* scoreddags=NULL // do not report
 		);
 
 void iterativeretinsertionoptimizer(		
@@ -131,7 +138,7 @@ void iterativeretinsertionoptimizer(
 		int printstats,						
 		bool usenaive, 
 		int runnaiveleqrt_t, 				
-		NetworkHCStatsGlobal *globalstats, // could be sampler
+		ClimbStatsGlobal *globalstats, // could be sampler
 		bool cutwhendtimproved,
 		int networkclass, 
 		int timeconsistency, 

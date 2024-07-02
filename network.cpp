@@ -752,7 +752,6 @@ int Network::_getdestconnectors(int networkclass, int len, NODEID *esrc, NODEID*
 {
 		
 	int dsrclen = 0;
-
 	for (auto i = 0; i<len; i++)
 	{		
 		_getdestconnectorsforedge(networkclass, esrc[i], dsrclen, dsrc);	

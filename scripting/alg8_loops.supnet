@@ -1,0 +1,31 @@
+"""
+
+A simple loop:
+
+for VARIABLE to VALUE/VARIABLE
+{ ... }
+
+"""
+
+stopatcost=0 # just set globally, see storebest 
+
+genetrees="((a,b),c);(c,d)"
+
+r = quasiconsensustrees(count=10)
+for i=1 to 3
+{  
+	r = addreticulations(source=r, reticulations=1, samplespernet=2)	
+	r = storebest(source=r, count=20)	
+}
+
+"""
+Variable <reticulations> is set via -R NUM from the command line. Then, it can be used in more generic loops, e.g.,
+
+print(reticulations)
+for i=1 to reticulations { ... }
+
+with a command: 
+
+> supnet -R3 -E alg7_loops.supnet
+"""
+

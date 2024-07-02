@@ -1,0 +1,29 @@
+"""
+Generator of random trees: 
+
+randtrees(...) 
+
+Parameters, all optional: 
+   - count - how many trees; default=1; -1, is infinite
+   - cleanunused is set, then the networks will be cleaned
+
+Used variables from command line option:
+- preserverootst
+- guideclusters 
+- guidetree 
+
+Returns a generator of random trees
+Note that reading more one time may produce different results
+
+Requires: defined species (e.g., via genetrees, -A, -G, -g, or setspecies)
+
+"""
+
+setspecies=4   # defines four species a...d, see -A command line option
+
+# create a random tree generator
+
+r = randtrees(count=2, cleanunused=1)
+
+print(r) # print 2 random trees
+print(r) # print 2 random trees, may be different than the previous ones

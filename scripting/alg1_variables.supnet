@@ -1,0 +1,37 @@
+# Setting and printing a variable
+
+a=10
+b="abc"
+c=1.0
+print(a,b,c)
+
+# Predefined variables with values set initially via command line options
+
+print("reticulations", reticulations)   
+print("networkclass", networkclass)    
+print("timeconsistency", timeconsistency)
+print("randnetuniform", randnetuniform)
+print("randomnetworks", randomnetworks)
+print("quasiconsensusnetworks", quasiconsensusnetworks)
+print("cutwhendtimproved", cutwhendtimproved)
+print("runnaiveleqrt", runnaiveleqrt)
+print("usenaive", usenaive)
+print("printstats", printstats)
+print("randseed", randseed)
+print("outdirectory", outdirectory)
+print("outfiles", outfiles)
+print("odtlabelled", odtlabelled)
+print("verbosealg", verbosealg)
+print("verbosehccost", verbosehccost)
+print("stopclimb", stopclimb)
+print("stopinit", stopinit)
+print("hceditnni", hceditnni)
+print("maximprovements", maximprovements)
+print("hcdetailedsummary", hcdetailedsummary)
+print("verbosealg", verbosealg)
+print("savewhenimproved", savewhenimproved)
+
+
+# print whole environment
+
+printenv()

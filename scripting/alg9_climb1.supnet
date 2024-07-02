@@ -1,0 +1,52 @@
+"""
+Apply hill climbing on networks
+
+hillclimb(...) 
+
+Parameters, all optional. See description in README
+   - stopclimb - stop in HC when there is no improvements after NUM steps (see --hcstopclimb=NUM)
+   - stopinit - stop when there is no new optimal network after HC with NUM initial networks (see --hcstopinit=NUM)
+   - hceditnni - if 1, use NNI instead of TailMoves (see --hcnnimove), default=0
+   - maximprovements - stop after NUM improvements in HC climb (see --hcmaximprovements=NUM)
+   - hcdetailedsummary
+   - verbosealg
+   - runnaiveleqrt=TRESHOLD - run ODT-naive cost computation, when the number of reticulations is `<= THRESHOLD`; otherwise run DP
+   - usenaive - use always naive algorithm if set to 1
+   - verbosehccost - printing stats during search   
+   - stopatcost - stop climbing when given cost is reached (default is inactive);
+
+
+Other parameters:
+  - return=NUM, the results is a set of <=NUM best networks, default=1, obtained from the top networks from each climb; see next option for multiple optima
+  - multipleoptima=NUM - save max NUM multiple optimal networks in the result (default=0, store all)
+
+Requires: gene trees.
+
+Best networks globally are saved to log/odt files.
+
+"""
+
+# Read gene trees 
+genetrees=read("scripting/10_r5_network_22.txt")
+
+# Prepare trees
+r = quasiconsensustrees(count=100,  genetreessimilarity=1.0)
+
+stopatcost=0
+
+for i=1 to 5
+{  
+    r = addreticulations(source=r, reticulations=1, samplespernet=20)   
+    r = storebest(source=r, count=5)           
+}
+
+
+# printenv()
+println("Climbing!")
+
+# Climb 20 times
+netr = climb(source=r, stopinit=4, stopclimb=200)
+
+
+
+
