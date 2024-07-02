@@ -323,7 +323,7 @@ ostream& operator<<(ostream&s, Clusters &c)
   for (auto& pairObj: c.t)
   {      
       //s << std::cout<< *pairObj.first << " -> " << *pairObj.second << std::endl;
-      s << *pairObj.second << endl;
+      s << (*pairObj.second).usagecnt << " " << *pairObj.second << endl;
   }
   return s;
 }

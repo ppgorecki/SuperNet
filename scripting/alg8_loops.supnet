@@ -2,7 +2,7 @@
 
 A simple loop:
 
-for VARIABLE to VALUE/VARIABLE
+for VARIABLE=VALUE/VARIABLE to VALUE/VARIABLE
 { ... }
 
 """
@@ -11,11 +11,12 @@ stopatcost=0 # just set globally, see storebest
 
 genetrees="((a,b),c);(c,d)"
 
-r = quasiconsensustrees(count=10)
+r = randtrees(count=10)
+
 for i=1 to 3
 {  
 	r = addreticulations(source=r, reticulations=1, samplespernet=2)	
-	r = storebest(source=r, count=20)	
+	r = storebest(source=r, count=10)	
 }
 
 """

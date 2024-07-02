@@ -26,11 +26,12 @@ Requires: defined species (e.g., via genetrees, -A, -G, -g, or setspecies)
 genetrees="(a,(b,c));(a,b)"
 
 # Prepare 2 trees
-r = quasiconsensustrees(count=2)
+r = quasiconsensustrees(count=2, genetreessimilarity=1.0)
 
 # Add reticulations; result 2x3 = 6 networks
 netr = addreticulations(source=r, reticulations=1, samplespernet=3)	
-println(netr) # print 6 networks with 1 reticulation
 
+println(netr) # print 6 networks with 1 reticulation
+# TODO: may by non-unique
 
 

@@ -1,0 +1,48 @@
+"""
+
+Printing global stats info
+
+showstats()
+
+"""
+# Read gene trees 
+genetrees=read("scripting/25_r10_network_16.txt")
+
+# Print clusters with usage count
+print(geneclusters)
+
+# Prepare trees
+savewhenimproved=1
+stopatcost=0
+
+cands = netlist()
+for i=1 to 5
+{  
+    print("Generating candidate",i)
+    r = quasiconsensustrees(count=100,  genetreessimilarity=1.0)
+    for j=1 to 10
+    {        
+        r = addreticulations(source=r, reticulations=1, samplespernet=30)   
+        r = storebest(source=r, count=5)           
+    }
+    cands = netlist( cands, storebest(source=r, count=1))    
+}
+
+print("Candidates", cands)
+
+
+showstats()
+
+# Sort candidates: the best on is the first 
+sortedcands = storebest(source=cands) # TODO: reset source 
+ 
+print("Climbing!")
+
+# Climb max 10 times
+netr = climb(source=sortedcands, stopinit=4, stopclimb=2000)
+
+# Check time limits?
+
+
+# TODO: randseed 
+# odtlabeled 

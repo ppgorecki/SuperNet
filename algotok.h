@@ -20,7 +20,7 @@
 #define ETO 11
 #define EGTREES 12
 
-#define ECALL 16
+#define ECALL 32
 #define ECLIMB (1|ECALL)
 #define EITALGORITHM (2|ECALL)
 #define ESTOREBEST (3|ECALL)
@@ -33,6 +33,7 @@
 #define EPRINTLN (12|ECALL)
 #define ESHOWSTATS (13|ECALL)
 #define ENETLIST (14|ECALL)
+#define EPRINTSP (15|ECALL)
 
 using namespace std;
 
@@ -144,22 +145,22 @@ protected:
     vector<ExprValue*> t;
 
 public:
-    void print(ostream &os, bool sepln=false) const 
+    void print(ostream &os, char sep=0) const 
     {
         bool prev=false;    
-        if (!sepln) os << "[";
+        if (!sep) os << "[";
         for (auto v: t)
         {                    
-            if (!sepln && prev) os << ", ";
+            if (!sep && prev) os << ", ";
             if (v)
             {
                 os << *v;                
             }
             else os << "NULL";
-            if (sepln) os << endl;
+            if (sep) os << sep;
             prev = true;              
         }      
-        if (!sepln) 
+        if (!sep) 
             os << "]";        
     };
     EValueVec(vector<ExprValue*> &r) : ExprValue(EVALUEVEC), t(r) {} 

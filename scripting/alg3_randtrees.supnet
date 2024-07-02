@@ -27,3 +27,5 @@ r = randtrees(count=2, cleanunused=1)
 
 print(r) # print 2 random trees
 print(r) # print 2 random trees, may be different than the previous ones
+
+# todo: add save to file/vector

@@ -24,10 +24,11 @@ genetrees="((a,b),(c,d));(a,b)"
 
 # Generating quasiconsensus trees
 
-println(genetreessimilarity)
+println(genetreessimilarity) # TODO: check why 0?
 
-q = quasiconsensustrees(count=10, cleanunused=1) 
+q = quasiconsensustrees(count=10, cleanunused=1, genetreessimilarity=0.5) 
 println(q)
 
 # High similarity to gene trees
-println( quasiconsensustrees(count=5, cleanunused=1, genetreessimilarity=1.0) )
+v = quasiconsensustrees(count=5, cleanunused=1, genetreessimilarity=1.0)
+println(v)

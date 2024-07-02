@@ -1,7 +1,7 @@
 """
 Apply hill climbing on networks
 
-hillclimb(...) 
+climb(...) 
 
 Parameters, all optional. See description in README
    - stopclimb - stop in HC when there is no improvements after NUM steps (see --hcstopclimb=NUM)
@@ -34,19 +34,24 @@ r = quasiconsensustrees(count=100,  genetreessimilarity=1.0)
 
 stopatcost=0
 
+# This type of climb is not recommended
+# r may contain highly similar network
 for i=1 to 5
 {  
     r = addreticulations(source=r, reticulations=1, samplespernet=20)   
-    r = storebest(source=r, count=5)           
+    r = storebest(source=r, count=20)           
 }
 
+showstats()
 
 # printenv()
 println("Climbing!")
 
 # Climb 20 times
-netr = climb(source=r, stopinit=4, stopclimb=200)
+netr = climb(source=r, stopinit=5, stopclimb=200)
 
+# TODO: stopiniteq - stop when equal
+# TODO: global stop for stopatcost?
 
 
 

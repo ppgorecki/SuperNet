@@ -13,6 +13,8 @@ genetrees=read("scripting/10_r5_network_22.txt")
 
 stopatcost=0
 
+# Recommended way to create heuristics 
+
 cands = netlist()
 for i=1 to 20
 {  
@@ -32,7 +34,7 @@ showstats()
 
 println("Climbing!")
 
-# Climb max 10 times
+# Climb max 20 times
 netr = climb(source=cands, stopinit=4, stopclimb=2000)
 
 

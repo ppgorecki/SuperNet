@@ -184,6 +184,10 @@ int AlgTokenizer::_next(const std::string& delimiters)
         {
             return EPRINTLN;
         }
+        if (m_token=="printsp")
+        {
+            return EPRINTSP;
+        }
         if (m_token=="showstats")
         {
             return ESHOWSTATS;
@@ -487,8 +491,6 @@ ExprValue *ExprCall::eval(Env &env)
 
     if (type==ENETLIST)
     {        
-
-
         bool cleanunused = localenv.getint("cleanunused", false);        
         int count = localenv.getint("count", -1); 
         NetGenCollect *netcol = new NetGenCollect(count);
@@ -525,9 +527,6 @@ ExprValue *ExprCall::eval(Env &env)
         }
 
         return new VNetGen(*netcol, cleanunused);                            
-
-
-
     }
 
     if (type==EQUASICONSTREES)
@@ -798,18 +797,21 @@ ExprValue *ExprCall::eval(Env &env)
 
     }
 
-    if (type==EPRINT)
+    if (type==EPRINT || type==EPRINTLN || type==EPRINTSP)
     {
-        a->print(cout);
-        cout << endl;
+
+        if (type==EPRINT)
+            a->print(cout, ' ');
+        else if (type==EPRINTLN)
+            a->print(cout, '\n');
+        else a->print(cout);
+        
+        if (type!=EPRINTLN) 
+            cout << endl;
+
         return NULL;
     }
 
-    if (type==EPRINTLN)
-    {
-        a->print(cout, true);
-        return NULL;
-    }
     if (type==ESHOWSTATS)
     {
         ClimbStatsGlobal *globalstats = env.getglobalstats();
@@ -832,6 +834,22 @@ ExprValue *ELabel::eval(Env &env)
 {    
     if (env.vars.find(s)==env.vars.end())
     {
+        if (s=="geneclusters")        
+        {
+            // Special variable -> return string
+            auto genetreeclusters = new Clusters();
+            for (auto & gtpos: env.genetreesv) 
+                genetreeclusters->adddag(gtpos);
+
+
+            stringstream ss; 
+            ss << *genetreeclusters << endl;
+
+            return new VStr(ss.str());
+
+    
+
+        }
         cerr << "Unknown variable <<" << s << ">>" << endl;
         exit(-1);
     }   

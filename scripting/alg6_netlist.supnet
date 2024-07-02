@@ -15,11 +15,13 @@ Other parameters:
 Returns a generator networks
 """
 
-a = netlist("(a,(b,c))")
+a = netlist("(a,(b,c));(c,d)")
 println("List a", a)
 
-b = netlist("(f,(g,h));(d,e)", randtrees(count=2))
+b = netlist("(f,(g,h));(d,e)", randtrees(count=2), "(c,((b)#1,(a,#1)));(c,((a)#1,(#1,b)))" )
 println("List b", b)
 
 n = netlist("(x,y);(z,x)", a, b)
 println("Joined two trees, list a and list b", n)
+
+# TODO: add reticulations in examples

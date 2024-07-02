@@ -20,13 +20,18 @@ Best networks globally are saved to log/odt files.
 """
 
 # Define some gene trees 
-genetrees="(a,(b,(c,d)));(a,b)"
+genetrees="(a,(b,(c,d)));(e,(f,g))"
+
+savewhenimproved=1 # TODO: opisac osobno
 
 # Prepare networks (10x10) with 2 reticulations
-netr = addreticulations(source=quasiconsensustrees(count=10), reticulations=2, samplespernet=10)	
+netr = addreticulations(source=randtrees(count=10), reticulations=2, samplespernet=10)	
 
-res = storebest(source=netr, count=5, maximprovements=10)
+res = storebest(source=netr, count=5)
 
+showstats() # global, saved to outfiles
+
+println("----------------------------")
 println(res)
 println("----------------------------")
 
@@ -34,9 +39,9 @@ println("----------------------------")
 netr = addreticulations(source=quasiconsensustrees(count=-1), reticulations=2, samplespernet=10)    
 
 # find bests
-res = storebest(source=netr, count=5, stopinit=100, stopatcost=0)
+res = storebest(source=netr, count=5, stopinit=10000, stopatcost=0)
 
-
+#TODO: cost calculation
 
 
 
