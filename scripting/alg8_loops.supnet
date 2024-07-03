@@ -20,13 +20,14 @@ for i=1 to 3
 }
 
 """
-Variable <reticulations> is set via -R NUM from the command line. Then, it can be used in more generic loops, e.g.,
+Variable <reticulations> is set via -R NUM from the command line. 
+Then, it can be used in more generic loops, e.g.,
 
 print(reticulations)
 for i=1 to reticulations { ... }
 
 with a command: 
 
-> supnet -R3 -E alg7_loops.supnet
+> supnet -R3 -E SCRIPT.supnet
 """
 

@@ -459,6 +459,20 @@ ExprValue* ExprFor::eval(Env &env)
     return var;
 }
 
+VNetGen* applyvec(NetGen &netgen, bool cleanunused, bool vectorize)
+{
+    if (vectorize)
+    {
+        VecNetwork *nets = new VecNetwork();
+        Network *n; 
+        while ((n = netgen.next())!=NULL)      
+            nets->push_back(n);
+        return new VNetGen(nets, cleanunused);
+
+    }
+    return new VNetGen(netgen, cleanunused);
+    
+}
 
 ExprValue *ExprCall::eval(Env &env)
 {   
@@ -474,30 +488,40 @@ ExprValue *ExprCall::eval(Env &env)
 
     int stopatcostdefined = localenv.has("stopatcost");
     int stopatcost = localenv.getint("stopatcost");
+    int vectorize = localenv.getint("vectorize");
 
     if (type==ERANDTREES)
     {        
         int count = localenv.getint("count", 1);
         bool cleanunused = localenv.getint("cleanunused", false);    
         auto netgenerator = new RandTreeGenerator(
-                  count,                  
+                  count,                                    
                   preserverootst,                   
                   guideclusters,
                   guidetree);
 
-        return new VNetGen(*netgenerator, cleanunused);                    
+        return applyvec(*netgenerator, cleanunused, vectorize);                    
 
     }
+
 
     if (type==ENETLIST)
     {        
         bool cleanunused = localenv.getint("cleanunused", false);        
         int count = localenv.getint("count", -1); 
         NetGenCollect *netcol = new NetGenCollect(count);
+        string file = "";
 
         for (int i=0; i<a->size(); i++)
         {
             auto v = a->get(i);
+
+            // Check if variable is save and extract file name
+            if (args->t[i]->type==EASSIGNMENT && ((ExprAssignment*)args->t[i])->label=="save")
+            {
+                file = v->getstr("file");
+                continue;
+            }
 
             if (v->type==ENETS)
             {
@@ -525,8 +549,15 @@ ExprValue *ExprCall::eval(Env &env)
                 netcol->add( new NetVecGenerator(*nets) );                                 
             }
         }
+        auto res = applyvec(*netcol, cleanunused, vectorize);                     
+        //new VNetGen(*netcol, cleanunused);  
+        
+        if (file!="")
+        {
+            res->save(file);
+        }
 
-        return new VNetGen(*netcol, cleanunused);                            
+        return res;                           
     }
 
     if (type==EQUASICONSTREES)
@@ -549,8 +580,7 @@ ExprValue *ExprCall::eval(Env &env)
                   genetreeclusters,
                   genetreessimilarity);
 
-        return new VNetGen(*netgenerator, cleanunused);                    
-
+        return applyvec(*netgenerator, cleanunused, vectorize);                  
     }
 
     if (type==EADDRETICULATIONS)
@@ -577,8 +607,8 @@ ExprValue *ExprCall::eval(Env &env)
 
                   guideclusters,
                   guidetree);                
-                
-        return new VNetGen(*netgenerator, cleanunused);                    
+        return applyvec(*netgenerator, cleanunused, vectorize);     
+        
 
     }
 
@@ -713,6 +743,7 @@ ExprValue *ExprCall::eval(Env &env)
 
         env.globalstats->merge(climbstats, env.getint("printstats"), false);
 
+        // return applyvec(*netgenerator, cleanunused, vectorize);     
         return new VNetGen(nets);
     }
 

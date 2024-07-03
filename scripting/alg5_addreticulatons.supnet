@@ -7,6 +7,7 @@ Parameters, all optional:
  - source - a collection of trees/networks
  - reticulations - number of reticulations to be added; default=1
  - samplespernet - how many networks from a single input network; default=1
+ - vectorize - set to 1, makes the generator vectorized (see randtrees)
 
 r = addreticulations(source=q, reticulations=1, samplespernet=100)	
 
@@ -15,8 +16,9 @@ Used variables from command line option:
 - guideclusters 
 - guidetree 
 
-Returns a generator of networks with inserted reticulations
-Note that reading more one time may produce different results
+Returns a generator of networks, optionally vectorized.
+
+Note that reading more one time may produce different results unless the generator is vectorized.
 
 Requires: defined species (e.g., via genetrees, -A, -G, -g, or setspecies)
 

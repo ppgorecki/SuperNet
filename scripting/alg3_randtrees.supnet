@@ -6,14 +6,16 @@ randtrees(...)
 Parameters, all optional: 
    - count - how many trees; default=1; -1, is infinite
    - cleanunused is set, then the networks will be cleaned
+   - vectorize - convert the generator to a vector, i.e., all networks are generated and stored in a vector during the randtrees call; may be memory inefficent; default is 0
 
-Used variables from command line option:
+Variables from command line options:
 - preserverootst
 - guideclusters 
 - guidetree 
 
-Returns a generator of random trees
-Note that reading more one time may produce different results
+Returns a generator of random trees, optionally vectorized.
+
+Note that reading more one time from a genator may produce different results unless vectorize=1 is set.
 
 Requires: defined species (e.g., via genetrees, -A, -G, -g, or setspecies)
 
@@ -28,4 +30,6 @@ r = randtrees(count=2, cleanunused=1)
 print(r) # print 2 random trees
 print(r) # print 2 random trees, may be different than the previous ones
 
-# todo: add save to file/vector
+r = randtrees(count=2, vectorize=1, cleanunused=1)
+println("Vectorized 1", r)
+println("Vectorized 2", r)  # the same networks

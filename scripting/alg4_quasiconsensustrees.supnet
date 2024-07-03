@@ -6,6 +6,7 @@ quasiconsensustrees(...)
 Parameters, all optional: 
    - count - how many trees; default=1; -1, is infinite
    - cleanunused is set, then the networks will be cleaned
+   - vectorize - set to 1, makes the generator vectorized (see randtrees)
    - genetreessimilarity - between 0.0 (random trees) - 1.0 (clusters from gene trees), default is 0.7
 
 Used variables from command line option:
@@ -13,8 +14,10 @@ Used variables from command line option:
 - guideclusters 
 - guidetree 
 
-Returns a generator of quasi-consensus trees 
-Note that reading more one time may produce different results
+Returns a generator of quasi-consensus trees, optionally vectorized.
+
+Note that reading more one time may produce different results, see randtrees generator.
+
 Requires: defined species (e.g., via genetrees, -A, -G, -g, or setspecies)
 
 """

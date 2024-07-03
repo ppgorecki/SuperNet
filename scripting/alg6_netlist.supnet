@@ -1,20 +1,22 @@
 """
-List of networks
+Merging generators of networks
 
 netlist(...) 
 
 Parameters, all optional: 
-   - count - how many networks 
-   - cleanunused is set, then the networks will be cleaned after usage
+   - count=NUM - how many networks 
+   - cleanunused=NUM is set, then the networks will be cleaned after usage
+   - save=STR - save networks into a file
+   - vectorize
 
 Other parameters:
-   - lists of networks return from calls of storebest, quasiconsensus, addreticulations etc
+   - generator of networks from calls of storebest, quasiconsensus, addreticulations etc.,
    - list of strings from read(FILENAME)
    - string of semicolon separated networks in newick notation
 
-Returns a generator networks
-"""
+Returns a generator of networks, optionally vectorized.
 
+"""
 a = netlist("(a,(b,c));(c,d)")
 println("List a", a)
 
@@ -24,4 +26,12 @@ println("List b", b)
 n = netlist("(x,y);(z,x)", a, b)
 println("Joined two trees, list a and list b", n)
 
-# TODO: add reticulations in examples
+file="nets.newick"
+# save into file
+netlist(a, save=file)
+
+# read from file
+q = netlist(read(file))
+print(q)
+
+

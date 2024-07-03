@@ -31,7 +31,6 @@ print("hcdetailedsummary", hcdetailedsummary)
 print("verbosealg", verbosealg)
 print("savewhenimproved", savewhenimproved)
 
-
 # print whole environment
 
 printenv()

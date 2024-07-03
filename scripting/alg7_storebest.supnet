@@ -8,14 +8,16 @@ Parameters, all optional:
 
 Computing cost, variables can also be set via command line:
  - runnaiveleqrt=TRESHOLD - run ODT-naive cost computation, when the number of reticulations is `<= THRESHOLD`; otherwise run DP
- - usenaive - 1 - use always naive algorithm 
- - verbosehccost - printing stats during search
- - stopinit - stop when there is no improvement after cost computation for NUM initial networks ; default=0 (off)
+ - usenaive=[0,1] - set to 1 to use always naive algorithm 
+ - verbosehccost=NUM - printing stats during search
+ - stopinit=NUM - stop when there is no improvement after cost computation for NUM initial networks ; default=0 (off)
  - stopatcost=NUM - stop when the cost is <= NUM (if defined)
+
+Returns a vectorized generator.
 
 Requires: gene trees.
 
-Best networks globally are saved to log/odt files.
+Note that the search may locate new globally optimal networks.
 
 """
 

@@ -34,6 +34,7 @@
 #define ESHOWSTATS (13|ECALL)
 #define ENETLIST (14|ECALL)
 #define EPRINTSP (15|ECALL)
+#define EPRINTSP (15|ECALL)
 
 using namespace std;
 
@@ -208,8 +209,19 @@ public:
     void print(ostream &os) const {         
         Network *n; 
         while ((n = netgen.next())!=NULL)      
-            os << (*n) << endl;         
+            os << (*n) << endl;     
         netgen.reset();
+    }
+
+    void save(string filename) {         
+        std::ofstream outputFile(filename);
+        if (outputFile)
+        {
+            Network *n; 
+            while ((n = netgen.next())!=NULL)      
+                outputFile << (*n) << ";" << endl;                     
+            netgen.reset();
+        }
     }
 
     struct Iterator 

@@ -22,7 +22,9 @@ Other parameters:
 
 Requires: gene trees.
 
-Best networks globally are saved to log/odt files.
+Returns a vectorized generator of top networks.
+
+Note that the search may locate new globally optimal networks.
 
 """
 

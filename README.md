@@ -180,7 +180,7 @@ Print 2 quasi consensus trees with preserved split of the root.
 
 ### Guide clusters: used in quasi consensus 
 
-Guide clusters are defined as a list of multifurcated trees separated by `;`. All clusters from the trees must be present in all quasi consensus tree and networks in hill climbing. Note that random networks are not generated using guide clusters (i.e., with `-r NUM`).
+Guide clusters are defined as a list of multifurcated trees separated by `;`. All clusters from the trees must be present in all quasi consensus tree and networks in hill climbing. 
 
 ```
 > supnet --guideclusters "(a,b,c);(d,e,(f,g))" -q4 --pnetworks

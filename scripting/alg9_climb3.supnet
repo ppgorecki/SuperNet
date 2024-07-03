@@ -30,7 +30,6 @@ for i=1 to 5
 
 print("Candidates", cands)
 
-
 showstats()
 
 # Sort candidates: the best on is the first 
@@ -42,7 +41,6 @@ print("Climbing!")
 netr = climb(source=sortedcands, stopinit=4, stopclimb=2000)
 
 # Check time limits?
-
 
 # TODO: randseed 
 # odtlabeled 
