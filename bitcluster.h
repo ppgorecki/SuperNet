@@ -13,7 +13,7 @@
   typedef unsigned __int128 bitcluster; 
   
 #else
-   // todo  
+   #error Macro MAXSPECIES must be 64 or 128. Other values are not implemented yet.
 #endif
 
 extern bitcluster bcsingleton[MAXSPECIES];
@@ -50,7 +50,7 @@ extern bitcluster bcsingleton[MAXSPECIES];
 	#define SETDELETE(a,n) ((a)&~bcsingleton[n])	
 	
 #else
-	// todo
+	// TODO	
 #endif 
 
 // print cluster in 0-1 repr

@@ -8,7 +8,7 @@ using namespace std;
 
 #include "dag.h"
 
-void addadjedge(vector<vector<NODEID>> &adj, NODEID v, int NODEID w);
+void addadjedge(vector<vector<NODEID>> &adj, NODEID v, NODEID w);
 
 bool isacyclic(vector<vector<NODEID>> &adj, NODEID V);
 

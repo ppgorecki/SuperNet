@@ -21,26 +21,7 @@ typedef struct NODEIDKey
 {
  	NODEID* t;
  	size_t hsh;
-
-    // bool operator==( const NODEIDKey &a) const 
-    // {
-    // 	cout << "#"; PPTT(t); 
-    // 	cout << "vs"; 
-    // 	PPTT(a.t);
-    	
-    //   	if (t[0] != a.t[0]) 
-    //   	{
-    //   		return false;
-    //   	}
-
-	// 	for (int i=1; i<=a.t[0]; i++)
-	// 	{
-	// 	   if (t[i]!=a.t[i]) return false;
-	// 	}
-
-	//     return true;
-    // }
-
+   
     struct Hash 
 	{
     	size_t operator() (NODEIDKey const& t) const 

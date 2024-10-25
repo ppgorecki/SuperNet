@@ -5,7 +5,6 @@
  *      Author: gorecki
  */
 
-
 #ifndef TOOLS_H_
 #define TOOLS_H_
 
@@ -20,31 +19,33 @@ unsigned long get_memory_size();
 
 #ifndef MAXSPECIES
   #define MAXSPECIES 64    
-  #define MAXSPID 255
 #endif
 
-#if MAXSPECIES<=253
-  #define SPID unsigned char
+// Node id's
+
+#if MAXSPECIES<=64
+  #define MAXNODEID 255
+  #define NODEID unsigned short int
+#else
+  #define NODEID short
+  #define MAXNODEID 32000  
+#endif
+
+// Species id's representation
+
+#define REPRCLOSE ((MAXSPECIES)+1)
+#define REPROPEN ((MAXSPECIES)+2)
+#define MAXSPID ((MAXSPECIES)+3)
+
+#if MAXSPECIES<=250
+  // one byte
+  #define SPID unsigned char 
 #elif 
+  // two bytes
   #define SPID unsigned short int
 #endif
 
-#define REPRCLOSE (MAXSPID-2)
-#define REPROPEN (MAXSPID-1)
 
-#if !defined(SPSMALL) && !defined(SPMED) 
-#define SPMED
-#endif
-
-#ifdef SPSMALL
-#define NODEID char
-#define MAXNODEID 255
-#endif
-
-#ifdef SPMED
-#define NODEID short
-#define MAXNODEID 32000
-#endif
 
 typedef NODEID *NODEIDARR;
 

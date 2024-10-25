@@ -15,8 +15,10 @@ void ClimbStatsBase::print()
 
 void ClimbStatsGlobal::print()
 {
-    cout << "Cost:" << optcost
-         << " TopNets:" << topnetworks;      
+    if (topnetworks>0)
+    {
+      cout << "Cost:" << optcost
+           << " TopNets:" << topnetworks;          
 
     ClimbStatsBase::print();
 
@@ -25,6 +27,12 @@ void ClimbStatsGlobal::print()
         << " CTime:" << climbtime;
         // << " MergeTime:" << mergetime;     // usually low
         odtstats.print();
+    }
+    else
+    { 
+        cout << " TopNets:" << topnetworks;          
+    }
+
 }
 
 void ClimbStatsGlobalSampler::print()

@@ -1,7 +1,8 @@
 
 VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck 
-#CPPFLAGS = -std=c++17 -Ofast -fomit-frame-pointer
-CPPFLAGS = -std=c++17 #-g 
+CPPFLAGS = -std=c++17 -Ofast -fomit-frame-pointer -DMAXSPECIES=128
+CPPFLAGS64 = -std=c++17 -Ofast -fomit-frame-pointer -DMAXSPECIES=64
+#CPPFLAGS = -std=c++17 -g 
 CC = g++ -Ofast -fomit-frame-pointer
 MAKEFLAGS += -j10 # parallel
 
@@ -15,9 +16,11 @@ OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supne
 
 SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp topsort.cpp netgen.cpp testers.cpp neteditop.cpp algotok.cpp
 
-
 supnet: $(OBJS)
 	$(CC) $(LFLAGS) -o $@ $^
+
+supnet64: 
+	$(CC) $(LFLAGS) $(CPPFLAGS64) -o $@ ${SRC}	
 
 clean_nodtcache:
 	rm -f network.o
@@ -107,6 +110,11 @@ check-syntax:
 
 valgrinddp: gdb 
 	${VALGRIND} supnet -r100 -R2 -A3 -g "(a,(b,c))" -ed
+
+
+valgrinderr25: gdb 
+	${VALGRIND} supnet -E err25/alg9_climb3.supnet -G err25/r15_n100_ILS_moderate_introns_0.trees --outfiles test
+
 
 valgrinddpbb: gdb
 	${VALGRIND} supnet -g "(a,(b,(c,d))); ((a,b),(c,d))" -r1 -R2 -oTe3

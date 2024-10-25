@@ -1,20 +1,5 @@
 #include "treespace.h"
 
-// void TreeSpace::addedge(stcluster p, stcluster c)
-// {
-// 	bool fnd = 0;
-// 	for (auto & cge : gtclu) 	
-// 		if (EQSETS(p,cge.parent) && EQSETS(c,cge.child))
-// 		{
-// 			cge.usagecnt++;		
-// 			fnd = true;
-// 			break;
-// 		}
-    		
-//     if (!fnd)    
-//     	gtclu.push_back(CGEdge{p,c,1});
-// }
-
 // #define CACHE_STATS
 
 #define HASHINT(a,b,c) (a>>1)^(b*c)
@@ -122,6 +107,7 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
 	SNode *ret = NULL;
 
 	unordered_set<SNode*, SNode::Hash, SNodeEq >::iterator it = repr2node.find(&sk);
+
  	if (it != repr2node.end()) 
    	{   		
 		n_present++;		
@@ -149,7 +135,7 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
     	ret->repr.t = new NODEID[lf*3];
 		memcpy(ret->repr.t, tr, sizeof(NODEID)*(lf*3));    	
 		ret->repr.hsh = sk.repr.hsh;
-		ret->computecost2(l,r,this);	
+		ret->computecost2(l,r, this);	
 		repr2node.insert(ret);       	
 
 #ifdef DEBUG_TSP     	
@@ -175,8 +161,6 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
    }
 #endif   
 
-
-// #define DEBUG_TSPP
 
 #ifdef DEBUG_TSPP
 	cout << endl << "Search: " << sk.repr.hsh << endl;
@@ -271,9 +255,9 @@ void SNode::computecost2(SNode *snodeleft, SNode *snoderight, TreeSpace *treespa
 	 	{
 	 		g = stack[--last]; // g maps to s or above
 	 				
-			if (ISSUBSET(g->left->cluster,leftcluster)) c++; 
+			if (ISSUBSET(g->left->cluster, leftcluster)) c++; 
 			else if (ISSUBSET(g->left->cluster,rightcluster)) c++; 
-			else if (INTERSECTION(g->left->cluster,cluster)) stack[last++] = g->left; // left maps to s or above
+			else if (INTERSECTION(g->left->cluster, cluster)) stack[last++] = g->left; // left maps to s or above
 
 			if (ISSUBSET(g->right->cluster,leftcluster)) c++; 
 			else if (ISSUBSET(g->right->cluster,rightcluster)) c++; 

@@ -71,21 +71,24 @@ SNode *Network::_gendisplaytree2(DISPLAYTREEID id, SNode *t, NODEID i, NODEID ip
 { 
 	
 	// leaf
-	if (i < lf) return treespace->leaf(lab[i]); 
+	if (i < lf) { 		
+		return treespace->leaf(lab[i]); 
+	}
 
 	// skip current edge
 	if (i>=rtstartid)
-	{		
-		// cout << "RT check!" << i << " " << rtstartid << endl;
+	{				
 		if (_skiprtedge(i, iparent, id)) return NULL;		
 	}
 
 	NODEID cleft = MAXNODEID;
-	getchild(i,cleft);
-	SNode* cleftgen = _gendisplaytree2(id, t, cleft, i, treespace);	
+	getchild(i, cleft);
 
+	
+	SNode* cleftgen = _gendisplaytree2(id, t, cleft, i, treespace);	
+	
 	NODEID cright = cleft;
-	if (!getchild(i,cright))
+	if (!getchild(i, cright))
 	{
 		// reticulation only
 		return cleftgen;  // maybe MAXNODEID (ignore)

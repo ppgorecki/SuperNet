@@ -215,6 +215,11 @@ int getspecies(string s)
   int num;
 
   specnames2id[s] = num = specnames.size();
+  if (num>=MAXSPECIES)  
+  {
+    cerr << "Too many species. Allowed number of species is " << MAXSPECIES <<". Recompile with MAXSPECIES macro." << endl;
+    exit(-2);
+  }
   specorder.push_back(num);
   specnames.push_back(s);    
   NODEID* speccluster = new NODEID[2];
