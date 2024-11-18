@@ -147,7 +147,8 @@ int main(int argc, char **argv) {
 
   unsigned int randseed = (time.tv_sec * 1000) + (time.tv_usec / 1000);
   
-  initbitmask(); // network
+  initbitmask();
+  initbitclusters(); 
 
   CostFun *costfun = NULL;
 

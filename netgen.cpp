@@ -161,7 +161,6 @@ Network *randquasiconsnetwork(int reticulations, int networkclass, int timeconsi
 Network* NetGenerator::next()
 {  
   current++;
-  
 
   if (netvec && (netvec->size()>0 && current<netvec->size()))
       return new Network(*(*netvec)[current]);    
@@ -178,7 +177,7 @@ Network* NetGenerator::next()
 
     return randnetwork(reticulations, networkclass, timeconsistency, randnetuniform);
   }
-
+  
   if (quasiconsensusnetworks!=0)  // with -1 infitite 
   { 
       if (quasiconsensusnetworks>0) quasiconsensusnetworks--;              

@@ -30,6 +30,9 @@ typedef vector<Network*> VecNetwork;
 
 class AdaptiveBB;
 
+
+// Todo: Optimize bit operators
+
 #if MAXRTNODES < 33
 
 	typedef uint64_t RETUSAGE;

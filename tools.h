@@ -40,8 +40,8 @@ unsigned long get_memory_size();
 #if MAXSPECIES<=250
   // one byte
   #define SPID unsigned char 
-#elif 
-  // two bytes
+#else 
+ // two bytes
   #define SPID unsigned short int
 #endif
 

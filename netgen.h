@@ -18,7 +18,7 @@ class NetGen
     virtual void reset()
     { current=-1; }
 
-    Network *next()
+    virtual Network *next()
     {
        current++;
        if (count<0) return get(); // always
@@ -249,13 +249,12 @@ public:
 
   Network *next();
   
-
   void reset() { 
     NetGen::reset(); 
 
     if (nextgenerator) nextgenerator->reset();
 
-    quasiconsensusnetworks = initial_quasiconsensusnetworks;
+    quasiconsensusnetworks = initial_quasiconsensusnetworks;        
     randomnetworks = initial_randomnetworks;
   }
 
@@ -267,8 +266,6 @@ Network *randquasiconsnetwork(int reticulations, int networktype, int timeconsis
 
 
 Network *randnetwork(int reticulations, int networktype, int timeconsistency, bool uniform);
-
-
 
 
 #endif

@@ -1,8 +1,9 @@
 
 VALGRIND=valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --tool=memcheck 
-CPPFLAGS = -std=c++17 -Ofast -fomit-frame-pointer -DMAXSPECIES=128
-CPPFLAGS64 = -std=c++17 -Ofast -fomit-frame-pointer -DMAXSPECIES=64
-#CPPFLAGS = -std=c++17 -g 
+CPPFLAGS64 =  -std=c++17 -Ofast -fomit-frame-pointer -DMAXSPECIES=64
+CPPFLAGS128 = -std=c++17 -Ofast -fomit-frame-pointer -DMAXSPECIES=128
+CPPFLAGS256 = -std=c++17 -Ofast -fomit-frame-pointer -DMAXSPECIES=256
+CPPFLAGS = $(CPPFLAGS128)
 CC = g++ -Ofast -fomit-frame-pointer
 MAKEFLAGS += -j10 # parallel
 
@@ -20,7 +21,14 @@ supnet: $(OBJS)
 	$(CC) $(LFLAGS) -o $@ $^
 
 supnet64: 
-	$(CC) $(LFLAGS) $(CPPFLAGS64) -o $@ ${SRC}	
+	$(CC) $(LFLAGS) $(CPPFLAGS64) -o supnet ${SRC}	
+
+supnet128: 
+	$(CC) $(LFLAGS) $(CPPFLAGS128) -o supnet ${SRC}	
+
+supnet256: 
+	$(CC) $(LFLAGS) $(CPPFLAGS256) -o supnet ${SRC}	
+
 
 clean_nodtcache:
 	rm -f network.o
