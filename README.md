@@ -1,6 +1,6 @@
 # SupNet
 
-Phylogenetic networks visualisation, evaluation and inference\n"
+Phylogenetic networks: visualization, evaluation, and inference
 
 ## Compiling
 
