@@ -2,6 +2,8 @@
 
 Phylogenetic networks: visualization, evaluation, and inference
 
+Financial support provided by National Science Center grant #2019/33/B/ST6/00737.
+
 ## Compiling
 
 Default version up to 128 species and 64 reticulations
