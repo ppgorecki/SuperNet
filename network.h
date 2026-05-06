@@ -190,6 +190,10 @@ public:
 	COSTT approxmindce(RootedTree &genetree, CostFun &costfun);
 	COSTT approxmindceusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun);
 
+	// RF-score (lower bound for RF-cost) via DP3
+	COSTT approxminrf(RootedTree &genetree, CostFun &costfun);
+	COSTT approxminrfusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun);
+
 	// exact DCE(G,M) via BB
 	COSTT mindce(RootedTree &genetree, 
 		int runnaiveleqrt_t, 
@@ -208,6 +212,7 @@ public:
 	friend class TailMove;	
 
 	friend class DP_DC;
+	friend class DP_RF;
 	friend class NetworkRetIterator;
 
 };

@@ -306,8 +306,14 @@ Insert 8 reticulations into a network; general network `--general`
 
 Available cost function are {DL,D,L,DC,RF,DCE}; the default is DC. 
 Limitations: 
-- In DP only DC is available, HC cannot be run using PD via BB.
-- DTCache has only DC cost implementation.
+- DP and BB support DC, DCE, and RF (the latter via the DP3 algorithm of
+  Górecki et al., *RF Conflict Resolution*); other costs only via tree-vs-tree
+  or naive enumeration.
+- The display-tree cache (DTCache) caches DC-flavoured costs only; for `-CRF`
+  (and other non-DC costs) the naive layer recomputes via lcamap on each
+  display tree.
+- DP/BB for `-CRF` are derived for tree-child networks; running them on
+  `--general` or `--relaxed` networks aborts with a clear error.
 
 Cost functions:
  - `--cost, -C COST`: set cost function from {DL,D,L,DC,RF,DCE}; default is DC
@@ -331,10 +337,10 @@ Print DCE cost (DCE = DC + |V(E)|).
 5
 ```
 
-Print RF cost [TODO]
+Print RF cost
 ```
 >  supnet -g '(b,(a,c))' -s '(a,(b,c))' -CRF --ptreecost
-RF is not implemented yet
+2
 ```
 
 ## Optimal display tree cost: network(s) vs collections of gene tree: 
@@ -345,16 +351,26 @@ For DC cost:
 6 ((c,#1),((#2,((a)#1,b)),((e)#2,d)))
 ```
 
-## DP algorithm to compute lower bound of DC between a gene tree and a network by dynamic programming
+## DP algorithm to compute lower bound of DC/DCE/RF between a gene tree and a network by dynamic programming
 
 `--DP`: run DP and print the bound
 
-
-DP algorithm computes aproximately the DC cost. Use `--DP` to execute it directly.
+For `-CDC`/`-CDCE` the DP computes a lower bound on DC/DCE.
+For `-CRF` (tree-child networks only) it runs the DP3 algorithm and prints a
+lower bound on the RF score.
 
 ```
 > supnet -g '(a,(b,(c,d)))'  -n '((#1,d),(((c)#1,b),a))' --DP
 7
+> supnet -g '(a,(b,(c,d)))'  -n '((#1,d),(((c)#1,b),a))' -CRF --DP
+2
+```
+
+`--printretusage` adds the inferred used-reticulation-edge bitmasks
+(`lft|rgh`) to the DP output:
+```
+> supnet -g '(a,(b,(c,d)))'  -n '((#1,d),(((c)#1,b),a))' -CRF --DP --printretusage
+2 0|1
 ```
 
 
@@ -367,15 +383,17 @@ DP algorithm computes aproximately the DC cost. Use `--DP` to execute it directl
 
 ## Branch and bound (BB) algorithm 
 
-BB algorithm computes exactly DCE cost. It may call DP and ODT naive multiple times. Use `--BB` to execute it directly.
+BB algorithm computes exact DC, DCE or RF cost (controlled by `-C`). It calls
+DP and ODT naive at the leaves of the BB tree. Use `--BB` to execute it directly.
 
- - `--BB`: compute exact DCE by BB
+ - `--BB`: compute exact cost by BB (DC for `-CDC`, DCE for `-CDCE`, RF for `-CRF`)
  - `-t THRESHOLD, --runnaiveleqrt`: run ODT-naive cost computation, when the number of reticulations is `<= THRESHOLD`; otherwise run DP;
  - `--bbtsvstats`: gen bb.tsv with stats
  - `--bbtreesearch`: gen bb.dot with bb tree search
  - `--bbtimestats`: print time per each pair
  - `--bbstartscore=FLOAT`: define initial score in BB (testing only)
 
+Note: `-CRF --BB` requires a tree-child network.
 
 Generate the picture of BB-tree search:
 ```  

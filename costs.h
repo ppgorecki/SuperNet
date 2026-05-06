@@ -160,13 +160,49 @@ class CFLoss: public CostFun
 class CFRobinsonFoulds: public CostFun
 {
 
-	public: 
+	public:
 
-	long compute(RootedTree &genetree, RootedTree &speciestree, NODEID *lcamap) // code repeated for efficiency
-	{      
-		cerr << "RF is not implemented yet" << endl;
-		exit(-1);	  	
+	// RF cost between a gene tree G and a species tree S, both bijectively
+	// leaf-labelled on the same label set. Defined via lca-mapping:
+	//   RF(G,S) = |I(G)| + |I(S)| - 2 * #{ v in I(G) : C(M(v)) = C(v) }.
+	// With bijective labelling C(M(v)) >= C(v), so the cluster equality
+	// reduces to a leaf-count equality of the two subtrees.
+	long compute(RootedTree &genetree, RootedTree &speciestree, NODEID *lcamap)
+	{
+		if (!genetree.bijectiveleaflabelling())
+		{
+			cerr << "RF cost requires a gene tree with bijective leaf labelling" << endl;
+			exit(-1);
+		}
+		if (genetree.lf != speciestree.lf)
+		{
+			cerr << "RF cost: gene and species trees must have matching leaf sets" << endl;
+			exit(-1);
+		}
+
+		// leaf-count of the subtree rooted at each node; node ids are post-order
+		// for internals (every internal has a higher id than its children).
+		long *gsz = new long[genetree.nn];
+		long *ssz = new long[speciestree.nn];
+		for (NODEID i = 0; i < genetree.nn; i++)
+			gsz[i] = (i < genetree.lf) ? 1 : gsz[genetree.leftchild[i]] + gsz[genetree.rightchild[i]];
+		for (NODEID i = 0; i < speciestree.nn; i++)
+			ssz[i] = (i < speciestree.lf) ? 1 : ssz[speciestree.leftchild[i]] + ssz[speciestree.rightchild[i]];
+
+		long matches = 0;
+		for (NODEID v = genetree.lf; v < genetree.nn; v++)
+			if (gsz[v] == ssz[lcamap[v]]) matches++;
+
+		long ig = (long)genetree.nn - (long)genetree.lf;
+		long is = (long)speciestree.nn - (long)speciestree.lf;
+
+		delete[] gsz;
+		delete[] ssz;
+		return ig + is - 2 * matches;
 	}
+
+	virtual COSTT lowerbound(RootedTree &genetree, RootedTree &speciestree) { return 0; }
+	virtual COSTT lowerboundnet(RootedTree &genetree, Network &net) { return 0; }
 	virtual int costtype() { return COSTROBINSONFOULDS; }
 };
 

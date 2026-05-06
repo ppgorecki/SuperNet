@@ -140,6 +140,7 @@ public:
   friend class CFDeepCoalescenceEdge;
   friend class CFLoss;
   friend class CFDuplicationLoss;
+  friend class CFRobinsonFoulds;
 };
 
 

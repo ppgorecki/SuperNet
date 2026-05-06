@@ -9,16 +9,24 @@ MAKEFLAGS += -j10 # parallel
 
 .ONESHELL:
 
-.PHONY: all supnet clean_progx progx
+.PHONY: all supnet clean_progx progx test rftest
 
 all: supnet
 
-OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o contrnet.o bitcluster.o treespace.o hcstats.o odtstats.o topsort.o netgen.o testers.o neteditop.o algotok.o
+OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o dp_rf.o contrnet.o bitcluster.o treespace.o hcstats.o odtstats.o topsort.o netgen.o testers.o neteditop.o algotok.o
 
-SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp topsort.cpp netgen.cpp testers.cpp neteditop.cpp algotok.cpp
+SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp dp_rf.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp topsort.cpp netgen.cpp testers.cpp neteditop.cpp algotok.cpp
 
 supnet: $(OBJS)
 	$(CC) $(LFLAGS) -o $@ $^
+
+# Automated tests: build supnet and run the rftest.sh suite.
+# Usage:
+#   make test                  # run all sections
+#   make test TESTARGS=V=1     # verbose progress
+#   make rftest                # alias of `test`
+test rftest: supnet
+	V=$${V:-0} ./rftest.sh
 
 supnet64: 
 	$(CC) $(LFLAGS) $(CPPFLAGS64) -o supnet ${SRC}	
@@ -51,6 +59,8 @@ rtree.o: rtree.cpp tools.h clusters.h rtree.h dag.h network.h bb.h \
  treespace.h bitcluster.h stats.h dagset.h costs.h
 dp.o: dp.cpp rtree.h tools.h clusters.h dag.h network.h bb.h treespace.h \
  bitcluster.h stats.h dagset.h contrnet.h dp.h
+dp_rf.o: dp_rf.cpp dp_rf.h rtree.h tools.h clusters.h dag.h network.h bb.h \
+ treespace.h bitcluster.h stats.h dagset.h
 bb.o: bb.cpp bb.h tools.h rtree.h clusters.h dag.h network.h treespace.h \
  bitcluster.h stats.h dagset.h costs.h contrnet.h dp.h
 bbstats.o: bbstats.cpp bb.h tools.h rtree.h clusters.h dag.h network.h \

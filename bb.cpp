@@ -240,8 +240,13 @@ COSTT Network::mindce(
             
    			bbnodeid = bbtreestats->start(rtnum, ALG_DP, bbparnodeid);
 
-   			// compute via DP (lower bound)
-   			cost = c->approxmindceusage(genetree, retusage, costfun);
+   			// compute via DP (lower bound). For RF use DP3; otherwise the
+   			// classic DC/DCE dynamic programming. Both fill `retusage` so
+   			// the conflict check below works the same way.
+   			if (costfun.costtype() == COSTROBINSONFOULDS)
+   				cost = c->approxminrfusage(genetree, retusage, costfun);
+   			else
+   				cost = c->approxmindceusage(genetree, retusage, costfun);
    			bbtreestats->stop(bbnodeid, cost);
 
             if (verbosealg>=6) 

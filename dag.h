@@ -276,6 +276,7 @@ public:
 
   friend class DagSet;
   friend class DP_DCE;
+  friend class DP_RF;
 
   long int getusagecount() { return usagecount; }
 

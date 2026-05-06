@@ -5,6 +5,7 @@
 #include "network.h"
 #include "bb.h"
 #include "dp.h"
+#include "dp_rf.h"
 #include "costs.h"
 #include "treespace.h"
 
@@ -259,13 +260,13 @@ double Network::odtcost(vector<RootedTree*> &genetrees, CostFun &costfun, bool u
 	return res;
 }
 
-// only for DC and DCE
+// DC, DCE and RF — DP+BB cost.
 double Network::odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, int runnaiveleqrt_t, ODTStats &odtstats)
 {
 	int ct = costfun.costtype();
-	if (ct!=COSTDEEPCOAL && ct!=COSTDEEPCOALEDGE)
+	if (ct!=COSTDEEPCOAL && ct!=COSTDEEPCOALEDGE && ct!=COSTROBINSONFOULDS)
 	{
-		cerr << "DP&BB cost computation only for DC or DCE (use -CDC or -CDCE)" << endl;
+		cerr << "DP&BB cost computation only for DC, DCE or RF (use -CDC, -CDCE or -CRF)" << endl;
 		exit(-1);
 	}
 
@@ -280,10 +281,11 @@ double Network::odtcostdpbb(vector<RootedTree*> &genetrees, CostFun &costfun, in
 	}
 	else
 	{
+		// DCE and RF: mindce returns the cost directly; just sum.
 		for (int gt=0; gt<genetrees.size(); gt++)
-			cost+=mindce(*genetrees[gt], runnaiveleqrt_t, costfun, odtstats, &bbstats); 
+			cost+=mindce(*genetrees[gt], runnaiveleqrt_t, costfun, odtstats, &bbstats);
 	}
-    return cost;        
+    return cost;
 }
 
 /*
@@ -468,64 +470,96 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees,
 
 	long dtgtcnt = 0;
 
-    while (1) 
-    {         
+	// DTCACHE caches a DC-flavoured cost in SNode::cost; for cost functions
+	// other than DC/DCE we must compute via lcamap + costfun.compute().
+	bool useCache = (costfun.costtype() == COSTDEEPCOAL || costfun.costtype() == COSTDEEPCOALEDGE);
+
+    while (1)
+    {
 
 #ifdef DTCACHE
 		STARTCLOCK;
-    	if ((s = gendisplaytree2(tid, s, globaltreespace))==NULL) break;    
-    	TERMCLOCK(dtgen2); 
+		if (useCache)
+		{
+			if ((s = gendisplaytree2(tid, s, globaltreespace))==NULL) break;
+			TERMCLOCK(dtgen2);
+		}
+		else
+		{
+			if ((t = gendisplaytree(tid,t))==NULL) break;
+			TERMCLOCK(dtgen);
+			STARTCLOCK; t->initlca();   TERMCLOCK(lcagen);
+			STARTCLOCK; t->initdepth(); TERMCLOCK(depthgen);
+		}
 #else
 		STARTCLOCK;
-    	if ((t = gendisplaytree(tid,t))==NULL) break;            
+    	if ((t = gendisplaytree(tid,t))==NULL) break;
 
-    	TERMCLOCK(dtgen);         	
+    	TERMCLOCK(dtgen);
     	STARTCLOCK;
     	t->initlca();
-    	TERMCLOCK(lcagen);    	
+    	TERMCLOCK(lcagen);
     	STARTCLOCK;
-    	t->initdepth(); 				    	
+    	t->initdepth();
     	TERMCLOCK(depthgen);
-		
-#endif  
+
+#endif
 		odtstats.displaytreecnt++;
 
     	// Compute cost of the current tree vs all gene trees
     	lbcnt = 0;
     	for (int gt=0; gt<genetrees.size(); gt++)
-    	{   	
-    	 	// Check if the lower bound is already reached		
+    	{
+    	 	// Check if the lower bound is already reached
 			if (tid && (gtcost[gt]==lb[gt]))
 			{
 				lbcnt++;
 				continue; // skip, lower bound is reached
 			}
-			RootedTree *genetree = genetrees[gt];   
+			RootedTree *genetree = genetrees[gt];
 
 			dtgtcnt++;
 
-#ifdef DTCACHE			
-    		COSTT curcost = s->cost[genetree->getid()] - 2*genetree->lf+2;
-#else    		
-    		 
+			COSTT curcost;
+#ifdef DTCACHE
+			if (useCache)
+			{
+				curcost = s->cost[genetree->getid()] - 2*genetree->lf+2;
+			}
+			else
+			{
+				NODEID *lcamap = lcamaps[gt];
+				STARTCLOCK;
+				if (tid)
+					genetree->getlcamapping(*t, lcamaps[gt]);
+				else
+					lcamaps[gt] = genetrees[gt]->getlcamapping(*t);
+				TERMCLOCK(lcamapgen);
+
+				STARTCLOCK;
+				curcost = costfun.compute(*genetree, *t, lcamaps[gt]);
+				TERMCLOCK(costgen);
+			}
+#else
+
 			NODEID *lcamap = lcamaps[gt];
-    		STARTCLOCK;	
-    		if (tid) 
-    		{
-    			    				    	    			
-    			// TODO: optimize resuing leaf-maps (force exactreespaceecies==1)
-    			genetree->getlcamapping(*t,lcamaps[gt]);    // overwrite previous    		
-    		}
-    		else  
-    		{	    		
-    			lcamaps[gt] = genetrees[gt]->getlcamapping(*t); // init lcamaps	
-    		}
-    		TERMCLOCK(lcamapgen);    			
-   
     		STARTCLOCK;
-    		COSTT curcost = costfun.compute(*genetree, *t, lcamaps[gt]);
+    		if (tid)
+    		{
+
+    			// TODO: optimize resuing leaf-maps (force exactreespaceecies==1)
+    			genetree->getlcamapping(*t,lcamaps[gt]);    // overwrite previous
+    		}
+    		else
+    		{
+    			lcamaps[gt] = genetrees[gt]->getlcamapping(*t); // init lcamaps
+    		}
+    		TERMCLOCK(lcamapgen);
+
+    		STARTCLOCK;
+    		curcost = costfun.compute(*genetree, *t, lcamaps[gt]);
     		TERMCLOCK(costgen);
-#endif     		
+#endif
 
     		if (!tid || (gtcost[gt] > curcost)) 
     		{ 
@@ -558,12 +592,12 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees,
     	}
 
 #ifdef DTCACHE
-    	globaltreespace->treecompleted(); // inform treespace 
-#endif    	
+    	if (useCache) globaltreespace->treecompleted(); // inform treespace
+#endif
 
     	if (lbcnt == genetrees.size())
     	{
-    		// all is lower bound (ODT optimum)    		
+    		// all is lower bound (ODT optimum)
     		break;
     	}
     	// DT Sampler
@@ -846,7 +880,7 @@ COSTT Network::approxmindce(RootedTree &genetree, CostFun &costfun)
 COSTT Network::approxmindceusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun)
 {
 
-#ifdef _DPDEBUG_	
+#ifdef _DPDEBUG_
 
 	cout << " GENE TREE  -------------------------------------- " << endl;
 	genetree.printdeb(cout,2);
@@ -854,12 +888,38 @@ COSTT Network::approxmindceusage(RootedTree &genetree, RETUSAGE &retusage, CostF
 	printdeb(cout,2);
 	cout << " ----------------------------------------- " << endl;
 
-#endif	
-	        
+#endif
+
     DP_DCE dpdce(genetree, *this);
 
-    dpdce.preprocess();    
+    dpdce.preprocess();
     return dpdce.mindeltaroot(retusage);
+}
+
+
+// RF-score lower bound via DP3 (Gorecki et al., RF Conflict Resolution).
+// Returns 2|I(G)| - 2*max_xi rfsim(G,N,xi) + 2 (an upper bound on the RF-cost
+// in terms of "minimum optimisable" — the regularity check uses retusage).
+// costfun ignored (acts as a tag only).
+COSTT Network::approxminrf(RootedTree &genetree, CostFun &costfun)
+{
+    RETUSAGE _;
+    return approxminrfusage(genetree, _, costfun);
+}
+
+COSTT Network::approxminrfusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun)
+{
+    // DP3 (paper) is derived for tree-child networks; results on relaxed/general
+    // networks may be invalid (lower bound not guaranteed). Bail loudly.
+    if (!istreechild())
+    {
+        cerr << "RF DP/BB only supports tree-child networks; current input is not tree-child:" << endl
+             << *this << endl;
+        exit(-1);
+    }
+    DP_RF dprf(genetree, *this);
+    dprf.preprocess();
+    return dprf.minrfscore(retusage);
 }
 
 

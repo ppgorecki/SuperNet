@@ -401,7 +401,8 @@ int usage(int argc, char **argv) {
        " --bbtreesearch: gen bb.dot with bb tree search\n"
        " --bbtimestats: print time per each pair\n"
        " --bbstartscore=FLOAT: define initial score in BB (testing only)\n"
-                          
+       " --printretusage: with --DP also print the inferred reticulation-edge usage (lft|rgh bitmasks)\n"
+
        "\n"
 
        "Hill Climbing (HC) heuristic for DC cost (only) by using BB and/or ODT-naive \n"

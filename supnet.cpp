@@ -235,6 +235,7 @@ int main(int argc, char **argv) {
   int flag_netretiterator = 0;
   int flag_iterativeretinsertion = 0;
   int flag_pnetworkretnodescnt = 0;
+  int flag_printretusage = 0;
   int testdisplaytreesampling = 0;
 
   int flag_icalgorithm = 0;
@@ -323,6 +324,7 @@ int main(int argc, char **argv) {
       {"bbtsvstats", no_argument, &flag_bbtsvstats, 1},
       {"bbtimestats", no_argument, &flag_bbtimestats, 1},
       {"bbstartscore", required_argument, NULL, '1'},
+      {"printretusage", no_argument, &flag_printretusage, 1},
 
       {"iterativeretinsertion", no_argument, &flag_iterativeretinsertion, 1},
 
@@ -1015,40 +1017,63 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  // Run DP algorithm to compute approx DCE
-  if (flag_dpalgorithm) 
+  // Run DP algorithm to compute approx cost
+  if (flag_dpalgorithm)
   {
-    for (auto &ntpos: networksv) 
+    int ct = costfun->costtype();
+    for (auto &ntpos: networksv)
     {
-      for (auto &gtpos: genetreesv) 
+      for (auto &gtpos: genetreesv)
       {
-        cout << ntpos->approxmindce(*gtpos, *costfun) << endl;
+        RETUSAGE retusage;
+        emptyretusage(retusage);
+        COSTT cost;
+        if (ct == COSTROBINSONFOULDS)
+          cost = ntpos->approxminrfusage(*gtpos, retusage, *costfun);
+        else
+          cost = ntpos->approxmindceusage(*gtpos, retusage, *costfun);
+        cout << cost;
+        if (flag_printretusage) cout << " " << retusage;
+        cout << endl;
       }
     }
     exit(0);
   }
 
-  // Run BB algorithm to compute DCE
-  if (flag_bbalgorithm) 
+  // Run BB algorithm to compute exact cost (DCE for DC/DCE; RF for RF).
+  if (flag_bbalgorithm)
   {
     BBTreeStats bbtreestats;
     ODTStats odtstats;
+    int ct = costfun->costtype();
 
     for (auto &ntpos: networksv)
     {
-      for (auto &gtpos: genetreesv) 
+      for (auto &gtpos: genetreesv)
       {
         double tm = gettime();
-        COSTT dce =
+        COSTT res =
             ntpos->mindce(*gtpos, flag_runnaiveleqrt, *costfun, odtstats,
                              &bbtreestats, bbstartscore, bbstartscoredefined);
-        cout << dce - (*gtpos).sizelf() * 2 - 2;
+        // For DC the legacy contract returns DCE; convert back to DC for
+        // display (matches existing --BB output). DCE/RF are returned directly.
+        COSTT cost_display;
+        if (ct == COSTDEEPCOAL)
+          cost_display = res - (*gtpos).sizelf() * 2 - 2;
+        else
+          cost_display = res;
+        cout << cost_display;
 
         if (flag_bbtimestats)
-          cout << " " << dce << " " << (gettime() - tm) << " "
+        {
+          // Columns are cost-agnostic (BBStats fields don't depend on cost).
+          // For DC the second column shows the raw DCE before conversion, for
+          // DCE/RF it equals the displayed cost.
+          cout << " " << res << " " << (gettime() - tm) << " "
                << bbtreestats.minrtnumber << " " << bbtreestats.stats.naivecnt
                << " " << bbtreestats.stats.naivetime << " "
                << bbtreestats.stats.dpcnt << " " << bbtreestats.stats.dptime;
+        }
 
         cout << endl;
       }
