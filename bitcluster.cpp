@@ -52,11 +52,22 @@ void initbitclusters()
 {
 
 #if MAXSPECIES==256
-	unsigned __int128 _bcsingleton[MAXSPECIES] = { __bits128 };	
+	unsigned __int128 _bcsingleton[MAXSPECIES] = { __bits128 };
 	for (auto i=0; i<64; i++ )
 	{
 		bcsingleton[i] = { _bcsingleton[i], 0 };
 		bcsingleton[i+64] = { 0, _bcsingleton[i] };
+	}
+
+#elif MAXSPECIES==512 || MAXSPECIES==1024
+	// Generic N-chunk init: chunk c, bit b → species id = c*128 + b.
+	// Each species has exactly one bit set, in chunk floor(id/128), at bit
+	// id%128.
+	unsigned __int128 _b128[128] = { __bits128 };
+	for (int sp = 0; sp < MAXSPECIES; sp++)
+	{
+		for (int c = 0; c < BC_CHUNKS; c++) bcsingleton[sp].chunks[c] = 0;
+		bcsingleton[sp].chunks[sp / 128] = _b128[sp % 128];
 	}
 
 #endif
