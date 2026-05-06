@@ -1,4 +1,6 @@
 #include "treespace.h"
+#include "costs.h"
+#include <algorithm>
 
 // #define CACHE_STATS
 
@@ -15,14 +17,26 @@ GNode *copytree(NODEID n, RootedTree *gt)
 }
 
 void TreeSpace::addgenetree(RootedTree* gt)
-{		 
+{
 	if (used())
 	{
 		cerr << "Tree space already initialized. Set all gene trees before cost computations" << endl;
 		exit(-1);
 	}
 	gtrees.push_back(copytree(gt->getroot(),gt));
-	gtreesclusters.push_back(gt->getbitclusterrepr());
+	bitcluster *bc = gt->getbitclusterrepr();
+	gtreesclusters.push_back(bc);
+
+	// Snapshot internal-node clusters into a sorted vector for fast
+	// "cluster ∈ gt clusters" lookups (DTCACHE RF).
+	vector<bitcluster> sorted;
+	NODEID glf = gt->sizelf();
+	NODEID gnn = gt->size();
+	sorted.reserve(gnn - glf);
+	for (NODEID i = glf; i < gnn; i++) sorted.push_back(bc[i]);
+	std::sort(sorted.begin(), sorted.end());
+	gtreesclustersorted.push_back(std::move(sorted));
+
 	gtreessrc.push_back(gt);
 	if (gt->sizelf() > maxgenetreesize) maxgenetreesize = gt->sizelf();
 }
@@ -30,14 +44,17 @@ void TreeSpace::addgenetree(RootedTree* gt)
 
 void TreeSpace::initleaves()
 {
-	COSTT *leafcost = new COSTT[gtrees.size()];
+	COSTT *leafcost    = new COSTT[gtrees.size()];
+	COSTT *leafcost_rf = new COSTT[gtrees.size()];
 
-	for (int i=0; i<gtrees.size(); i++)
-		leafcost[i]=0;
+	for (size_t i = 0; i < gtrees.size(); i++)
+	{
+		leafcost[i]    = 0;
+		leafcost_rf[i] = 0;   // a singleton leaf is not an internal cluster
+	}
 
-	for (int i=0; i<specnames.size(); i++)	
-		leaves.push_back(new SNode(i, leafcost));
-	
+	for (size_t i = 0; i < specnames.size(); i++)
+		leaves.push_back(new SNode(i, leafcost, leafcost_rf));
 }
 
 
@@ -67,76 +84,40 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
 	#define TERMCLOCK(var)
 #endif
 
-#define REPRT(l) l->repr.t
-#define REPRMM(l) REPRT(l)[1]
-#define REPRLEN(l) REPRT(l)[0]
-
-	if (REPRMM(l) > REPRMM(r))
+	// Canonicalise: smaller min-leaf side on the left.
+	if (l->minleaf > r->minleaf)
 	{
-		//swap
 		SNode *t = l;
 		l = r;
 		r = t;
 	}
 
-	NODEID l_lf = (REPRLEN(l)+1)/3;
-	NODEID r_lf = (REPRLEN(r)+1)/3;
-	NODEID lf = l_lf+r_lf;
+	// Lookup key — pointer-compare on (left, right). No tr[] reconstruction.
+	SNode sk(l, r, l->minleaf,
+	         HASHINT(l->repr.hsh, r->repr.hsh, (size_t)r->minleaf));
 
-	NODEID tr[lf*3];	
-	tr[0] = lf*3-1;	// last index
-	tr[1] = REPRMM(l); // mm 
-	tr[2] = REPROPEN;
+#ifdef CACHE_STATS
 
-	memcpy ( tr+3, REPRT(l)+2, sizeof(NODEID)*(REPRLEN(l)-1));	
-	memcpy ( tr+2+REPRLEN(l), REPRT(r)+2, sizeof(NODEID)*(REPRLEN(r)-1));	
-	tr[tr[0]] = REPRCLOSE;
-
-	SNode sk(tr, HASHINT(l->repr.hsh, r->repr.hsh, REPRMM(r)));
-
-#ifdef CACHE_STATS	
-
-	if ((n_missed+n_present)%CACHE_STATS_FREQ_REPORTING==0) 
+	if ((n_missed+n_present)%CACHE_STATS_FREQ_REPORTING==0)
 	{
-		cout << -n_missed << "+" << n_present << " " << 1.0*n_missed/(n_missed+n_present) << " nodes=" << repr2node.size();			
+		cout << -n_missed << "+" << n_present << " " << 1.0*n_missed/(n_missed+n_present) << " nodes=" << repr2node.size();
 		cout << " Mem:" << get_memory_size() << "MB" << endl;
 	}
 
 #endif
-	
-	SNode *ret = NULL;
 
-	unordered_set<SNode*, SNode::Hash, SNodeEq >::iterator it = repr2node.find(&sk);
-
- 	if (it != repr2node.end()) 
-   	{   		
-		n_present++;		
-#ifdef DEBUG_TSP   		
-
-		// PPTT(l->repr.t);
-		//  printf(" || ");
-		//  PPTT(r->repr.t);
-		//  printf(" ==> ");
-		//  PPTT(res->repr.t);
-		ppSNode(cout, *it); 
-		cout << endl; 
-#endif
-		 
-		ret = *it;
+	SNode *ret = repr2node.find(&sk);
+ 	if (ret)
+   	{
+		n_present++;
 	}
 	else
 	{
-	  //add new cluster 
-#ifdef DEBUG_TSP 
-		cout << " NEW! ";
-#endif
-    	n_missed++;	     	
-    	ret = new SNode(gtrees.size());
-    	ret->repr.t = new NODEID[lf*3];
-		memcpy(ret->repr.t, tr, sizeof(NODEID)*(lf*3));    	
+    	n_missed++;
+    	ret = new SNode(gtrees.size(), l, r, l->minleaf);
 		ret->repr.hsh = sk.repr.hsh;
-		ret->computecost2(l,r, this);	
-		repr2node.insert(ret);       	
+		ret->computecost2(l, r, this);
+		repr2node.insert(ret);
 
 #ifdef DEBUG_TSP     	
     	cout << res->repr.hsh << " ";    	
@@ -184,66 +165,45 @@ SNode *TreeSpace::find(SNode *l, SNode *r)
 void SNode::computecost2(SNode *snodeleft, SNode *snoderight, TreeSpace *treespace)
 {
 
-	int genetreecnt = treespace->gtrees.size();	
-	// init cost 
-	// cost = new COSTT[genetreecnt];
-	memcpy(cost, snodeleft->cost, sizeof(COSTT)*genetreecnt);
+	int genetreecnt = treespace->gtrees.size();
+	int act = treespace->active_costtype;
+	bool need_dc = (act == 0 || act == COSTDEEPCOAL || act == COSTDEEPCOALEDGE);
+	bool need_rf = (act == 0 || act == COSTROBINSONFOULDS);
 
-	bitcluster leftcluster = EMPTYSET();
-	bitcluster rightcluster = EMPTYSET();
+	// init cost (DC) — only when needed
+	if (need_dc)
+		memcpy(cost, snodeleft->cost, sizeof(COSTT)*genetreecnt);
 
-	// infer clusters
+	// Clusters come straight from children — set in their constructors.
+	// `this->cluster` is already set (UNION) by SNode's constructor.
+	bitcluster leftcluster  = snodeleft->cluster;
+	bitcluster rightcluster = snoderight->cluster;
+	bitcluster cluster      = this->cluster;
 
-    NODEID i=4;
+    // Loop over gene trees, computing whichever halves are active.
+    // DC: walk the gene-tree subtree and count edges mapped below s.
+    // RF: O(log |G|) binary_search whether the cluster matches an
+    // internal cluster in the gene tree.
 
-	if (repr.t[3] != REPROPEN)
-	{
-		// left tree is a leaf
-		leftcluster = bcsingleton[repr.t[3]];		
-	}
-	else
-	{		
-		int open = 1;			    
-	    while (1)
-	    {
-	        NODEID c = repr.t[i];                
-	        if (c==REPROPEN) open++;                  
-	        else if (c==REPRCLOSE) 
-    		{
-    			if (!--open) break;
-    		}        	
-	        else SETINSERT(leftcluster, c);                    	       	   
-	        i++;
-	    }
-	}
-
-	// add right leaves
-    while (i<repr.t[0])
-    {
-    	if (repr.t[i]<REPRCLOSE) 
-    		SETINSERT(rightcluster, repr.t[i]);                    
-    	i++;
-    }
-
-    // print elements in cluster
-	// ppSNode(cout, this) << ":::: "; 
-	// ppbitclusterspecies(cout, leftcluster) << "||";
-	// ppbitclusterspecies(cout, rightcluster);
-	// cout << endl;
-
-    bitcluster cluster = UNION(rightcluster,leftcluster);
-
-    // compute dc cost for each gene tree
 	GNode* stack[treespace->maxgenetreesize];
-	for (int i=0; i<genetreecnt; i++)	
+	for (int i=0; i<genetreecnt; i++)
 	 {
+		// RF: inherit + bonus.
+		if (need_rf)
+		{
+			cost_rf[i] = snodeleft->cost_rf[i] + snoderight->cost_rf[i];
+			const std::vector<bitcluster> &gtclusters = treespace->gtreesclustersorted[i];
+			if (std::binary_search(gtclusters.begin(), gtclusters.end(), cluster))
+				cost_rf[i] += 1;
+		}
+
+		if (!need_dc) continue;
 
 	 	int last=0;
 	 	GNode *g = treespace->gtrees[i];
 	 	cost[i]+=snoderight->cost[i];
-	 	
-	 	
-		if (EMPTYINTERSECTION(g->cluster, cluster)) continue; // disjoint clusters; 	 	
+
+		if (EMPTYINTERSECTION(g->cluster, cluster)) continue; // disjoint clusters;
 		if (ISSUBSET(g->cluster, leftcluster)) continue;  // g maps to a child or below
 		if (ISSUBSET(g->cluster, rightcluster)) continue; // g maps to a child or below
 
@@ -254,16 +214,16 @@ void SNode::computecost2(SNode *snodeleft, SNode *snoderight, TreeSpace *treespa
 	 	while (last)
 	 	{
 	 		g = stack[--last]; // g maps to s or above
-	 				
-			if (ISSUBSET(g->left->cluster, leftcluster)) c++; 
-			else if (ISSUBSET(g->left->cluster,rightcluster)) c++; 
+
+			if (ISSUBSET(g->left->cluster, leftcluster)) c++;
+			else if (ISSUBSET(g->left->cluster,rightcluster)) c++;
 			else if (NONEMPTYINTERSECTION(g->left->cluster, cluster)) stack[last++] = g->left; // left maps to s or above
 
-			if (ISSUBSET(g->right->cluster,leftcluster)) c++; 
-			else if (ISSUBSET(g->right->cluster,rightcluster)) c++; 
+			if (ISSUBSET(g->right->cluster,leftcluster)) c++;
+			else if (ISSUBSET(g->right->cluster,rightcluster)) c++;
 			else if (NONEMPTYINTERSECTION(g->right->cluster,cluster)) stack[last++] = g->right; // right maps to s or above
 	 	}
-	 	cost[i]+=c;	 	
+	 	cost[i]+=c;
 	 }
 }
 

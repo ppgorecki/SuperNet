@@ -9,13 +9,13 @@ MAKEFLAGS += -j10 # parallel
 
 .ONESHELL:
 
-.PHONY: all supnet clean_progx progx test rftest
+.PHONY: all supnet clean_progx progx test rftest pgo
 
 all: supnet
 
-OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o dp_rf.o contrnet.o bitcluster.o treespace.o hcstats.o odtstats.o topsort.o netgen.o testers.o neteditop.o algotok.o
+OBJS=tools.o clusters.o dag.o rtree.o bb.o bbstats.o network.o hillclimb.o supnet.o iso.o dp.o dp_rf.o dp_dup.o contrnet.o bitcluster.o treespace.o hcstats.o odtstats.o topsort.o netgen.o testers.o neteditop.o algotok.o
 
-SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp dp_rf.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp topsort.cpp netgen.cpp testers.cpp neteditop.cpp algotok.cpp
+SRC=tools.cpp clusters.cpp dag.cpp rtree.cpp dp.cpp dp_rf.cpp dp_dup.cpp bb.cpp bbstats.cpp network.cpp hillclimb.cpp supnet.cpp iso.cpp contrnet.cpp bitcluster.cpp treespace.cpp odtstats.cpp hcstats.cpp topsort.cpp netgen.cpp testers.cpp neteditop.cpp algotok.cpp
 
 supnet: $(OBJS)
 	$(CC) $(LFLAGS) -o $@ $^
@@ -27,6 +27,24 @@ supnet: $(OBJS)
 #   make rftest                # alias of `test`
 test rftest: supnet
 	V=$${V:-0} ./rftest.sh
+
+# Profile-Guided Optimization. Two-pass build: first an instrumented binary
+# generates profile data on a representative workload (wheat dataset HC -CRF
+# and -CDC), then a second build consumes that data for branch/inline
+# decisions. Yields ~5-15% global speedup with no code changes.
+# Usage: make pgo
+pgo:
+	@echo "[PGO 1/3] instrumented build"
+	@rm -f *.o supnet supnet_pgo_train *.gcda
+	$(CC) $(CPPFLAGS) -fprofile-generate -o supnet_pgo_train ${SRC}
+	@echo "[PGO 2/3] training run on wheat_trees_clean"
+	./supnet_pgo_train -G wheat_trees_clean -q1 -R6 --randseed 99 -CRF --HC --noodtfiles --hcstopclimb=150 -v0 > /dev/null
+	./supnet_pgo_train -G wheat_trees_clean -q1 -R6 --randseed 99 -CDC --HC --noodtfiles --hcstopclimb=150 -v0 > /dev/null
+	./supnet_pgo_train -G wheat_trees_clean -q1 -R8 --randseed 17 -CRF --HC --noodtfiles --hcstopclimb=80  -v0 > /dev/null
+	@echo "[PGO 3/3] optimized build using collected profile"
+	@rm -f *.o supnet
+	$(CC) $(CPPFLAGS) -fprofile-use -fprofile-correction -o supnet ${SRC}
+	@rm -f supnet_pgo_train *.gcda
 
 supnet64: 
 	$(CC) $(LFLAGS) $(CPPFLAGS64) -o supnet ${SRC}	
@@ -60,6 +78,8 @@ rtree.o: rtree.cpp tools.h clusters.h rtree.h dag.h network.h bb.h \
 dp.o: dp.cpp rtree.h tools.h clusters.h dag.h network.h bb.h treespace.h \
  bitcluster.h stats.h dagset.h contrnet.h dp.h
 dp_rf.o: dp_rf.cpp dp_rf.h rtree.h tools.h clusters.h dag.h network.h bb.h \
+ treespace.h bitcluster.h stats.h dagset.h
+dp_dup.o: dp_dup.cpp dp_dup.h rtree.h tools.h clusters.h dag.h network.h bb.h \
  treespace.h bitcluster.h stats.h dagset.h
 bb.o: bb.cpp bb.h tools.h rtree.h clusters.h dag.h network.h treespace.h \
  bitcluster.h stats.h dagset.h costs.h contrnet.h dp.h

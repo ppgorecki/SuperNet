@@ -99,7 +99,18 @@ protected:
 	void _getreachableto(NODEID v, bool *reachable, bool *visited);
 
 	virtual bool _skiprtedge(NODEID i, NODEID iparent, DISPLAYTREEID id);
-	virtual void initdid();
+	// Called from every Network constructor; bounds-check on `rt`. Inlined
+	// (no virtual dispatch) to avoid 500K+ vtable lookups in HC neighborhood
+	// generation.
+	inline void initdid()
+	{
+		if (rt > 8*sizeof(DISPLAYTREEID))
+		{
+			cout << "Network has too many reticulation nodes (" << rt
+			     << "). The limit is " << 8*sizeof(DISPLAYTREEID) << "." << endl;
+			exit(-1);
+		}
+	}
 
 	void _getdestconnectorsforedge(int networkclass, NODEID v, int &dsrclen, NODEID* dsrc);
 	int _getsrcconnectors(int networkclass, NODEID *esrc);
@@ -194,6 +205,10 @@ public:
 	COSTT approxminrf(RootedTree &genetree, CostFun &costfun);
 	COSTT approxminrfusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun);
 
+	// Duplication count (lower bound) via DP3-style speciation maximisation
+	COSTT approxmindup(RootedTree &genetree, CostFun &costfun);
+	COSTT approxmindupusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun);
+
 	// exact DCE(G,M) via BB
 	COSTT mindce(RootedTree &genetree, 
 		int runnaiveleqrt_t, 
@@ -213,6 +228,7 @@ public:
 
 	friend class DP_DC;
 	friend class DP_RF;
+	friend class DP_DUP;
 	friend class NetworkRetIterator;
 
 };

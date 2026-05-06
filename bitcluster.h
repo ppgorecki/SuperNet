@@ -54,11 +54,18 @@ extern bitcluster bcsingleton[MAXSPECIES];
 	
 #elif MAXSPECIES==256
 
+  // Lexicographic ordering / equality for the 256-bit struct so bitclusters
+  // can be sorted and binary-searched (used by DTCACHE RF lookups).
+  inline bool operator<(const bitcluster &a, const bitcluster &b)
+  { return (a.x < b.x) || (a.x == b.x && a.y < b.y); }
+  inline bool operator==(const bitcluster &a, const bitcluster &b)
+  { return a.x == b.x && a.y == b.y; }
+
   #define andx(a,b) (((a).x)&((b).x))
   #define andy(a,b) (((a).y)&((b).y))
-	
+
 	#define NONEMPTYINTERSECTION(a,b) (andx(a,b) || andy(a,b))
-	
+
 	// a is a subset of b
 	#define ISSUBSET(a,b) ( (andx(a,b)==((a).x)) && (andy(a,b)==((a).y)) )
 

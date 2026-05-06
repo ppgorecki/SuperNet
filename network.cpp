@@ -6,6 +6,7 @@
 #include "bb.h"
 #include "dp.h"
 #include "dp_rf.h"
+#include "dp_dup.h"
 #include "costs.h"
 #include "treespace.h"
 
@@ -68,39 +69,29 @@ SNode* Network::gendisplaytree2(DISPLAYTREEID id, SNode *t, TreeSpace *treespace
 	return dtroot;
 }
 
-SNode *Network::_gendisplaytree2(DISPLAYTREEID id, SNode *t, NODEID i, NODEID iparent, TreeSpace *treespace) 
-{ 
-	
+SNode *Network::_gendisplaytree2(DISPLAYTREEID id, SNode *t, NODEID i, NODEID iparent, TreeSpace *treespace)
+{
 	// leaf
-	if (i < lf) { 		
-		return treespace->leaf(lab[i]); 
-	}
+	if (i < lf)
+		return treespace->leaf(lab[i]);
 
-	// skip current edge
-	if (i>=rtstartid)
-	{				
-		if (_skiprtedge(i, iparent, id)) return NULL;		
-	}
-
-	NODEID cleft = MAXNODEID;
-	getchild(i, cleft);
-
-	
-	SNode* cleftgen = _gendisplaytree2(id, t, cleft, i, treespace);	
-	
-	NODEID cright = cleft;
-	if (!getchild(i, cright))
+	// reticulation: only one child (retchild aliases leftchild). Skip if the
+	// other parent edge is the active one in this display-tree id.
+	if (i >= rtstartid)
 	{
-		// reticulation only
-		return cleftgen;  // maybe MAXNODEID (ignore)
+		if (_skiprtedge(i, iparent, id)) return NULL;
+		return _gendisplaytree2(id, t, getleftchild(i), i, treespace);
 	}
 
-	SNode *crightgen = _gendisplaytree2(id, t, cright, i, treespace);
+	// tree node: descend both children. Direct getleftchild/getrightchild
+	// avoids the getchild-iterator overhead in this hot path.
+	SNode* cleftgen  = _gendisplaytree2(id, t, getleftchild(i),  i, treespace);
+	SNode* crightgen = _gendisplaytree2(id, t, getrightchild(i), i, treespace);
 
-	if (!cleftgen) return crightgen;  // maybe MAXNODEID
-	if (!crightgen) return cleftgen;  // single node
+	if (!cleftgen)  return crightgen; // maybe NULL (ignore)
+	if (!crightgen) return cleftgen;
 
-	return treespace->find(cleftgen,crightgen);
+	return treespace->find(cleftgen, crightgen);
 }
 
 bool Network::_skiprtedge(NODEID i, NODEID iparent, DISPLAYTREEID id)
@@ -470,9 +461,37 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees,
 
 	long dtgtcnt = 0;
 
-	// DTCACHE caches a DC-flavoured cost in SNode::cost; for cost functions
-	// other than DC/DCE we must compute via lcamap + costfun.compute().
-	bool useCache = (costfun.costtype() == COSTDEEPCOAL || costfun.costtype() == COSTDEEPCOALEDGE);
+	// DTCACHE caches DC-flavoured cost in SNode::cost AND RF matches count
+	// in SNode::cost_rf. For DC/DCE/RF we read from the cache; other costs
+	// must compute via lcamap + costfun.compute().
+	int _ct = costfun.costtype();
+	bool useCache = (_ct == COSTDEEPCOAL || _ct == COSTDEEPCOALEDGE
+	                 || _ct == COSTROBINSONFOULDS);
+
+	// RF requires bijective gene-tree labelling matching the network's leaf
+	// set. Without DTCACHE, CFRobinsonFoulds::compute checks this; with the
+	// cache, we'd silently return a meaningless number, so guard up-front
+	// — only once per (cost-type, gene-tree-set) since validation is O(|G_set| * lf).
+	if (_ct == COSTROBINSONFOULDS)
+	{
+		static const std::vector<RootedTree*> *_validated_for = NULL;
+		if (_validated_for != &genetrees)
+		{
+			for (size_t gt_i = 0; gt_i < genetrees.size(); gt_i++)
+			{
+				RootedTree *gt = genetrees[gt_i];
+				if (gt->lf != this->lf || !gt->bijectiveleaflabelling())
+				{
+					cerr << "RF cost requires every gene tree to have a bijective "
+					     << "leaf labelling matching the network's leaf set "
+					     << "(gt has " << gt->lf << " leaves, network has "
+					     << this->lf << ")." << endl;
+					exit(-1);
+				}
+			}
+			_validated_for = &genetrees;
+		}
+	}
 
     while (1)
     {
@@ -524,7 +543,20 @@ double Network::odtcostnaive(vector<RootedTree*> &genetrees,
 #ifdef DTCACHE
 			if (useCache)
 			{
-				curcost = s->cost[genetree->getid()] - 2*genetree->lf+2;
+				int gid = genetree->getid();
+				if (_ct == COSTROBINSONFOULDS)
+				{
+					// RF cost = |I(G)| + |I(S)| - 2*matches; both trees binary
+					// and same lf so |I|=lf-1. cost_rf is the matches count
+					// (incl. root).  cost = 2*(lf-1) - 2*matches.
+					COSTT lf_ = genetree->lf;
+					curcost = 2 * (lf_ - 1) - 2 * s->cost_rf[gid];
+				}
+				else
+				{
+					// DC/DCE: stored as DCE; subtract 2*lf-2 for DC.
+					curcost = s->cost[gid] - 2*genetree->lf+2;
+				}
 			}
 			else
 			{
@@ -858,14 +890,8 @@ ostream& operator<<(ostream& os, const RETUSAGE& r)
 #endif
 
 
-void Network::initdid()
-{
-	if (rtcount() > 8*sizeof(DISPLAYTREEID)) 
-    {
-      cout << "Network has too many reticulation nodes (" << rt << "). The limit is " << 8*sizeof(DISPLAYTREEID) << "." << endl;    
-      exit(-1);
-    }	
-}
+// initdid moved inline to network.h so the (very hot, 500K+ calls in HC
+// neighborhood generation) path skips a virtual dispatch.
 
 // Only for DCE
 // costfun ignored
@@ -920,6 +946,27 @@ COSTT Network::approxminrfusage(RootedTree &genetree, RETUSAGE &retusage, CostFu
     DP_RF dprf(genetree, *this);
     dprf.preprocess();
     return dprf.minrfscore(retusage);
+}
+
+// Duplication count (lower bound) via DP3-style speciation maximisation.
+// Same tree-child constraint as DP_RF.
+COSTT Network::approxmindup(RootedTree &genetree, CostFun &costfun)
+{
+    RETUSAGE _;
+    return approxmindupusage(genetree, _, costfun);
+}
+
+COSTT Network::approxmindupusage(RootedTree &genetree, RETUSAGE &retusage, CostFun &costfun)
+{
+    if (!istreechild())
+    {
+        cerr << "Duplication DP/BB only supports tree-child networks; current input is not tree-child:" << endl
+             << *this << endl;
+        exit(-1);
+    }
+    DP_DUP dpdup(genetree, *this);
+    dpdup.preprocess();
+    return dpdup.minduplications(retusage);
 }
 
 

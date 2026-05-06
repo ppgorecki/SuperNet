@@ -66,9 +66,13 @@ void Dag::parse(char *s)
     NODEID *_p = parent; 
     
     map<string, NODEID> retlabel2spid;
-    root = _parse(s, p, 0, freeleaf, freeint, freeret, _p, retlabel2spid);   
-    parent[root] = MAXNODEID;     
-    checkparsing(s+p); 
+    root = _parse(s, p, 0, freeleaf, freeint, freeret, _p, retlabel2spid);
+    parent[root] = MAXNODEID;
+    checkparsing(s+p);
+
+    // Canonicalize leaf indexing so findlab is O(1) downstream.
+    setexactspecies();
+    normalizeleafindexing();
 }
 
 
@@ -380,8 +384,7 @@ Dag::Dag(int _lf, NODEID *labels, double dagweight) : weight(dagweight)
     parent[root] = MAXNODEID;
 
   setexactspecies();
-
-
+  normalizeleafindexing();
 }
 
 // Find a leaf by a label
@@ -703,12 +706,57 @@ bool Dag::getchild(NODEID i, NODEID &ichild)
 void Dag::setexactspecies()
 {
     exactspecies = 1;
-    for (NODEID i=0; i<lf; i++) 
-    	if (lab[i] != i) 
-    		{ 
-    			exactspecies = 0; 
-    			break; 
+    for (NODEID i=0; i<lf; i++)
+    	if (lab[i] != i)
+    		{
+    			exactspecies = 0;
+    			break;
     		}
+}
+
+
+void Dag::normalizeleafindexing()
+{
+    if (exactspecies) return;
+
+    // Verify lab[0..lf-1] is a bijection onto [0..lf-1]. If not, leave as is.
+    bool *seen = new bool[lf];
+    for (NODEID i = 0; i < lf; i++) seen[i] = false;
+    for (NODEID i = 0; i < lf; i++)
+    {
+        if (lab[i] >= lf || seen[lab[i]])
+        {
+            delete[] seen;
+            return;
+        }
+        seen[lab[i]] = true;
+    }
+    delete[] seen;
+
+    // new_id[old_pos] = species id of the leaf at old_pos; this is the new
+    // position the leaf should occupy.
+    NODEID *new_id = new NODEID[lf];
+    for (NODEID i = 0; i < lf; i++) new_id[i] = lab[i];
+
+    // Permute parent[] for leaf positions.
+    NODEID *new_parent = new NODEID[lf];
+    for (NODEID i = 0; i < lf; i++) new_parent[new_id[i]] = parent[i];
+    for (NODEID i = 0; i < lf; i++) parent[i] = new_parent[i];
+    delete[] new_parent;
+
+    // Update child references that point to leaves. leftchild is allocated
+    // for tree nodes AND reticulations (and retchild aliases it). rightchild
+    // exists only for tree nodes [lf, rtstartid).
+    for (NODEID v = lf; v < nn; v++)
+        if (leftchild[v] < lf) leftchild[v] = new_id[leftchild[v]];
+    for (NODEID v = lf; v < rtstartid; v++)
+        if (rightchild[v] < lf) rightchild[v] = new_id[rightchild[v]];
+
+    // Canonical lab[i] == i.
+    for (NODEID i = 0; i < lf; i++) lab[i] = i;
+
+    delete[] new_id;
+    exactspecies = 1;
 }
 
 ostream& Dag::printdebstats(ostream&s) 
@@ -929,7 +977,7 @@ Dag::Dag(Dag *d, NODEID v, NODEID p, NODEID w, NODEID q, string retid, double da
     else retparent[w]=nr;
 
     verifychildparent();
-    setexactspecies();
+    /* setexactspecies-noop */
 
 }
 

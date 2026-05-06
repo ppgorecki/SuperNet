@@ -714,6 +714,10 @@ int main(int argc, char **argv) {
 
   // Initialize clusters
   globaltreespace = new TreeSpace(genetreesv, maxdisplaytreecachesize);
+  // Tell the cache which cost half to populate. SNodes built with one
+  // active cost type then read with another would be UB; we lock it in
+  // here to the cost selected on the CLI.
+  globaltreespace->setactivecost(costfun->costtype());
 
   Clusters *guideclusters = NULL;
   if (opt_guideclusters)
@@ -1056,7 +1060,8 @@ int main(int argc, char **argv) {
             ntpos->mindce(*gtpos, flag_runnaiveleqrt, *costfun, odtstats,
                              &bbtreestats, bbstartscore, bbstartscoredefined);
         // For DC the legacy contract returns DCE; convert back to DC for
-        // display (matches existing --BB output). DCE/RF are returned directly.
+        // display (matches existing --BB output). DCE/RF/D are returned
+        // directly.
         COSTT cost_display;
         if (ct == COSTDEEPCOAL)
           cost_display = res - (*gtpos).sizelf() * 2 - 2;

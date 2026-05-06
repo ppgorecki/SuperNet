@@ -98,6 +98,14 @@ supnet -n '((((c)#B,b))#A,(#A,(#B,a)))' -d | dot -Tpdf > n.pdf
   // compute the value of exactspecies
   void setexactspecies();
 
+  // Permute leaf positions so that lab[i] == i for every leaf, i.e. the leaf
+  // array is in canonical species-id order. After this returns successfully
+  // exactspecies==1 and Dag::findlab is O(1) on slab<lf.
+  // No-op if already exactspecies, or if lab[] is not a bijection onto [0,lf).
+  // Updates parent[], leftchild[], rightchild[] (retchild aliases leftchild)
+  // wherever they reference leaves.
+  void normalizeleafindexing();
+
   // Parse from char*; allocates all needed arrays
   void parse(char *s);
 
@@ -277,6 +285,7 @@ public:
   friend class DagSet;
   friend class DP_DCE;
   friend class DP_RF;
+  friend class DP_DUP;
 
   long int getusagecount() { return usagecount; }
 
